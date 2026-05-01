@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(node *)",
+      "Bash(xargs sed *)"
+    ]
+  }
+}
