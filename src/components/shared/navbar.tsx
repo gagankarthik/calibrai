@@ -3,13 +3,10 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { cn } from '@/lib/utils'
 import {
   Menu,
   X,
-  Zap,
   ChevronDown,
   Kanban,
   Brain,
@@ -18,119 +15,57 @@ import {
   Users,
   MessageSquare,
   Search,
-  Award,
   TrendingUp,
-  Bell,
   Building2,
   UserRound,
 } from 'lucide-react'
 
 /* ── Mega-menu data ── */
 
-const companiesMenu = {
+const featuresMenu = {
   features: [
     {
       icon: Kanban,
-      bg: 'bg-purple-500/10',
-      color: 'text-purple-400',
       title: 'Pipeline Management',
       desc: "Visualize every candidate's journey",
       href: '#companies',
     },
     {
       icon: Brain,
-      bg: 'bg-blue-500/10',
-      color: 'text-blue-400',
       title: 'AI Matching',
       desc: '94% accurate candidate scoring',
       href: '#companies',
     },
     {
       icon: BarChart3,
-      bg: 'bg-amber-500/10',
-      color: 'text-amber-400',
       title: 'Analytics',
       desc: 'Hiring metrics that matter',
       href: '#companies',
     },
     {
       icon: Shield,
-      bg: 'bg-emerald-500/10',
-      color: 'text-emerald-400',
       title: 'ATS Compliance',
       desc: 'SOC2 & GDPR ready',
       href: '#companies',
     },
     {
       icon: Users,
-      bg: 'bg-cyan-500/10',
-      color: 'text-cyan-400',
       title: 'Talent Pool',
       desc: 'Search 50k+ verified profiles',
       href: '#companies',
     },
     {
       icon: MessageSquare,
-      bg: 'bg-pink-500/10',
-      color: 'text-pink-400',
-      title: 'Messaging',
+      title: 'AI Messaging',
       desc: 'Built-in recruiter inbox',
       href: '#companies',
     },
   ],
-  proof: {
-    headline: '200+ companies hiring on Calibr',
-    pills: ['Stripe', 'Vercel', 'Linear'],
-    stat: 'Average ROI: $48k saved per hire',
-    cta: 'Start Free Trial',
-    href: '/auth/register',
-  },
-}
-
-const seekersMenu = {
-  features: [
-    {
-      icon: Search,
-      bg: 'bg-blue-500/10',
-      color: 'text-blue-400',
-      title: 'Smart Job Matching',
-      desc: 'AI finds roles that fit your DNA',
-      href: '#seekers',
-    },
-    {
-      icon: Award,
-      bg: 'bg-amber-500/10',
-      color: 'text-amber-400',
-      title: 'Skills Verification',
-      desc: 'Stand out with verified credentials',
-      href: '#seekers',
-    },
-    {
-      icon: TrendingUp,
-      bg: 'bg-emerald-500/10',
-      color: 'text-emerald-400',
-      title: 'Salary Intelligence',
-      desc: 'Know your market worth',
-      href: '#seekers',
-    },
-    {
-      icon: Bell,
-      bg: 'bg-purple-500/10',
-      color: 'text-purple-400',
-      title: 'Job Alerts',
-      desc: 'First to know about new roles',
-      href: '#seekers',
-    },
-  ],
-  proof: {
-    headline: '50,000+ verified candidates',
-    stat: 'Average 3.2x more interviews',
-    cta: 'Browse Jobs',
-    href: '/talent/dashboard',
-  },
 }
 
 const simpleNavLinks = [
+  { label: 'For Companies', href: '#companies' },
+  { label: 'For Talent', href: '#seekers' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Resources', href: '#' },
   { label: 'Contact', href: '/contact' },
@@ -139,26 +74,25 @@ const simpleNavLinks = [
 /* ── Animation ── */
 
 const dropdownVariants = {
-  initial: { opacity: 0, y: -8, scale: 0.97 },
+  initial: { opacity: 0, y: -6, scale: 0.98 },
   animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.97 },
+  exit: { opacity: 0, y: -6, scale: 0.98 },
 }
 
-const dropdownTransition = { duration: 0.18, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }
+const dropdownTransition = {
+  duration: 0.18,
+  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+}
 
-/* ── Feature item ── */
+/* ── Mega Feature Item ── */
 
-function FeatureItem({
+function MegaFeatureItem({
   icon: Icon,
-  bg,
-  color,
   title,
   desc,
   href,
 }: {
   icon: React.ComponentType<{ className?: string }>
-  bg: string
-  color: string
   title: string
   desc: string
   href: string
@@ -166,16 +100,16 @@ function FeatureItem({
   return (
     <Link
       href={href}
-      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-muted/60 transition-colors group"
+      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-tl-bg-elevated transition-colors group"
     >
-      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0', bg)}>
-        <Icon className={cn('w-4 h-4', color)} />
+      <div className="w-9 h-9 rounded-lg bg-tl-gold/10 border border-tl-gold/20 flex items-center justify-center flex-shrink-0">
+        <Icon className="w-4 h-4 text-tl-gold" />
       </div>
       <div>
-        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+        <p className="text-sm font-semibold text-tl-text-primary group-hover:text-tl-gold transition-colors leading-tight">
           {title}
         </p>
-        <p className="text-xs text-muted-foreground leading-snug mt-0.5">{desc}</p>
+        <p className="text-xs text-tl-text-secondary leading-snug mt-0.5">{desc}</p>
       </div>
     </Link>
   )
@@ -191,60 +125,56 @@ function SignInDropdown({ onClose }: { onClose: () => void }) {
       animate="animate"
       exit="exit"
       transition={dropdownTransition}
-      className="absolute top-full right-0 mt-2 w-72 glass border border-border shadow-2xl rounded-2xl p-3 z-50"
+      className="absolute top-full right-0 mt-2 w-72 bg-tl-bg-surface border border-tl-border-gold rounded-2xl shadow-gold p-3 z-50"
       role="menu"
       aria-label="Sign in options"
     >
-      {/* For Hiring Teams */}
       <Link
         href="/auth/login?role=company"
         onClick={onClose}
-        className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/60 transition-colors group"
+        className="flex items-start gap-3 p-3 rounded-xl hover:bg-tl-bg-elevated transition-colors group"
         role="menuitem"
       >
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-500/10">
-          <Building2 className="w-4 h-4 text-purple-400" />
+        <div className="w-9 h-9 rounded-lg bg-tl-gold/10 border border-tl-gold/20 flex items-center justify-center flex-shrink-0">
+          <Building2 className="w-4 h-4 text-tl-gold" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+          <p className="text-sm font-semibold text-tl-text-primary group-hover:text-tl-gold transition-colors leading-tight">
             For Hiring Teams
           </p>
-          <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+          <p className="text-xs text-tl-text-secondary leading-snug mt-0.5">
             Post jobs, manage pipeline
           </p>
         </div>
       </Link>
 
-      {/* For Job Seekers */}
       <Link
         href="/auth/login?role=talent"
         onClick={onClose}
-        className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/60 transition-colors group"
+        className="flex items-start gap-3 p-3 rounded-xl hover:bg-tl-bg-elevated transition-colors group"
         role="menuitem"
       >
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-500/10">
-          <Search className="w-4 h-4 text-blue-400" />
+        <div className="w-9 h-9 rounded-lg bg-tl-teal/10 border border-tl-teal/20 flex items-center justify-center flex-shrink-0">
+          <Search className="w-4 h-4 text-tl-teal" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+          <p className="text-sm font-semibold text-tl-text-primary group-hover:text-tl-gold transition-colors leading-tight">
             For Job Seekers
           </p>
-          <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+          <p className="text-xs text-tl-text-secondary leading-snug mt-0.5">
             Find your next role
           </p>
         </div>
       </Link>
 
-      {/* Divider */}
-      <div className="my-2 border-t border-border" />
+      <div className="my-2 border-t border-tl-border-subtle" />
 
-      {/* New to Calibr */}
       <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs text-muted-foreground">New to Calibr?</span>
+        <span className="text-xs text-tl-text-secondary">New to TalentLoop?</span>
         <Link
           href="/auth/register"
           onClick={onClose}
-          className="text-xs font-semibold text-primary hover:underline transition-colors"
+          className="text-xs font-semibold text-tl-gold hover:underline transition-colors"
           role="menuitem"
         >
           Create free account →
@@ -254,11 +184,103 @@ function SignInDropdown({ onClose }: { onClose: () => void }) {
   )
 }
 
+/* ── Mobile menu ── */
+
+function MobileMenu({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-40 bg-tl-bg-base flex flex-col"
+      aria-modal="true"
+      role="dialog"
+      aria-label="Mobile navigation"
+    >
+      {/* Decorative gold gradient top */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-gold opacity-50" />
+
+      <div className="flex items-center justify-between px-6 py-4">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5"
+          aria-label="TalentLoop — go to homepage"
+          onClick={onClose}
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-tl-gold shadow-gold block" aria-hidden="true" />
+          <span className="font-display font-bold text-xl gradient-text">TalentLoop</span>
+        </Link>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all"
+          aria-label="Close navigation menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <nav className="flex flex-col gap-1 px-6 py-6 flex-1 overflow-y-auto" aria-label="Mobile navigation">
+        <Link
+          href="#features"
+          className="px-4 py-3 rounded-xl text-base text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all"
+          onClick={onClose}
+        >
+          Features
+        </Link>
+        {simpleNavLinks.map((link) => (
+          <Link
+            key={link.label}
+            href={link.href}
+            className="px-4 py-3 rounded-xl text-base text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all"
+            onClick={onClose}
+          >
+            {link.label}
+          </Link>
+        ))}
+
+        <div className="mt-6 pt-6 border-t border-tl-border-subtle flex flex-col gap-3">
+          <p className="px-1 text-xs font-semibold text-tl-text-muted uppercase tracking-widest">
+            Sign In
+          </p>
+          <Link
+            href="/auth/login?role=company"
+            onClick={onClose}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-tl-border-default hover:border-tl-border-gold hover:bg-tl-bg-elevated transition-all group"
+          >
+            <Building2 className="w-4 h-4 text-tl-gold" />
+            <span className="text-sm font-medium text-tl-text-secondary group-hover:text-tl-text-primary">
+              Sign In as Company
+            </span>
+          </Link>
+          <Link
+            href="/auth/login?role=talent"
+            onClick={onClose}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-tl-border-default hover:border-tl-border-gold hover:bg-tl-bg-elevated transition-all group"
+          >
+            <Search className="w-4 h-4 text-tl-teal" />
+            <span className="text-sm font-medium text-tl-text-secondary group-hover:text-tl-text-primary">
+              Sign In as Job Seeker
+            </span>
+          </Link>
+          <Link
+            href="/auth/register"
+            onClick={onClose}
+            className="btn-gold flex items-center justify-center gap-2 rounded-xl py-3 px-6 text-sm font-semibold mt-1"
+          >
+            Get Started
+          </Link>
+        </div>
+      </nav>
+    </motion.div>
+  )
+}
+
 /* ── Navbar ── */
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [openMenu, setOpenMenu] = useState<null | 'companies' | 'seekers' | 'signin'>(null)
+  const [openMenu, setOpenMenu] = useState<null | 'features' | 'signin'>(null)
   const [scrolled, setScrolled] = useState(false)
   const navRef = useRef<HTMLElement>(null)
 
@@ -280,307 +302,165 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const toggle = (menu: 'companies' | 'seekers' | 'signin') =>
+  const toggle = (menu: 'features' | 'signin') =>
     setOpenMenu((prev) => (prev === menu ? null : menu))
 
   return (
-    <header
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all',
-        scrolled && 'shadow-lg'
-      )}
-      role="banner"
-      ref={navRef}
-    >
-      <div className="flex items-center justify-between px-6 py-4 mx-auto max-w-7xl">
-
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5" aria-label="CalibrAI — go to homepage">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-lg font-bold text-foreground">
-            Calibr<span className="gradient-text">AI</span>
-          </span>
-        </Link>
-
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1 relative" aria-label="Main navigation">
-
-          {/* For Companies */}
-          <div className="relative">
-            <button
-              onClick={() => toggle('companies')}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                openMenu === 'companies'
-                  ? 'text-foreground bg-white/5'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-              )}
-              aria-expanded={openMenu === 'companies'}
-              aria-haspopup="true"
-            >
-              For Companies
-              <motion.span
-                animate={{ rotate: openMenu === 'companies' ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ display: 'inline-flex' }}
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </motion.span>
-            </button>
-
-            <AnimatePresence>
-              {openMenu === 'companies' && (
-                <motion.div
-                  variants={dropdownVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={dropdownTransition}
-                  className="absolute top-full left-0 mt-2 w-[540px] glass border border-border shadow-2xl rounded-2xl p-5 z-50"
-                >
-                  <div className="flex gap-4">
-                    {/* Features grid */}
-                    <div className="flex-1 grid grid-cols-2 gap-0.5">
-                      {companiesMenu.features.map((f) => (
-                        <FeatureItem key={f.title} {...f} />
-                      ))}
-                    </div>
-
-                    {/* Social proof */}
-                    <div className="w-44 flex-shrink-0 bg-primary/5 border border-border rounded-xl p-4 flex flex-col gap-3">
-                      <p className="text-xs font-semibold text-foreground leading-snug">
-                        {companiesMenu.proof.headline}
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {companiesMenu.proof.pills.map((pill) => (
-                          <span
-                            key={pill}
-                            className="px-2 py-0.5 rounded-full bg-muted border border-border text-xs text-muted-foreground font-medium"
-                          >
-                            {pill}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
-                        <TrendingUp className="w-3 h-3" />
-                        {companiesMenu.proof.stat}
-                      </div>
-                      <Button size="sm" className="w-full text-xs h-8 mt-auto" asChild>
-                        <Link href={companiesMenu.proof.href}>
-                          {companiesMenu.proof.cta} →
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* For Job Seekers */}
-          <div className="relative">
-            <button
-              onClick={() => toggle('seekers')}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                openMenu === 'seekers'
-                  ? 'text-foreground bg-white/5'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-              )}
-              aria-expanded={openMenu === 'seekers'}
-              aria-haspopup="true"
-            >
-              For Job Seekers
-              <motion.span
-                animate={{ rotate: openMenu === 'seekers' ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ display: 'inline-flex' }}
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </motion.span>
-            </button>
-
-            <AnimatePresence>
-              {openMenu === 'seekers' && (
-                <motion.div
-                  variants={dropdownVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={dropdownTransition}
-                  className="absolute top-full left-0 mt-2 w-[480px] glass border border-border shadow-2xl rounded-2xl p-5 z-50"
-                >
-                  <div className="flex gap-4">
-                    {/* Features */}
-                    <div className="flex-1 grid grid-cols-1 gap-0.5">
-                      {seekersMenu.features.map((f) => (
-                        <FeatureItem key={f.title} {...f} />
-                      ))}
-                    </div>
-
-                    {/* Proof */}
-                    <div className="w-44 flex-shrink-0 bg-primary/5 border border-border rounded-xl p-4 flex flex-col gap-3">
-                      <p className="text-xs font-semibold text-foreground leading-snug">
-                        {seekersMenu.proof.headline}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
-                        <TrendingUp className="w-3 h-3" />
-                        {seekersMenu.proof.stat}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full text-xs h-8 mt-auto"
-                        asChild
-                      >
-                        <Link href={seekersMenu.proof.href}>
-                          {seekersMenu.proof.cta} →
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Simple nav links: Pricing, Resources, Contact */}
-          {simpleNavLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* CTA */}
-        <div className="hidden md:flex items-center gap-3">
-          <ThemeToggle />
-
-          {/* Sign In with role dropdown */}
-          <div className="relative">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toggle('signin')}
-              aria-expanded={openMenu === 'signin'}
-              aria-haspopup="true"
-              className="flex items-center gap-1.5"
-            >
-              <UserRound className="w-3.5 h-3.5" />
-              Sign In
-              <motion.span
-                animate={{ rotate: openMenu === 'signin' ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ display: 'inline-flex' }}
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </motion.span>
-            </Button>
-
-            <AnimatePresence>
-              {openMenu === 'signin' && (
-                <SignInDropdown onClose={() => setOpenMenu(null)} />
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Get Started Free → /auth/register (register page handles role choice) */}
-          <Button size="sm" asChild>
-            <Link href="/auth/register">Get Started Free</Link>
-          </Button>
-        </div>
-
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-expanded={mobileOpen}
-          aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
-
-      {/* Glassmorphism background — stronger blur on scroll */}
-      <div
+    <>
+      <header
+        ref={navRef}
         className={cn(
-          'absolute inset-0 -z-10 border-b border-white/[0.05] transition-all duration-300',
+          'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
           scrolled
-            ? 'glass backdrop-blur-xl bg-background/80'
-            : 'glass backdrop-blur-sm bg-background/40'
+            ? 'bg-tl-bg-base/95 backdrop-blur-xl border-b border-tl-border-subtle shadow-elevated'
+            : 'bg-transparent backdrop-blur-sm'
         )}
-        aria-hidden="true"
-      />
+        role="banner"
+      >
+        <div className="flex items-center justify-between px-6 py-4 mx-auto max-w-7xl">
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.22 }}
-            className="md:hidden glass border-b border-white/[0.05] overflow-hidden"
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center gap-2.5"
+            aria-label="TalentLoop — go to homepage"
           >
-            <nav className="flex flex-col gap-1 px-6 py-4" aria-label="Mobile navigation">
-              <Link
-                href="#companies"
-                className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
-                onClick={() => setMobileOpen(false)}
-              >
-                For Companies
-              </Link>
-              <Link
-                href="#seekers"
-                className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
-                onClick={() => setMobileOpen(false)}
-              >
-                For Job Seekers
-              </Link>
-              {simpleNavLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+            <span
+              className="w-2.5 h-2.5 rounded-full bg-tl-gold shadow-gold block flex-shrink-0"
+              aria-hidden="true"
+            />
+            <span className="font-display font-bold text-xl gradient-text">TalentLoop</span>
+          </Link>
 
-              {/* Mobile auth section */}
-              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
-                <p className="px-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Sign In
-                </p>
-                <Button variant="outline" className="justify-start gap-2" asChild>
-                  <Link href="/auth/login?role=company" onClick={() => setMobileOpen(false)}>
-                    <Building2 className="w-4 h-4 text-purple-400" />
-                    Sign In as Company
-                  </Link>
-                </Button>
-                <Button variant="outline" className="justify-start gap-2" asChild>
-                  <Link href="/auth/login?role=talent" onClick={() => setMobileOpen(false)}>
-                    <Search className="w-4 h-4 text-blue-400" />
-                    Sign In as Job Seeker
-                  </Link>
-                </Button>
-                <Button className="mt-1" asChild>
-                  <Link href="/auth/register" onClick={() => setMobileOpen(false)}>
-                    Get Started Free
-                  </Link>
-                </Button>
-              </div>
-            </nav>
-          </motion.div>
-        )}
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-1 relative" aria-label="Main navigation">
+
+            {/* Features mega-dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggle('features')}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tl-gold',
+                  openMenu === 'features'
+                    ? 'text-tl-text-primary bg-tl-bg-elevated'
+                    : 'text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated'
+                )}
+                aria-expanded={openMenu === 'features'}
+                aria-haspopup="true"
+              >
+                Features
+                <motion.span
+                  animate={{ rotate: openMenu === 'features' ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ display: 'inline-flex' }}
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </motion.span>
+              </button>
+
+              <AnimatePresence>
+                {openMenu === 'features' && (
+                  <motion.div
+                    variants={dropdownVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={dropdownTransition}
+                    className="absolute top-full left-0 mt-2 w-[520px] bg-tl-bg-surface border border-tl-border-gold rounded-2xl shadow-gold-lg p-5 z-50"
+                  >
+                    <p className="text-xs font-semibold text-tl-gold uppercase tracking-widest mb-3 px-1">
+                      Platform Features
+                    </p>
+                    <div className="grid grid-cols-2 gap-0.5">
+                      {featuresMenu.features.map((f) => (
+                        <MegaFeatureItem key={f.title} {...f} />
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-tl-border-subtle flex items-center justify-between px-1">
+                      <div className="flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-tl-teal" />
+                        <span className="text-xs text-tl-text-secondary font-medium">
+                          200+ companies · $48k avg saved per hire
+                        </span>
+                      </div>
+                      <Link
+                        href="/auth/register"
+                        className="text-xs font-semibold text-tl-gold hover:underline"
+                        onClick={() => setOpenMenu(null)}
+                      >
+                        Start free trial →
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Simple nav links */}
+            {simpleNavLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="px-4 py-2 rounded-xl text-sm text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tl-gold"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center gap-3">
+            {/* Sign In dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggle('signin')}
+                className={cn(
+                  'btn-ghost flex items-center gap-1.5 text-sm py-2 px-4 rounded-xl',
+                  openMenu === 'signin' && 'border-tl-border-gold text-tl-text-primary'
+                )}
+                aria-expanded={openMenu === 'signin'}
+                aria-haspopup="true"
+              >
+                <UserRound className="w-3.5 h-3.5" />
+                Sign In
+                <motion.span
+                  animate={{ rotate: openMenu === 'signin' ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ display: 'inline-flex' }}
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </motion.span>
+              </button>
+
+              <AnimatePresence>
+                {openMenu === 'signin' && (
+                  <SignInDropdown onClose={() => setOpenMenu(null)} />
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Get Started */}
+            <Link href="/auth/register" className="btn-gold text-sm py-2 px-5 rounded-xl">
+              Get Started
+            </Link>
+          </div>
+
+          {/* Mobile toggle */}
+          <button
+            className="md:hidden p-2 rounded-lg text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tl-gold"
+            onClick={() => setMobileOpen(true)}
+            aria-expanded={mobileOpen}
+            aria-label="Open navigation menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile full-screen overlay */}
+      <AnimatePresence>
+        {mobileOpen && <MobileMenu onClose={() => setMobileOpen(false)} />}
       </AnimatePresence>
-    </header>
+    </>
   )
 }

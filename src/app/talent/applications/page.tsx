@@ -24,8 +24,8 @@ import { STAGE_LABELS } from '@/lib/constants'
 
 // ─── Avatar color hash ────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
-  'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500', 'bg-teal-500',
+  'bg-tl-blue', 'bg-tl-teal', 'bg-tl-rose', 'bg-tl-gold',
+  'bg-blue-700', 'bg-cyan-700', 'bg-fuchsia-700', 'bg-teal-700',
 ]
 function avatarColor(name: string) {
   let h = 0
@@ -35,13 +35,13 @@ function avatarColor(name: string) {
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; badgeClass: string; dotClass: string; tabClass: string }> = {
-  applied:   { label: 'Applied',       badgeClass: 'bg-blue-500/15 text-blue-400 border-blue-500/30',       dotClass: 'bg-blue-400',    tabClass: 'text-blue-400' },
-  screening: { label: 'Screening',     badgeClass: 'bg-violet-500/15 text-violet-400 border-violet-500/30', dotClass: 'bg-violet-400',  tabClass: 'text-violet-400' },
-  interview: { label: 'Interview',     badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',    dotClass: 'bg-amber-400',   tabClass: 'text-amber-400' },
-  technical: { label: 'Technical',     badgeClass: 'bg-orange-500/15 text-orange-400 border-orange-500/30', dotClass: 'bg-orange-400',  tabClass: 'text-orange-400' },
-  offer:     { label: 'Offer',         badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dotClass: 'bg-emerald-400', tabClass: 'text-emerald-400' },
-  hired:     { label: 'Hired',         badgeClass: 'bg-green-500/15 text-green-400 border-green-500/30',    dotClass: 'bg-green-400',   tabClass: 'text-green-400' },
-  rejected:  { label: 'Not Selected',  badgeClass: 'bg-red-500/15 text-red-400 border-red-500/30',          dotClass: 'bg-red-400',     tabClass: 'text-red-400' },
+  applied:   { label: 'Applied',       badgeClass: 'tl-tag-blue',   dotClass: 'bg-tl-blue',   tabClass: 'text-tl-blue' },
+  screening: { label: 'Screening',     badgeClass: 'bg-violet-500/15 text-violet-400 border border-violet-500/30', dotClass: 'bg-violet-400',  tabClass: 'text-violet-400' },
+  interview: { label: 'Interview',     badgeClass: 'tl-tag-gold',   dotClass: 'bg-tl-gold',   tabClass: 'text-tl-gold' },
+  technical: { label: 'Technical',     badgeClass: 'bg-orange-500/15 text-orange-400 border border-orange-500/30', dotClass: 'bg-orange-400',  tabClass: 'text-orange-400' },
+  offer:     { label: 'Offer',         badgeClass: 'tl-tag-teal',   dotClass: 'bg-tl-teal',   tabClass: 'text-tl-teal' },
+  hired:     { label: 'Hired',         badgeClass: 'tl-tag-teal',   dotClass: 'bg-tl-teal',   tabClass: 'text-tl-teal' },
+  rejected:  { label: 'Not Selected',  badgeClass: 'tl-tag-rose',   dotClass: 'bg-tl-rose',   tabClass: 'text-tl-rose' },
 }
 
 // ─── Pipeline stages (excluding rejected) for timeline ───────────────────────
@@ -61,14 +61,14 @@ function StageTimeline({ currentStage }: { currentStage: PipelineStage }) {
           <div
             className={cn(
               'w-3 h-3 rounded-full border-2 transition-all',
-              i < currentIdx  ? 'bg-primary border-primary' :
-              i === currentIdx ? 'bg-primary border-primary ring-2 ring-primary/30' :
-              'bg-background border-border'
+              i < currentIdx  ? 'bg-tl-teal border-tl-teal' :
+              i === currentIdx ? 'bg-tl-gold border-tl-gold ring-2 ring-tl-gold/30' :
+              'bg-tl-bg-elevated border-tl-border-default'
             )}
             title={STAGE_LABELS[stage as PipelineStage]}
           />
           {i < displayStages.length - 1 && (
-            <div className={cn('h-0.5 w-6 lg:w-8', i < currentIdx ? 'bg-primary' : 'bg-border')} />
+            <div className={cn('h-0.5 w-6 lg:w-8', i < currentIdx ? 'bg-tl-gold' : 'bg-tl-border-subtle')} />
           )}
         </div>
       ))}
@@ -132,12 +132,12 @@ export default function ApplicationsPage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
       >
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Applications</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track every application in one place</p>
+          <h1 className="text-2xl font-display font-bold text-tl-text-primary">My Applications</h1>
+          <p className="text-sm text-tl-text-secondary mt-1">Track every application in one place</p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 shrink-0">
+        <button className="btn-ghost gap-2 shrink-0 flex items-center">
           <Download className="w-4 h-4" /> Export Report
-        </Button>
+        </button>
       </motion.div>
 
       {/* ── STATS ROW ───────────────────────────────────────────────────────── */}
@@ -148,17 +148,17 @@ export default function ApplicationsPage() {
         className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
       >
         {[
-          { label: 'Total Applied',  value: stats.total,     icon: FileText,    iconClass: 'text-blue-400',    bgClass: 'bg-blue-500/10 border-blue-500/20' },
+          { label: 'Total Applied',  value: stats.total,     icon: FileText,    iconClass: 'text-tl-blue',   bgClass: 'bg-tl-blue/10 border-tl-blue/20' },
           { label: 'Active',         value: stats.active,    icon: Zap,         iconClass: 'text-violet-400',  bgClass: 'bg-violet-500/10 border-violet-500/20' },
-          { label: 'In Interview',   value: stats.interview, icon: Calendar,    iconClass: 'text-amber-400',   bgClass: 'bg-amber-500/10 border-amber-500/20' },
-          { label: 'Offers',         value: stats.offers,    icon: TrendingUp,  iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10 border-emerald-500/20' },
+          { label: 'In Interview',   value: stats.interview, icon: Calendar,    iconClass: 'text-tl-gold',   bgClass: 'bg-tl-gold/10 border-tl-gold/20' },
+          { label: 'Offers',         value: stats.offers,    icon: TrendingUp,  iconClass: 'text-tl-teal',   bgClass: 'bg-tl-teal/10 border-tl-teal/20' },
         ].map(stat => (
-          <div key={stat.label} className="glass-card p-4">
+          <div key={stat.label} className="tl-card p-4">
             <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mb-2 border', stat.bgClass)}>
               <stat.icon className={cn('w-4 h-4', stat.iconClass)} />
             </div>
-            <p className={cn('text-2xl font-bold', stat.iconClass)}>{stat.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+            <p className={cn('text-2xl font-mono font-bold', stat.iconClass)}>{stat.value}</p>
+            <p className="text-xs text-tl-text-secondary mt-0.5">{stat.label}</p>
           </div>
         ))}
       </motion.div>
@@ -168,28 +168,27 @@ export default function ApplicationsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.12 }}
-        className="flex flex-wrap gap-2 mb-6"
+        className="flex flex-wrap gap-2 mb-6 border-b border-tl-border-subtle pb-4"
       >
         {FILTER_TABS.map(tab => {
           const count = tab.value === 'all' ? applications.length : (counts[tab.value as ApplicationStatus] ?? 0)
           const isActive = statusFilter === tab.value
-          const cfg = tab.value !== 'all' ? STATUS_CONFIG[tab.value as ApplicationStatus] : null
 
           return (
             <button
               key={tab.value}
               onClick={() => setStatusFilter(tab.value)}
               className={cn(
-                'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 shrink-0',
+                'inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium border-b-2 -mb-[17px] transition-all duration-200 shrink-0',
                 isActive
-                  ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
-                  : 'bg-muted/40 border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                  ? 'border-tl-gold text-tl-gold'
+                  : 'border-transparent text-tl-text-secondary hover:text-tl-text-primary'
               )}
             >
               {tab.label}
               <span className={cn(
-                'text-[10px] font-semibold',
-                isActive ? 'text-primary-foreground/70' : (cfg?.tabClass ?? 'text-muted-foreground/60')
+                'text-[10px] font-mono font-semibold',
+                isActive ? 'text-tl-gold' : 'text-tl-text-secondary/60'
               )}>
                 {count}
               </span>
@@ -206,20 +205,20 @@ export default function ApplicationsPage() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="glass-card p-16 flex flex-col items-center text-center gap-4"
+            className="tl-card p-16 flex flex-col items-center text-center gap-4"
           >
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-              <FileText className="w-8 h-8 text-muted-foreground/40" />
+            <div className="w-16 h-16 rounded-2xl bg-tl-bg-elevated flex items-center justify-center">
+              <FileText className="w-8 h-8 text-tl-text-secondary/40" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">No applications yet</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
+              <h3 className="text-lg font-semibold text-tl-text-primary mb-1">No applications yet</h3>
+              <p className="text-sm text-tl-text-secondary max-w-sm">
                 Start applying to matched jobs and track every application in real time.
               </p>
             </div>
-            <Button asChild>
-              <Link href="/talent/jobs">Browse Jobs</Link>
-            </Button>
+            <Link href="/talent/jobs">
+              <button className="btn-gold">Browse Jobs</button>
+            </Link>
           </motion.div>
         ) : (
           <motion.div
@@ -232,46 +231,51 @@ export default function ApplicationsPage() {
             {filtered.map(app => {
               const cfg        = STATUS_CONFIG[app.status]
               const isRejected = app.status === 'rejected'
+              const isInterview = app.status === 'interview'
 
               return (
                 <motion.div
                   key={app.id}
                   variants={cardVariants}
                   className={cn(
-                    'glass-card p-5 transition-all duration-300',
-                    isRejected ? 'opacity-75 border-red-500/20' : 'hover:border-primary/20'
+                    'transition-all duration-300',
+                    isInterview
+                      ? 'tl-card-elevated border-l-4 border-l-tl-gold'
+                      : isRejected
+                      ? 'tl-card opacity-75 border-tl-rose/20'
+                      : 'tl-card hover:border-tl-gold/20'
                   )}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="p-5 flex items-start gap-4">
                     {/* Avatar + status dot */}
                     <div className="relative shrink-0">
                       <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-base', avatarColor(app.job.company.name))}>
                         {app.job.company.name[0]}
                       </div>
-                      <div className={cn('absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background', cfg.dotClass)} />
+                      <div className={cn('absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-tl-bg-base', cfg.dotClass)} />
                     </div>
 
                     {/* Center */}
                     <div className="flex-1 min-w-0">
                       {/* Title + status pill */}
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-lg text-foreground leading-tight truncate">{app.job.title}</h3>
-                        <span className={cn('inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold shrink-0', cfg.badgeClass)}>
+                        <h3 className="font-semibold text-lg text-tl-text-primary leading-tight truncate">{app.job.title}</h3>
+                        <span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shrink-0', cfg.badgeClass)}>
                           {cfg.label}
                         </span>
                       </div>
 
                       {/* Meta */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground mb-1">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-tl-text-secondary mb-1">
                         <span className="flex items-center gap-1 font-medium">
                           {app.job.company.name}
-                          {app.job.company.verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-400" />}
+                          {app.job.company.verified && <BadgeCheck className="w-3.5 h-3.5 text-tl-teal" />}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-muted/50 border border-border text-[10px] capitalize">{app.job.workMode}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] capitalize">{app.job.workMode}</span>
                         <span className="flex items-center gap-1 text-xs">
                           <MapPin className="w-3 h-3" />{app.job.location}
                         </span>
-                        <span className="text-xs text-emerald-400 font-semibold">
+                        <span className="text-xs text-tl-teal font-mono font-semibold">
                           {formatSalary(app.job.salaryMin, app.job.salaryMax)}
                         </span>
                       </div>
@@ -280,20 +284,27 @@ export default function ApplicationsPage() {
                       <StageTimeline currentStage={app.stage} />
 
                       {/* Last update */}
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <p className="text-xs text-tl-text-secondary flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         Last update: {timeAgo(app.updatedAt)}
                       </p>
 
                       {/* Notes preview */}
                       {app.notes && (
-                        <p className="text-xs text-muted-foreground italic mt-2 line-clamp-1">&ldquo;{app.notes}&rdquo;</p>
+                        <p className="text-xs text-tl-text-secondary italic mt-2 line-clamp-1">&ldquo;{app.notes}&rdquo;</p>
+                      )}
+
+                      {/* Interview upcoming highlight */}
+                      {isInterview && (
+                        <p className="mt-2 text-xs text-tl-gold font-semibold flex items-center gap-1">
+                          <Calendar className="w-3 h-3" /> Interview upcoming — check your email for details
+                        </p>
                       )}
 
                       {/* Rejected message */}
                       {isRejected && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          <span className="text-red-400 font-semibold">Not Selected</span>
+                        <p className="mt-2 text-xs text-tl-text-secondary">
+                          <span className="text-tl-rose font-semibold">Not Selected</span>
                           {' '}· The team decided to move forward with other candidates.
                         </p>
                       )}
@@ -301,18 +312,18 @@ export default function ApplicationsPage() {
 
                     {/* Right actions */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+                      <Button variant="outline" size="sm" className="h-8 text-xs border-tl-border-default text-tl-text-secondary hover:text-tl-text-primary hover:border-tl-gold/40 bg-transparent" asChild>
                         <Link href={`/talent/jobs/${app.jobId}`}>
                           <Briefcase className="w-3 h-3 mr-1" /> View Details
                         </Link>
                       </Button>
                       {!isRejected && (
-                        <Button variant="ghost" size="sm" className="h-8 text-xs">
+                        <Button variant="ghost" size="sm" className="h-8 text-xs text-tl-text-secondary hover:text-tl-gold">
                           <MessageSquare className="w-3 h-3 mr-1" /> Message Recruiter
                         </Button>
                       )}
                       {isRejected && (
-                        <span className="text-xs text-muted-foreground text-center px-2">Not Selected</span>
+                        <span className="text-xs text-tl-text-secondary text-center px-2">Not Selected</span>
                       )}
                     </div>
                   </div>

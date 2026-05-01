@@ -35,12 +35,12 @@ function getMatchScore(id: string): number {
 
 function avatarBg(name: string): string {
   const palette = [
-    'from-blue-500 to-indigo-600',
-    'from-purple-500 to-pink-600',
-    'from-emerald-500 to-cyan-600',
-    'from-amber-500 to-orange-600',
-    'from-rose-500 to-pink-600',
-    'from-cyan-500 to-blue-600',
+    'from-tl-gold/60 to-tl-gold/30',
+    'from-tl-teal/60 to-tl-teal/30',
+    'from-tl-blue/60 to-tl-blue/30',
+    'from-tl-rose/60 to-tl-rose/30',
+    'from-tl-teal/40 to-tl-gold/40',
+    'from-tl-gold/40 to-tl-teal/40',
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff
@@ -61,14 +61,12 @@ function formatDateRange(start: string, end?: string, current?: boolean): string
 function MatchRing({ score, size = 80 }: { score: number; size?: number }) {
   const r = (size - 10) / 2
   const c = 2 * Math.PI * r
-  const color =
-    score >= 90 ? '#10b981' : score >= 75 ? '#3b82f6' : score >= 60 ? '#f59e0b' : '#ef4444'
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="currentColor" strokeWidth={5} className="text-muted/30" />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="currentColor" strokeWidth={5} className="text-tl-bg-elevated" />
         <motion.circle
-          cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={5} strokeLinecap="round"
+          cx={size/2} cy={size/2} r={r} fill="none" stroke="#C9A84C" strokeWidth={5} strokeLinecap="round"
           strokeDasharray={c}
           initial={{ strokeDashoffset: c }}
           animate={{ strokeDashoffset: c - (score / 100) * c }}
@@ -76,7 +74,7 @@ function MatchRing({ score, size = 80 }: { score: number; size?: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-base font-bold text-foreground">{score}%</span>
+        <span className="font-mono text-base font-bold text-tl-gold">{score}%</span>
       </div>
     </div>
   )
@@ -104,10 +102,10 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   const bgGrad = avatarBg(candidate.name)
 
   const matchBreakdown = [
-    { label: 'Overall Match', value: matchScore, color: 'bg-emerald-500' },
-    { label: 'Skills Match', value: Math.min(100, Math.round(matchScore * 0.97)), color: 'bg-blue-500' },
-    { label: 'Culture Fit', value: Math.min(100, Math.round(matchScore * 0.93)), color: 'bg-purple-500' },
-    { label: 'Experience Alignment', value: Math.min(100, Math.round(matchScore * 1.02)), color: 'bg-cyan-500' },
+    { label: 'Overall Match', value: matchScore },
+    { label: 'Skills Match', value: Math.min(100, Math.round(matchScore * 0.97)) },
+    { label: 'Culture Fit', value: Math.min(100, Math.round(matchScore * 0.93)) },
+    { label: 'Experience Alignment', value: Math.min(100, Math.round(matchScore * 1.02)) },
   ]
 
   const aiReasons = [
@@ -144,7 +142,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
       <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="mb-6">
         <Link
           href="/company/candidates"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+          className="inline-flex items-center gap-2 text-sm text-tl-text-secondary hover:text-tl-gold transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
           Back to Candidates
@@ -158,7 +156,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
-          className="glass-card p-6 lg:sticky lg:top-6 space-y-5 h-fit"
+          className="tl-card p-6 lg:sticky lg:top-6 space-y-5 h-fit bg-tl-bg-surface"
         >
           {/* Avatar + Name */}
           <div className="flex flex-col items-center text-center">
@@ -167,19 +165,19 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 {candidate.name.slice(0, 2).toUpperCase()}
               </div>
               {candidate.verified && (
-                <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-500 border-2 border-card flex items-center justify-center">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-tl-teal border-2 border-tl-bg-surface flex items-center justify-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-tl-bg-base" />
                 </span>
               )}
             </div>
             {candidate.premium && (
-              <span className="text-[10px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mb-2">
-                ⚡ Premium
+              <span className="tl-tag-gold text-[10px] mb-2">
+                Premium
               </span>
             )}
-            <h1 className="text-xl font-bold text-foreground">{candidate.name}</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">{candidate.title}</p>
-            <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+            <h1 className="font-display text-xl text-tl-text-primary">{candidate.name}</h1>
+            <p className="text-sm text-tl-text-secondary mt-0.5">{candidate.title}</p>
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-tl-text-secondary">
               <MapPin className="w-3.5 h-3.5" />
               {candidate.location}
             </div>
@@ -187,8 +185,8 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
               <span className={cn(
                 'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium',
                 candidate.availability.toLowerCase().includes('immediately') || candidate.availability.toLowerCase().includes('now')
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  ? 'bg-tl-teal/10 text-tl-teal border border-tl-teal/20'
+                  : 'bg-tl-gold/10 text-tl-gold border border-tl-gold/20'
               )}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
                 {candidate.availability}
@@ -199,45 +197,45 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
           {/* Match ring */}
           <div className="flex flex-col items-center gap-1">
             <MatchRing score={matchScore} size={80} />
-            <p className="text-xs text-muted-foreground">AI Match Score</p>
+            <p className="text-xs text-tl-text-secondary">AI Match Score</p>
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-border" />
+          <div className="h-px bg-tl-border-subtle" />
 
           {/* Contact */}
           <div className="space-y-2.5">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Contact</p>
-            <a href={`mailto:${candidate.email}`} className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-blue-400 transition-colors group">
-              <Mail className="w-4 h-4 text-blue-400 shrink-0" />
+            <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider">Contact</p>
+            <a href={`mailto:${candidate.email}`} className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-gold transition-colors group">
+              <Mail className="w-4 h-4 text-tl-gold shrink-0" />
               <span className="truncate">{candidate.email}</span>
             </a>
-            <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-              <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-2.5 text-sm text-tl-text-secondary">
+              <Phone className="w-4 h-4 text-tl-teal shrink-0" />
               <span>{candidate.phone ?? '—'}</span>
             </div>
             {candidate.portfolio && (
-              <a href={`https://${candidate.portfolio}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-purple-400 transition-colors">
-                <Globe className="w-4 h-4 text-purple-400 shrink-0" />
+              <a href={`https://${candidate.portfolio}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-teal transition-colors">
+                <Globe className="w-4 h-4 text-tl-teal shrink-0" />
                 <span className="truncate">{candidate.portfolio}</span>
               </a>
             )}
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-border" />
+          <div className="h-px bg-tl-border-subtle" />
 
           {/* Action buttons */}
           <div className="space-y-2.5">
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all">
+            <button className="btn-gold w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm">
               <Calendar className="w-4 h-4" />
               Schedule Interview
             </button>
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-white/[0.05] transition-all">
+            <button className="btn-ghost w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm">
               <MessageSquare className="w-4 h-4" />
               Send Message
             </button>
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-emerald-500/30 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 transition-all">
+            <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-tl-teal/30 text-sm font-medium text-tl-teal hover:bg-tl-teal/10 transition-all">
               <ChevronRight className="w-4 h-4" />
               Move to Offer
             </button>
@@ -245,7 +243,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
             <div className="relative">
               <button
                 onClick={() => setShowMoreMenu((p) => !p)}
-                className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-all"
+                className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-sm text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all"
               >
                 <MoreHorizontal className="w-4 h-4" />
                 More actions
@@ -257,7 +255,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute bottom-full left-0 right-0 mb-1 glass-card p-2 space-y-0.5 z-10"
+                    className="absolute bottom-full left-0 right-0 mb-1 tl-card p-2 space-y-0.5 z-10"
                   >
                     {[
                       { icon: Download, label: 'Download Resume' },
@@ -270,8 +268,8 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                         className={cn(
                           'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left',
                           danger
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                            ? 'text-tl-rose hover:bg-tl-rose/10'
+                            : 'text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated'
                         )}
                       >
                         <Icon className="w-4 h-4" />
@@ -287,17 +285,17 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
           {/* Application history */}
           {candidateApplications.length > 0 && (
             <>
-              <div className="h-px bg-border" />
+              <div className="h-px bg-tl-border-subtle" />
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Application History</p>
+                <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider mb-3">Application History</p>
                 <div className="space-y-2">
                   {candidateApplications.map((app) => (
-                    <div key={app.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+                    <div key={app.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-tl-bg-base border border-tl-border-subtle">
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">{app.job?.title ?? 'Unknown Role'}</p>
-                        <p className="text-[10px] text-muted-foreground">{timeAgo(app.appliedAt)}</p>
+                        <p className="text-xs font-medium text-tl-text-primary truncate">{app.job?.title ?? 'Unknown Role'}</p>
+                        <p className="text-[10px] text-tl-text-secondary">{timeAgo(app.appliedAt)}</p>
                       </div>
-                      <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0', STAGE_COLORS[app.stage])}>
+                      <span className="tl-tag-teal text-[10px] font-medium shrink-0">
                         {STAGE_LABELS[app.stage]}
                       </span>
                     </div>
@@ -316,16 +314,16 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
           className="space-y-6"
         >
           {/* Tab nav */}
-          <div className="flex gap-1 p-1 glass-card rounded-xl overflow-x-auto">
+          <div className="flex gap-1 border-b border-tl-border-subtle overflow-x-auto">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
+                  'px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 -mb-px',
                   activeTab === t.key
-                    ? 'bg-white/[0.1] text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                    ? 'text-tl-gold border-tl-gold'
+                    : 'text-tl-text-secondary hover:text-tl-text-primary border-transparent'
                 )}
               >
                 {t.label}
@@ -346,20 +344,20 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 className="space-y-5"
               >
                 {/* Bio */}
-                <div className="glass-card p-6">
-                  <h3 className="text-base font-semibold text-foreground mb-3">About</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{candidate.bio}</p>
+                <div className="tl-card p-6">
+                  <h3 className="text-base font-semibold text-tl-text-primary mb-3">About</h3>
+                  <p className="text-sm text-tl-text-secondary leading-relaxed">{candidate.bio}</p>
                 </div>
 
                 {/* AI Match Analysis */}
-                <div className="glass-card p-6">
+                <div className="tl-card-gold p-6">
                   <div className="flex items-center gap-3 mb-5">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shrink-0">
-                      <Sparkles className="w-4 h-4 text-white" />
+                    <div className="w-9 h-9 rounded-xl bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4 text-tl-gold" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold text-foreground">AI Match Analysis</h3>
-                      <p className="text-xs text-muted-foreground">Calibr intelligence score breakdown</p>
+                      <h3 className="text-base font-semibold text-tl-text-primary">AI Match Analysis</h3>
+                      <p className="text-xs text-tl-text-secondary">TalentLoop intelligence score breakdown</p>
                     </div>
                     <div className="ml-auto">
                       <MatchRing score={matchScore} size={64} />
@@ -369,15 +367,15 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                     {matchBreakdown.map((item) => (
                       <div key={item.label}>
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <span className="text-sm font-bold text-foreground">{item.value}%</span>
+                          <span className="text-sm text-tl-text-secondary">{item.label}</span>
+                          <span className="font-mono text-sm font-bold text-tl-gold">{item.value}%</span>
                         </div>
-                        <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div className="h-2 rounded-full bg-tl-bg-base overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${item.value}%` }}
                             transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-                            className={cn('h-full rounded-full', item.color)}
+                            className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-gold/60"
                           />
                         </div>
                       </div>
@@ -386,8 +384,8 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 </div>
 
                 {/* Why this candidate */}
-                <div className="glass-card p-6">
-                  <h3 className="text-base font-semibold text-foreground mb-4">Why this candidate?</h3>
+                <div className="tl-card p-6">
+                  <h3 className="text-base font-semibold text-tl-text-primary mb-4">Why this candidate?</h3>
                   <ul className="space-y-3">
                     {aiReasons.map((reason, i) => (
                       <motion.li
@@ -395,9 +393,9 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.06 }}
-                        className="flex items-start gap-3 text-sm text-muted-foreground"
+                        className="flex items-start gap-3 text-sm text-tl-text-secondary"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-tl-teal mt-0.5 shrink-0" />
                         {reason}
                       </motion.li>
                     ))}
@@ -405,10 +403,10 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 </div>
 
                 {/* Risk Signals */}
-                <div className="glass-card p-6">
+                <div className="tl-card p-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <AlertCircle className="w-4 h-4 text-amber-400" />
-                    <h3 className="text-base font-semibold text-foreground">Risk Signals</h3>
+                    <AlertCircle className="w-4 h-4 text-tl-gold" />
+                    <h3 className="text-base font-semibold text-tl-text-primary">Risk Signals</h3>
                   </div>
                   <div className="space-y-3">
                     {riskSignals.map((signal, i) => (
@@ -417,8 +415,8 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                         className={cn(
                           'flex items-start gap-3 p-3.5 rounded-xl border text-sm',
                           signal.severity === 'medium'
-                            ? 'bg-amber-500/[0.06] border-amber-500/20 text-amber-400'
-                            : 'bg-yellow-500/[0.04] border-yellow-500/15 text-yellow-500'
+                            ? 'bg-tl-gold/[0.06] border-tl-gold/20 text-tl-gold'
+                            : 'bg-tl-gold/[0.04] border-tl-gold/15 text-tl-gold/80'
                         )}
                       >
                         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -438,10 +436,10 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="glass-card p-6"
+                className="tl-card p-6"
               >
-                <h3 className="text-base font-semibold text-foreground mb-6">Work History</h3>
-                <div className="relative border-l-2 border-primary/20 ml-4 space-y-6">
+                <h3 className="text-base font-semibold text-tl-text-primary mb-6">Work History</h3>
+                <div className="relative border-l-2 border-tl-border-subtle ml-4 space-y-6">
                   {candidate.experience.map((exp, i) => (
                     <motion.div
                       key={exp.id}
@@ -451,34 +449,34 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                       className="relative pl-8"
                     >
                       <div className={cn(
-                        'absolute -left-[9px] top-0.5 w-4 h-4 rounded-full border-2 border-card',
-                        exp.current ? 'bg-emerald-400' : 'bg-primary/60'
+                        'absolute -left-[9px] top-0.5 w-4 h-4 rounded-full border-2 border-tl-bg-surface',
+                        exp.current ? 'bg-tl-teal' : 'bg-tl-gold/60'
                       )} />
                       <div className="flex items-start justify-between gap-3 mb-1">
                         <div>
-                          <p className="text-sm font-semibold text-foreground">{exp.title}</p>
+                          <p className="text-sm font-semibold text-tl-text-primary">{exp.title}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{exp.company}</span>
+                            <Building2 className="w-3.5 h-3.5 text-tl-text-secondary" />
+                            <span className="text-sm text-tl-text-secondary">{exp.company}</span>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-tl-text-secondary">
                             {formatDateRange(exp.startDate, exp.endDate, exp.current)}
                           </span>
                           {exp.current && (
                             <div>
-                              <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full mt-1 inline-block">
+                              <span className="tl-tag-teal text-[10px] mt-1 inline-block">
                                 Current
                               </span>
                             </div>
                           )}
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed mb-3">{exp.description}</p>
+                      <p className="text-sm text-tl-text-secondary leading-relaxed mb-3">{exp.description}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {exp.skills.map((skill) => (
-                          <span key={skill} className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-500/[0.07] border border-blue-500/15 text-blue-400">
+                          <span key={skill} className="tl-tag-teal text-[11px]">
                             {skill}
                           </span>
                         ))}
@@ -500,10 +498,10 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 className="space-y-5"
               >
                 {verifiedSkills.length > 0 && (
-                  <div className="glass-card p-6">
+                  <div className="tl-card p-6">
                     <div className="flex items-center justify-between mb-5">
-                      <h3 className="text-base font-semibold text-foreground">Verified Skills</h3>
-                      <span className="text-[11px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full">
+                      <h3 className="text-base font-semibold text-tl-text-primary">Verified Skills</h3>
+                      <span className="tl-tag-teal text-[11px]">
                         {verifiedSkills.length} verified
                       </span>
                     </div>
@@ -517,23 +515,23 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                         >
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2.5">
-                              <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center gap-1">
+                              <span className="text-sm font-medium text-tl-text-primary">{skill.name}</span>
+                              <span className="tl-tag-teal text-[10px] flex items-center gap-1">
                                 <CheckCircle2 className="w-2.5 h-2.5" />
                                 Verified
                               </span>
                             </div>
                             {skill.score !== undefined && (
-                              <span className="text-sm font-bold text-foreground">{skill.score}%</span>
+                              <span className="font-mono text-sm font-bold text-tl-gold">{skill.score}%</span>
                             )}
                           </div>
                           {skill.score !== undefined && (
-                            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="h-1.5 rounded-full bg-tl-bg-elevated overflow-hidden">
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${skill.score}%` }}
                                 transition={{ duration: 0.7, delay: i * 0.05, ease: 'easeOut' }}
-                                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                                className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-gold/60"
                               />
                             </div>
                           )}
@@ -544,16 +542,16 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 )}
 
                 {selfReportedSkills.length > 0 && (
-                  <div className="glass-card p-6">
-                    <h3 className="text-base font-semibold text-foreground mb-5">Self-Reported Skills</h3>
+                  <div className="tl-card p-6">
+                    <h3 className="text-base font-semibold text-tl-text-primary mb-5">Self-Reported Skills</h3>
                     <div className="flex flex-wrap gap-2">
                       {selfReportedSkills.map((skill) => (
                         <span
                           key={skill.name}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-foreground"
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-tl-bg-elevated border border-tl-border-subtle text-sm text-tl-text-primary"
                         >
                           {skill.name}
-                          <span className="text-[10px] text-muted-foreground capitalize">{skill.level}</span>
+                          <span className="text-[10px] text-tl-text-secondary capitalize">{skill.level}</span>
                         </span>
                       ))}
                     </div>
@@ -561,8 +559,8 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 )}
 
                 {assessmentEntries.length > 0 && (
-                  <div className="glass-card p-6">
-                    <h3 className="text-base font-semibold text-foreground mb-5">Assessments Passed</h3>
+                  <div className="tl-card p-6">
+                    <h3 className="text-base font-semibold text-tl-text-primary mb-5">Assessments Passed</h3>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {assessmentEntries.map(([key, score], i) => {
                         const pct = Math.round(100 - (100 - score) * 0.4)
@@ -572,18 +570,18 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: i * 0.05 }}
-                            className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.07]"
+                            className="p-4 rounded-xl bg-tl-bg-elevated border border-tl-border-subtle"
                           >
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-foreground capitalize">
+                              <span className="text-sm font-medium text-tl-text-primary capitalize">
                                 {key.replace(/([A-Z])/g, ' $1').trim()}
                               </span>
-                              <span className="text-sm font-bold text-foreground">{score}%</span>
+                              <span className="font-mono text-sm font-bold text-tl-gold">{score}%</span>
                             </div>
-                            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mb-1">
-                              <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500" style={{ width: `${score}%` }} />
+                            <div className="h-1.5 rounded-full bg-tl-bg-base overflow-hidden mb-1">
+                              <div className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-teal" style={{ width: `${score}%` }} />
                             </div>
-                            <p className={cn('text-xs font-medium', pct >= 90 ? 'text-emerald-400' : 'text-blue-400')}>
+                            <p className={cn('text-xs font-medium', pct >= 90 ? 'text-tl-teal' : 'text-tl-gold')}>
                               Top {100 - pct}%
                             </p>
                           </motion.div>
@@ -603,18 +601,18 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="glass-card overflow-hidden"
+                className="tl-card overflow-hidden"
               >
-                <div className="px-6 py-4 border-b border-border">
-                  <h3 className="text-base font-semibold text-foreground">Assessment Scores</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Calibr verified technical assessments</p>
+                <div className="px-6 py-4 border-b border-tl-border-subtle">
+                  <h3 className="text-base font-semibold text-tl-text-primary">Assessment Scores</h3>
+                  <p className="text-xs text-tl-text-secondary mt-0.5">TalentLoop verified technical assessments</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-border bg-white/[0.02]">
+                      <tr className="border-b border-tl-border-subtle bg-tl-bg-base/50">
                         {['Assessment', 'Score', 'Percentile', 'Status'].map((h) => (
-                          <th key={h} className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3">
+                          <th key={h} className="text-left text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider px-6 py-3">
                             {h}
                           </th>
                         ))}
@@ -629,28 +627,28 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: i * 0.06 }}
-                            className="border-b border-border/50 hover:bg-white/[0.02] transition-colors last:border-0"
+                            className="border-b border-tl-border-subtle hover:bg-tl-bg-elevated/30 transition-colors last:border-0"
                           >
                             <td className="px-6 py-3.5">
-                              <span className="text-sm font-medium text-foreground capitalize">
+                              <span className="text-sm font-medium text-tl-text-primary capitalize">
                                 {key.replace(/([A-Z])/g, ' $1').trim()}
                               </span>
                             </td>
                             <td className="px-6 py-3.5">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-foreground">{score}%</span>
-                                <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                                  <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: `${score}%` }} />
+                                <span className="font-mono text-sm font-bold text-tl-gold">{score}%</span>
+                                <div className="w-16 h-1.5 rounded-full bg-tl-bg-elevated overflow-hidden">
+                                  <div className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-teal" style={{ width: `${score}%` }} />
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-3.5">
-                              <span className={cn('text-sm font-semibold', pct >= 90 ? 'text-emerald-400' : 'text-blue-400')}>
+                              <span className={cn('font-mono text-sm font-semibold', pct >= 90 ? 'text-tl-teal' : 'text-tl-gold')}>
                                 Top {100 - pct}%
                               </span>
                             </td>
                             <td className="px-6 py-3.5">
-                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                              <span className="tl-tag-teal inline-flex items-center gap-1 text-[11px]">
                                 <CheckCircle2 className="w-3 h-3" />
                                 Verified
                               </span>
@@ -674,29 +672,29 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 transition={{ duration: 0.25 }}
                 className="space-y-4"
               >
-                <div className="glass-card p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Add Note</h3>
+                <div className="tl-card p-5">
+                  <h3 className="text-sm font-semibold text-tl-text-primary mb-3">Add Note</h3>
                   <textarea
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
                     placeholder="Write a note about this candidate…"
                     rows={4}
-                    className="w-full bg-muted rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all resize-none"
+                    className="w-full bg-tl-bg-surface border border-tl-border-subtle rounded-xl px-4 py-3 text-sm text-tl-text-primary placeholder:text-tl-text-secondary/60 focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all resize-none"
                   />
                   <div className="flex justify-end mt-3">
                     <button
                       onClick={saveNote}
                       disabled={!noteInput.trim()}
-                      className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-40"
+                      className="btn-gold px-4 py-2 text-sm disabled:opacity-40"
                     >
                       Save Note
                     </button>
                   </div>
                 </div>
                 {notes.length === 0 ? (
-                  <div className="glass-card p-10 flex flex-col items-center justify-center text-center">
-                    <p className="text-sm font-medium text-foreground">No notes yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Add a note to keep track of your thoughts</p>
+                  <div className="tl-card p-10 flex flex-col items-center justify-center text-center">
+                    <p className="text-sm font-medium text-tl-text-primary">No notes yet</p>
+                    <p className="text-xs text-tl-text-secondary mt-1">Add a note to keep track of your thoughts</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -705,10 +703,10 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                         key={i}
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="glass-card p-4"
+                        className="tl-card p-4"
                       >
-                        <p className="text-sm text-muted-foreground leading-relaxed">{note.text}</p>
-                        <p className="text-[11px] text-muted-foreground/50 mt-2">{timeAgo(note.date)}</p>
+                        <p className="text-sm text-tl-text-secondary leading-relaxed">{note.text}</p>
+                        <p className="text-[11px] text-tl-text-secondary/50 mt-2">{timeAgo(note.date)}</p>
                       </motion.div>
                     ))}
                   </div>

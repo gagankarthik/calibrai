@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { jobs, applications } from '@/lib/data'
-import { Button } from '@/components/ui/button'
 import {
   Briefcase,
   Users,
@@ -59,74 +58,69 @@ const chartData = [
 ]
 
 const STAGE_DOT_COLORS = [
-  'bg-blue-400',
-  'bg-purple-400',
-  'bg-amber-400',
-  'bg-emerald-400',
-  'bg-green-400',
+  'bg-tl-blue',
+  'bg-tl-teal',
+  'bg-tl-gold',
+  'bg-tl-rose',
+  'bg-tl-teal',
 ]
 
 const activityEvents = [
   {
     id: '1',
     initial: 'E',
-    initBg: 'bg-blue-500/20 text-blue-400',
+    initBg: 'bg-tl-blue/20 text-tl-blue',
     text: 'Emma R. applied for Senior Engineer',
     time: '2 min ago',
     badge: 'New Application',
-    badgeCls: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    badgeCls: 'tl-tag-teal',
   },
   {
     id: '2',
     initial: 'J',
-    initBg: 'bg-purple-500/20 text-purple-400',
+    initBg: 'bg-tl-gold/20 text-tl-gold',
     text: 'James T. interview scheduled for Product Manager',
     time: '18 min ago',
     badge: 'Interview Scheduled',
-    badgeCls: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    badgeCls: 'tl-tag-gold',
   },
   {
     id: '3',
     initial: 'S',
-    initBg: 'bg-emerald-500/20 text-emerald-400',
+    initBg: 'bg-tl-teal/20 text-tl-teal',
     text: 'Sarah K. received an offer for Staff Engineer',
     time: '1h ago',
     badge: 'Offer Sent',
-    badgeCls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    badgeCls: 'tl-tag-teal',
   },
   {
     id: '4',
-    initial: 'M',
-    initBg: 'bg-amber-500/20 text-amber-400',
+    initial: 'A',
+    initBg: 'bg-tl-gold/20 text-tl-gold',
     text: 'Alex P. moved to Technical Interview stage',
     time: '3h ago',
     badge: 'Stage Moved',
-    badgeCls: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    badgeCls: 'tl-tag-gold',
   },
   {
     id: '5',
     initial: 'M',
-    initBg: 'bg-gray-500/20 text-gray-400',
+    initBg: 'bg-tl-text-secondary/20 text-tl-text-secondary',
     text: 'Maria L. application viewed by hiring manager',
     time: '2h ago',
     badge: 'Viewed',
-    badgeCls: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+    badgeCls: 'tl-tag-blue',
   },
   {
     id: '6',
     initial: 'R',
-    initBg: 'bg-cyan-500/20 text-cyan-400',
+    initBg: 'bg-tl-teal/20 text-tl-teal',
     text: 'Ryan M. sent a message about the Design Lead role',
     time: '5h ago',
     badge: 'Message',
-    badgeCls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    badgeCls: 'tl-tag-teal',
   },
 ]
-
-const CHART_COLORS = {
-  grid: 'rgba(255,255,255,0.05)',
-  text: 'hsl(215,20%,55%)',
-}
 
 // ─── Custom tooltip ─────────────────────────────────────────────────────────────
 
@@ -145,13 +139,13 @@ interface ChartTooltipProps {
 function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null
   return (
-    <div className="glass rounded-xl p-3 min-w-[160px] shadow-xl border border-border">
-      <p className="text-xs font-semibold text-foreground mb-2">{label}</p>
+    <div className="tl-card rounded-xl p-3 min-w-[160px] shadow-card border border-tl-border-subtle">
+      <p className="text-xs font-semibold text-tl-text-primary mb-2">{label}</p>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center gap-2 text-xs py-0.5">
           <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
-          <span className="text-muted-foreground">{entry.name}:</span>
-          <span className="text-foreground font-medium ml-auto">{entry.value}</span>
+          <span className="text-tl-text-secondary">{entry.name}:</span>
+          <span className="text-tl-text-primary font-medium ml-auto">{entry.value}</span>
         </div>
       ))}
     </div>
@@ -172,8 +166,8 @@ export default function CompanyDashboard() {
   const kpiCards = [
     {
       icon: Briefcase,
-      iconBg: 'bg-blue-500/10',
-      iconCls: 'text-blue-400',
+      iconBg: 'bg-tl-gold/10',
+      iconCls: 'text-tl-gold',
       value: activeJobs.length.toString(),
       label: 'Active Jobs',
       trend: '+2 this week',
@@ -182,8 +176,8 @@ export default function CompanyDashboard() {
     },
     {
       icon: Users,
-      iconBg: 'bg-purple-500/10',
-      iconCls: 'text-purple-400',
+      iconBg: 'bg-tl-teal/10',
+      iconCls: 'text-tl-teal',
       value: totalApplicants.toLocaleString(),
       label: 'Total Applicants',
       trend: '+23 today',
@@ -192,8 +186,8 @@ export default function CompanyDashboard() {
     },
     {
       icon: UserCheck,
-      iconBg: 'bg-emerald-500/10',
-      iconCls: 'text-emerald-400',
+      iconBg: 'bg-tl-teal/10',
+      iconCls: 'text-tl-teal',
       value: hiredThisMonth.toString(),
       label: 'Hired This Month',
       trend: '+3 vs last month',
@@ -202,8 +196,8 @@ export default function CompanyDashboard() {
     },
     {
       icon: Clock,
-      iconBg: 'bg-amber-500/10',
-      iconCls: 'text-amber-400',
+      iconBg: 'bg-tl-gold/10',
+      iconCls: 'text-tl-gold',
       value: `${avgDaysToHire} days`,
       label: 'Avg Time to Hire',
       trend: '-3 days improvement',
@@ -216,29 +210,26 @@ export default function CompanyDashboard() {
     {
       id: 'r1',
       icon: AlertCircle,
-      iconCls: 'text-amber-400',
-      bg: 'bg-amber-500/10',
+      iconCls: 'text-tl-gold',
+      bg: 'bg-tl-gold/10',
       text: 'Emma R. in Screening for 9 days — Move to Interview?',
       action: 'Schedule',
-      actionCls: 'text-amber-400 hover:bg-amber-500/10 border-amber-500/30',
     },
     {
       id: 'r2',
       icon: Info,
-      iconCls: 'text-blue-400',
-      bg: 'bg-blue-500/10',
+      iconCls: 'text-tl-teal',
+      bg: 'bg-tl-teal/10',
       text: 'Senior Engineer has 40% fewer views this week — Boost listing?',
       action: 'Boost',
-      actionCls: 'text-blue-400 hover:bg-blue-500/10 border-blue-500/30',
     },
     {
       id: 'r3',
       icon: Zap,
-      iconCls: 'text-purple-400',
-      bg: 'bg-purple-500/10',
+      iconCls: 'text-tl-gold',
+      bg: 'bg-tl-gold/10',
       text: '2 offers haven\'t been responded to in 3+ days — Follow up?',
       action: 'Follow Up',
-      actionCls: 'text-purple-400 hover:bg-purple-500/10 border-purple-500/30',
     },
   ]
 
@@ -248,37 +239,37 @@ export default function CompanyDashboard() {
       label: 'Post Job',
       desc: 'Start a new role',
       href: '/company/jobs/new',
-      iconBg: 'bg-blue-500/10',
-      iconCls: 'text-blue-400',
+      iconBg: 'bg-tl-gold/10',
+      iconCls: 'text-tl-gold',
     },
     {
       icon: Kanban,
       label: 'Pipeline',
       desc: 'Review candidates',
       href: '/company/pipeline',
-      iconBg: 'bg-purple-500/10',
-      iconCls: 'text-purple-400',
+      iconBg: 'bg-tl-teal/10',
+      iconCls: 'text-tl-teal',
     },
     {
       icon: Calendar,
       label: 'Schedule',
       desc: 'Book interviews',
       href: '/company/pipeline',
-      iconBg: 'bg-amber-500/10',
-      iconCls: 'text-amber-400',
+      iconBg: 'bg-tl-gold/10',
+      iconCls: 'text-tl-gold',
     },
     {
       icon: BarChart3,
       label: 'Analytics',
       desc: 'View insights',
       href: '/company/analytics',
-      iconBg: 'bg-emerald-500/10',
-      iconCls: 'text-emerald-400',
+      iconBg: 'bg-tl-teal/10',
+      iconCls: 'text-tl-teal',
     },
   ]
 
   return (
-    <div className="p-6 max-w-screen-xl">
+    <div className="p-6 max-w-screen">
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -287,23 +278,21 @@ export default function CompanyDashboard() {
         className="flex items-start justify-between mb-8 gap-4 flex-wrap"
       >
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
-            Good morning, Stripe Corp 👋
+          <h1 className="font-display text-2xl lg:text-3xl text-tl-text-primary">
+            Good morning, Stripe Corp
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-tl-text-secondary text-sm mt-1">
             Thursday, May 1, 2026 · 3 urgent items need your attention
           </p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-tl-teal/10 text-tl-teal border border-tl-teal/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-tl-teal animate-pulse" />
             Hiring Health: Strong
           </span>
-          <Button asChild className="gap-2 bg-primary text-primary-foreground">
-            <Link href="/company/jobs/new">
-              <Plus className="w-4 h-4" /> Post New Job
-            </Link>
-          </Button>
+          <Link href="/company/jobs/new" className="btn-gold inline-flex items-center gap-2 text-sm">
+            <Plus className="w-4 h-4" /> Post New Job
+          </Link>
         </div>
       </motion.div>
 
@@ -318,19 +307,19 @@ export default function CompanyDashboard() {
           <motion.div
             key={card.label}
             variants={itemVariants}
-            className="glass-card p-5 hover:border-primary/30 transition-all group"
+            className="tl-card p-5 hover:border-tl-gold/30 transition-all group"
           >
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${card.iconBg} transition-transform duration-200 group-hover:scale-110`}>
               <card.icon className={`w-5 h-5 ${card.iconCls}`} />
             </div>
-            <div className="text-3xl font-black text-foreground tracking-tight">{card.value}</div>
-            <div className="text-sm text-muted-foreground mt-1">{card.label}</div>
+            <div className="font-mono text-3xl text-tl-gold tracking-tight">{card.value}</div>
+            <div className="text-sm text-tl-text-secondary mt-1">{card.label}</div>
             <div className="flex items-center gap-1 mt-2">
               <card.TrendIcon
-                className={`w-3 h-3 ${card.trendType === 'positive' ? 'text-emerald-400' : 'text-rose-400'}`}
+                className={`w-3 h-3 ${card.trendType === 'positive' ? 'text-tl-teal' : 'text-tl-rose'}`}
               />
               <span
-                className={`text-xs font-medium ${card.trendType === 'positive' ? 'text-emerald-400' : 'text-rose-400'}`}
+                className={`text-xs font-medium ${card.trendType === 'positive' ? 'text-tl-teal' : 'text-tl-rose'}`}
               >
                 {card.trend}
               </span>
@@ -348,23 +337,23 @@ export default function CompanyDashboard() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="glass-card p-6"
+            className="tl-card p-6"
           >
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="font-semibold text-foreground">Hiring Activity</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Applications, interviews and offers over time</p>
+                <p className="section-eyebrow">Hiring Activity</p>
+                <h2 className="font-semibold text-tl-text-primary mt-1">Applications, interviews and offers over time</h2>
               </div>
               {/* Time range pills */}
-              <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-1 p-1 bg-tl-bg-base rounded-lg">
                 {(['7d', '30d', '90d'] as const).map((r) => (
                   <button
                     key={r}
                     onClick={() => setTimeRange(r)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
                       timeRange === r
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'text-muted-foreground hover:text-foreground'
+                        ? 'bg-tl-gold/20 text-tl-gold border border-tl-gold/30'
+                        : 'text-tl-text-secondary hover:text-tl-text-primary'
                     }`}
                   >
                     {r}
@@ -384,33 +373,33 @@ export default function CompanyDashboard() {
                   <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="gApps" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#C9A84C" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="gInts" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#1ECDB3" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#1ECDB3" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="gOffs" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.5} />
-                        <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#FF5C7A" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#FF5C7A" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                    <XAxis dataKey="week" tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(242,240,232,0.06)" />
+                    <XAxis dataKey="week" tick={{ fill: '#9B9890', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#9B9890', fontSize: 11 }} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTooltip />} />
                     <Legend
-                      wrapperStyle={{ fontSize: 11, color: CHART_COLORS.text, paddingTop: 12 }}
+                      wrapperStyle={{ fontSize: 11, color: '#9B9890', paddingTop: 12 }}
                       formatter={(value) => (
-                        <span style={{ color: CHART_COLORS.text }}>{value}</span>
+                        <span style={{ color: '#9B9890' }}>{value}</span>
                       )}
                     />
                     <Area
                       type="monotone"
                       dataKey="applications"
                       name="Applications"
-                      stroke="#3B82F6"
+                      stroke="#C9A84C"
                       strokeWidth={2}
                       fill="url(#gApps)"
                     />
@@ -418,7 +407,7 @@ export default function CompanyDashboard() {
                       type="monotone"
                       dataKey="interviews"
                       name="Interviews"
-                      stroke="#8B5CF6"
+                      stroke="#1ECDB3"
                       strokeWidth={2}
                       fill="url(#gInts)"
                     />
@@ -426,7 +415,7 @@ export default function CompanyDashboard() {
                       type="monotone"
                       dataKey="offers"
                       name="Offers"
-                      stroke="#10B981"
+                      stroke="#FF5C7A"
                       strokeWidth={2}
                       fill="url(#gOffs)"
                     />
@@ -441,53 +430,51 @@ export default function CompanyDashboard() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.18 }}
-            className="glass-card p-0 overflow-hidden"
+            className="tl-card p-0 overflow-hidden"
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-tl-border-subtle">
               <div>
-                <h2 className="font-semibold text-foreground">Active Jobs Overview</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{activeJobs.length} positions currently open</p>
+                <h2 className="font-semibold text-tl-text-primary">Active Jobs Overview</h2>
+                <p className="text-xs text-tl-text-secondary mt-0.5">{activeJobs.length} positions currently open</p>
               </div>
-              <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1">
-                <Link href="/company/jobs">
-                  Manage all <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
-              </Button>
+              <Link href="/company/jobs" className="btn-ghost text-xs inline-flex items-center gap-1">
+                Manage all <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border bg-muted/20">
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-6 py-3">
+                  <tr className="border-b border-tl-border-subtle bg-tl-bg-base/50">
+                    <th className="text-left text-xs font-semibold text-tl-text-secondary uppercase tracking-wide px-6 py-3">
                       Job Title
                     </th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3 hidden sm:table-cell">
+                    <th className="text-left text-xs font-semibold text-tl-text-secondary uppercase tracking-wide px-4 py-3 hidden sm:table-cell">
                       Applicants
                     </th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3 hidden md:table-cell">
+                    <th className="text-left text-xs font-semibold text-tl-text-secondary uppercase tracking-wide px-4 py-3 hidden md:table-cell">
                       Pipeline
                     </th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">
+                    <th className="text-left text-xs font-semibold text-tl-text-secondary uppercase tracking-wide px-4 py-3">
                       Status
                     </th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-tl-border-subtle">
                   {activeJobs.slice(0, 5).map((job) => (
-                    <tr key={job.id} className="hover:bg-muted/20 transition-colors group">
+                    <tr key={job.id} className="hover:bg-tl-bg-elevated/50 transition-colors group">
                       <td className="px-6 py-3.5">
-                        <div className="font-medium text-foreground">{job.title}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px]">
+                        <div className="font-medium text-tl-text-primary">{job.title}</div>
+                        <div className="text-xs text-tl-text-secondary mt-0.5">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-tl-bg-elevated text-tl-text-secondary text-[10px]">
                             {job.department}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 hidden sm:table-cell">
                         <div className="flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-semibold text-foreground">{job.applicantCount}</span>
+                          <Users className="w-3.5 h-3.5 text-tl-text-secondary" />
+                          <span className="font-mono font-semibold text-tl-text-primary">{job.applicantCount}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 hidden md:table-cell">
@@ -501,22 +488,20 @@ export default function CompanyDashboard() {
                         <span
                           className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
                             job.status === 'active'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                              ? 'bg-tl-teal/10 text-tl-teal border-tl-teal/20'
+                              : 'bg-tl-bg-elevated text-tl-text-secondary border-tl-border-subtle'
                           }`}
                         >
                           {job.status === 'active' ? 'Active' : 'Paused'}
                         </span>
                       </td>
                       <td className="px-4 py-3.5">
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        <Link
+                          href="/company/pipeline"
+                          className="btn-ghost text-xs h-7 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center px-3"
                         >
-                          <Link href="/company/pipeline">View</Link>
-                        </Button>
+                          View
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -533,14 +518,14 @@ export default function CompanyDashboard() {
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.12 }}
-            className="glass-card p-5"
+            className="tl-card-gold p-5"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <h2 className="font-semibold text-foreground">AI Insights</h2>
+                <Sparkles className="w-4 h-4 text-tl-gold" />
+                <h2 className="font-semibold text-tl-text-primary">AI Insights</h2>
               </div>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <span className="tl-tag-gold text-[10px]">
                 3 actions
               </span>
             </div>
@@ -548,17 +533,15 @@ export default function CompanyDashboard() {
               {aiRecommendations.map((rec) => (
                 <div
                   key={rec.id}
-                  className="p-3.5 rounded-xl bg-muted/30 border border-border space-y-2.5"
+                  className="p-3.5 rounded-xl bg-tl-bg-base/50 border border-tl-border-subtle space-y-2.5"
                 >
                   <div className="flex items-start gap-2">
                     <div className={`p-1.5 rounded-lg ${rec.bg} shrink-0 mt-0.5`}>
                       <rec.icon className={`w-3.5 h-3.5 ${rec.iconCls}`} />
                     </div>
-                    <p className="text-xs text-foreground leading-relaxed">{rec.text}</p>
+                    <p className="text-xs text-tl-text-primary leading-relaxed">{rec.text}</p>
                   </div>
-                  <button
-                    className={`w-full text-[11px] font-semibold py-1.5 rounded-lg border transition-all ${rec.actionCls}`}
-                  >
+                  <button className="btn-ghost w-full text-[11px] font-semibold py-1.5 rounded-lg">
                     {rec.action}
                   </button>
                 </div>
@@ -571,28 +554,28 @@ export default function CompanyDashboard() {
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="glass-card p-5"
+            className="tl-card p-5"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <h2 className="font-semibold text-foreground">Live Feed</h2>
+                <span className="w-2 h-2 rounded-full bg-tl-teal animate-pulse" />
+                <h2 className="font-semibold text-tl-text-primary">Live Feed</h2>
               </div>
               <Link
                 href="/company/pipeline"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-tl-text-secondary hover:text-tl-gold transition-colors"
               >
                 View All
               </Link>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-1 divide-y divide-tl-border-subtle">
               {activityEvents.map((ev, i) => (
                 <motion.div
                   key={ev.id}
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.06, duration: 0.3 }}
-                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors"
+                  className="flex items-center gap-3 py-2.5 hover:bg-tl-bg-elevated/30 transition-colors px-1 rounded-lg"
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${ev.initBg}`}
@@ -600,12 +583,10 @@ export default function CompanyDashboard() {
                     {ev.initial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-foreground truncate">{ev.text}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{ev.time}</p>
+                    <p className="text-xs text-tl-text-primary truncate">{ev.text}</p>
+                    <p className="text-[10px] text-tl-text-secondary mt-0.5">{ev.time}</p>
                   </div>
-                  <span
-                    className={`hidden sm:inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0 ${ev.badgeCls}`}
-                  >
+                  <span className={`hidden sm:inline-flex text-[10px] font-medium shrink-0 ${ev.badgeCls}`}>
                     {ev.badge}
                   </span>
                 </motion.div>
@@ -626,15 +607,15 @@ export default function CompanyDashboard() {
           <motion.div key={action.label} variants={itemVariants}>
             <Link
               href={action.href}
-              className="glass-card p-5 hover:border-primary/30 cursor-pointer transition-all group block text-center"
+              className="tl-card p-5 hover:border-tl-gold/30 cursor-pointer transition-all group block text-center shadow-card hover:shadow-gold"
             >
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3 ${action.iconBg} transition-transform duration-200 group-hover:scale-110`}
               >
                 <action.icon className={`w-5 h-5 ${action.iconCls}`} />
               </div>
-              <div className="font-semibold text-foreground text-sm">{action.label}</div>
-              <div className="text-xs text-muted-foreground mt-1">{action.desc}</div>
+              <div className="font-semibold text-tl-text-primary text-sm">{action.label}</div>
+              <div className="text-xs text-tl-text-secondary mt-1">{action.desc}</div>
             </Link>
           </motion.div>
         ))}

@@ -15,7 +15,6 @@ import {
   Check,
   Zap,
   AlertTriangle,
-  ChevronRight,
   Mail,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -33,7 +32,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       onClick={() => onChange(!checked)}
       className={cn(
         'relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
-        checked ? 'bg-blue-600' : 'bg-white/10'
+        checked ? 'bg-tl-teal' : 'bg-tl-bg-elevated'
       )}
     >
       <span
@@ -49,8 +48,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-6">
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      {description && <p className="text-sm text-muted-foreground mt-0.5">{description}</p>}
+      <h3 className="text-base font-display font-semibold text-tl-text-primary">{title}</h3>
+      {description && <p className="text-sm text-tl-text-secondary mt-0.5">{description}</p>}
     </div>
   )
 }
@@ -63,39 +62,39 @@ function DeleteDialog({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        className="relative glass-card w-full max-w-md p-6"
+        className="relative tl-card w-full max-w-md p-6"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5 text-red-400" />
+          <div className="w-10 h-10 rounded-xl bg-tl-rose/10 border border-tl-rose/20 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-tl-rose" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">Delete Account</h3>
-            <p className="text-xs text-muted-foreground">This action is permanent and cannot be undone.</p>
+            <h3 className="font-semibold text-tl-text-primary">Delete Account</h3>
+            <p className="text-xs text-tl-text-secondary">This action is permanent and cannot be undone.</p>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-sm text-tl-text-secondary mb-4">
           All your data, applications, profile and settings will be permanently deleted.
-          Type <code className="px-1 py-0.5 rounded bg-red-500/10 text-red-400 font-mono text-xs">DELETE</code> to confirm.
+          Type <code className="px-1 py-0.5 rounded bg-tl-rose/10 text-tl-rose font-mono text-xs">DELETE</code> to confirm.
         </p>
         <Input
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
           placeholder="Type DELETE to confirm"
-          className="mb-4 bg-white/[0.03] border-red-500/30 focus:ring-red-500/40 font-mono"
+          className="mb-4 bg-tl-bg-elevated border-tl-rose/30 focus:ring-tl-rose/40 font-mono text-tl-text-primary placeholder:text-tl-text-secondary"
         />
         <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button
             disabled={confirmText !== 'DELETE'}
-            className="bg-red-600 hover:bg-red-500 text-white border-0 disabled:opacity-40"
+            className="px-4 py-2 rounded-xl bg-tl-rose text-white text-sm font-semibold border-0 disabled:opacity-40 hover:bg-tl-rose/90 transition-colors"
             onClick={() => { toast.error('Account deletion initiated'); onClose() }}
           >
             Delete Account
-          </Button>
+          </button>
         </div>
       </motion.div>
     </div>
@@ -110,28 +109,28 @@ function ChangeEmailDialog({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        className="relative glass-card w-full max-w-md p-6"
+        className="relative tl-card w-full max-w-md p-6"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
       >
-        <h3 className="font-semibold text-foreground mb-1">Change Email Address</h3>
-        <p className="text-sm text-muted-foreground mb-4">A verification link will be sent to your new email.</p>
+        <h3 className="font-display font-semibold text-tl-text-primary mb-1">Change Email Address</h3>
+        <p className="text-sm text-tl-text-secondary mb-4">A verification link will be sent to your new email.</p>
         <Input
           type="email"
           value={newEmail}
           onChange={(e) => setNewEmail(e.target.value)}
           placeholder="new@email.com"
-          className="mb-4 bg-white/[0.03] border-white/[0.08]"
+          className="mb-4 bg-tl-bg-elevated border-tl-border-default text-tl-text-primary placeholder:text-tl-text-secondary focus:border-tl-gold focus:ring-tl-gold/20"
         />
         <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0"
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button
+            className="btn-gold"
             onClick={() => { toast.success('Verification email sent'); onClose() }}
           >
             Send Verification
-          </Button>
+          </button>
         </div>
       </motion.div>
     </div>
@@ -163,17 +162,17 @@ function TabAccount() {
       <div>
         <SectionHeader title="Email Address" description="Your sign-in email address." />
         <div className="flex items-center gap-3">
-          <div className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08]">
-            <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span className="text-sm text-muted-foreground">alex.chen@email.com</span>
+          <div className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-tl-bg-elevated border border-tl-border-default">
+            <Mail className="w-4 h-4 text-tl-text-secondary shrink-0" />
+            <span className="text-sm text-tl-text-secondary">alex.chen@email.com</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowEmailDialog(true)} className="shrink-0">
+          <button className="btn-ghost shrink-0 text-sm" onClick={() => setShowEmailDialog(true)}>
             Change Email
-          </Button>
+          </button>
         </div>
       </div>
 
-      <Separator className="bg-border" />
+      <Separator className="bg-tl-border-subtle" />
 
       {/* Password */}
       <div>
@@ -190,46 +189,44 @@ function TabAccount() {
                 placeholder={label}
                 value={pwForm[field as keyof typeof pwForm]}
                 onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
-                className="pr-10 bg-white/[0.03] border-white/[0.08]"
+                className="pr-10 bg-tl-bg-elevated border-tl-border-default text-tl-text-primary placeholder:text-tl-text-secondary focus:border-tl-gold focus:ring-tl-gold/20"
               />
               <button
                 type="button"
                 onClick={toggle}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-tl-text-secondary hover:text-tl-text-primary"
               >
                 {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           ))}
-          <Button
+          <button
             onClick={handlePwUpdate}
-            className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0"
+            className="btn-gold gap-2 flex items-center"
           >
             <Lock className="w-4 h-4" />
             Update Password
-          </Button>
+          </button>
         </div>
       </div>
 
-      <Separator className="bg-border" />
+      <Separator className="bg-tl-border-subtle" />
 
       {/* Danger zone */}
       <div>
         <SectionHeader title="Danger Zone" />
-        <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5 flex items-center justify-between gap-4">
+        <div className="p-4 rounded-xl border border-tl-rose/20 bg-tl-rose/5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-foreground">Delete my account</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Permanently delete your account and all associated data.</p>
+            <p className="text-sm font-medium text-tl-text-primary">Delete my account</p>
+            <p className="text-xs text-tl-text-secondary mt-0.5">Permanently delete your account and all associated data.</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 border-red-500/30 text-red-400 hover:bg-red-400/10 hover:text-red-400"
+          <button
+            className="shrink-0 px-3 py-1.5 rounded-xl border border-tl-rose/30 text-tl-rose hover:bg-tl-rose/10 text-xs font-semibold flex items-center gap-1.5 transition-colors"
             onClick={() => setShowDelete(true)}
           >
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            <Trash2 className="w-3.5 h-3.5" />
             Delete Account
-          </Button>
+          </button>
         </div>
       </div>
     </div>
@@ -250,16 +247,16 @@ function TabPrivacy() {
       <SectionHeader title="Privacy Settings" description="Control how your profile and activity appear to others." />
 
       {/* Profile visibility */}
-      <div className="glass-card p-4">
+      <div className="tl-card p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-foreground">Profile Visibility</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Who can see your Calibr profile</p>
+            <p className="text-sm font-medium text-tl-text-primary">Profile Visibility</p>
+            <p className="text-xs text-tl-text-secondary mt-0.5">Who can see your TalentBridge profile</p>
           </div>
           <select
             value={visibility}
             onChange={(e) => setVisibility(e.target.value)}
-            className="rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-foreground px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="rounded-xl bg-tl-bg-elevated border border-tl-border-default text-sm text-tl-text-primary px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-tl-gold/40"
           >
             <option value="public">Public</option>
             <option value="recruiters">Recruiters Only</option>
@@ -288,10 +285,10 @@ function TabPrivacy() {
           onChange: setAllowContact,
         },
       ].map((item) => (
-        <div key={item.label} className="glass-card p-4 flex items-center justify-between gap-4">
+        <div key={item.label} className="tl-card p-4 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">{item.label}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+            <p className="text-sm font-medium text-tl-text-primary">{item.label}</p>
+            <p className="text-xs text-tl-text-secondary mt-0.5">{item.desc}</p>
           </div>
           <Toggle
             checked={item.value}
@@ -300,13 +297,13 @@ function TabPrivacy() {
         </div>
       ))}
 
-      <Button
+      <button
         onClick={handleSave}
-        className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0"
+        className="btn-gold gap-2 flex items-center"
       >
         <Check className="w-4 h-4" />
         Save Privacy Settings
-      </Button>
+      </button>
     </div>
   )
 }
@@ -339,10 +336,10 @@ function TabNotifications() {
       <SectionHeader title="Notification Preferences" description="Stay informed on what matters to your job search." />
       <div className="space-y-3">
         {TALENT_NOTIFS.map((item) => (
-          <div key={item.id} className="glass-card p-4 flex items-center justify-between gap-4">
+          <div key={item.id} className="tl-card p-4 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">{item.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+              <p className="text-sm font-medium text-tl-text-primary">{item.label}</p>
+              <p className="text-xs text-tl-text-secondary mt-0.5">{item.desc}</p>
             </div>
             <Toggle checked={states[item.id]} onChange={() => toggle(item.id)} />
           </div>
@@ -367,33 +364,35 @@ const PREMIUM_FEATURES = [
 function TabPremium() {
   return (
     <div className="space-y-6">
-      <SectionHeader title="Premium Membership" description="Unlock the full power of Calibr AI." />
+      <SectionHeader title="Premium Membership" description="Unlock the full power of TalentBridge AI." />
 
       {/* Current plan */}
-      <div className="glass-card p-4 flex items-center justify-between gap-4">
+      <div className="tl-card p-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-foreground">Current Plan</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Free — limited matches and features</p>
+          <p className="text-sm font-medium text-tl-text-primary">Current Plan</p>
+          <p className="text-xs text-tl-text-secondary mt-0.5">Free — limited matches and features</p>
         </div>
-        <Badge variant="outline" className="text-muted-foreground">Free</Badge>
+        <Badge variant="outline" className="text-tl-text-secondary border-tl-border-default">Free</Badge>
       </div>
 
       {/* Upgrade card */}
-      <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
-        <div className="rounded-2xl bg-card p-6">
+      <div className="tl-card-gold p-6 relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-tl-gold/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative">
           <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-              <Crown className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center">
+              <Crown className="w-4 h-4 text-tl-gold" />
             </div>
             <div>
-              <span className="text-base font-bold text-foreground">Calibr Premium</span>
-              <Badge className="ml-2 bg-amber-500/15 text-amber-400 border-amber-500/25 text-[10px]">
+              <span className="text-base font-display font-bold text-tl-text-primary">TalentBridge Premium</span>
+              <Badge className="ml-2 tl-tag-gold text-[10px]">
                 Most Popular
               </Badge>
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground mb-5">
+          <p className="text-sm text-tl-text-secondary mb-5">
             Land your dream job faster with AI-powered tools built for ambitious professionals.
           </p>
 
@@ -401,22 +400,22 @@ function TabPremium() {
           <div className="grid sm:grid-cols-2 gap-2 mb-6">
             {PREMIUM_FEATURES.map((feat) => (
               <div key={feat} className="flex items-start gap-2">
-                <div className="w-4 h-4 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                  <Check className="w-2.5 h-2.5 text-blue-400" />
+                <div className="w-4 h-4 rounded-full bg-tl-teal/20 border border-tl-teal/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <Check className="w-2.5 h-2.5 text-tl-teal" />
                 </div>
-                <span className="text-xs text-muted-foreground">{feat}</span>
+                <span className="text-xs text-tl-text-secondary">{feat}</span>
               </div>
             ))}
           </div>
 
-          <Button
-            className="w-full gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 h-11 text-base font-semibold"
+          <button
+            className="btn-gold w-full gap-2 flex items-center justify-center h-11 text-base font-semibold"
             onClick={() => toast.success('Redirecting to checkout...')}
           >
             <Zap className="w-4 h-4" />
             Upgrade for $49/month
-          </Button>
-          <p className="text-center text-xs text-muted-foreground mt-3">
+          </button>
+          <p className="text-center text-xs text-tl-text-secondary mt-3">
             Cancel anytime. No lock-in contracts.
           </p>
         </div>
@@ -450,12 +449,12 @@ export default function TalentSettingsPage() {
     <div className="p-6 md:p-8 max-w-4xl mx-auto">
       <div className="mb-8">
         <p className="section-eyebrow mb-2">My Account</p>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your account, privacy, and preferences.</p>
+        <h1 className="text-2xl font-display font-bold text-tl-text-primary">Settings</h1>
+        <p className="text-sm text-tl-text-secondary mt-1">Manage your account, privacy, and preferences.</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Nav */}
+        {/* Sidebar Nav */}
         <nav className="lg:w-48 shrink-0">
           <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
             {TABS.map((tab) => (
@@ -463,16 +462,14 @@ export default function TalentSettingsPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 text-left w-full',
-                  activeTab === tab.id
-                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                  'sidebar-link',
+                  activeTab === tab.id && 'active'
                 )}
               >
                 <tab.icon className="w-4 h-4 shrink-0" />
                 {tab.label}
                 {tab.id === 'premium' && (
-                  <Crown className="w-3 h-3 text-amber-400 ml-auto" />
+                  <Crown className="w-3 h-3 text-tl-gold ml-auto" />
                 )}
               </button>
             ))}

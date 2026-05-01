@@ -35,19 +35,17 @@ const ITEMS_PER_PAGE = 9
 function MatchRingSvg({ score, size = 56 }: { score: number; size?: number }) {
   const r = (size - 8) / 2
   const c = 2 * Math.PI * r
-  const color =
-    score >= 90 ? '#10b981' : score >= 75 ? '#3b82f6' : score >= 60 ? '#f59e0b' : '#ef4444'
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={4} className="text-muted/30" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={4} className="text-tl-bg-elevated" />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={color}
+          stroke="#C9A84C"
           strokeWidth={4}
           strokeLinecap="round"
           strokeDasharray={c}
@@ -57,7 +55,7 @@ function MatchRingSvg({ score, size = 56 }: { score: number; size?: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold text-foreground">{score}%</span>
+        <span className="font-mono text-xs font-bold text-tl-gold">{score}%</span>
       </div>
     </div>
   )
@@ -67,13 +65,13 @@ function MatchRingSvg({ score, size = 56 }: { score: number; size?: number }) {
 
 function avatarColor(name: string) {
   const palette = [
-    'bg-blue-500/20 text-blue-400',
-    'bg-purple-500/20 text-purple-400',
-    'bg-emerald-500/20 text-emerald-400',
-    'bg-amber-500/20 text-amber-400',
-    'bg-cyan-500/20 text-cyan-400',
-    'bg-rose-500/20 text-rose-400',
-    'bg-indigo-500/20 text-indigo-400',
+    'bg-tl-blue/20 text-tl-blue',
+    'bg-tl-gold/20 text-tl-gold',
+    'bg-tl-teal/20 text-tl-teal',
+    'bg-tl-rose/20 text-tl-rose',
+    'bg-tl-teal/15 text-tl-teal',
+    'bg-tl-gold/15 text-tl-gold',
+    'bg-tl-blue/15 text-tl-blue',
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff
@@ -82,11 +80,11 @@ function avatarColor(name: string) {
 
 // ─── Toggle Switch ────────────────────────────────────────────────────────────
 
-function Toggle({ value, onChange, color = 'bg-blue-500' }: { value: boolean; onChange: () => void; color?: string }) {
+function Toggle({ value, onChange, gold = false }: { value: boolean; onChange: () => void; gold?: boolean }) {
   return (
     <button
       onClick={onChange}
-      className={cn('w-10 h-[22px] rounded-full transition-all duration-200 relative shrink-0', value ? color : 'bg-white/10')}
+      className={cn('w-10 h-[22px] rounded-full transition-all duration-200 relative shrink-0', value ? (gold ? 'bg-tl-gold' : 'bg-tl-teal') : 'bg-tl-bg-elevated border border-tl-border-subtle')}
     >
       <span className={cn('absolute top-0.5 left-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-transform duration-200', value && 'translate-x-[18px]')} />
     </button>
@@ -105,7 +103,7 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: idx * 0.04 }}
-      className="glass-card p-5 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer flex flex-col"
+      className="tl-card p-5 hover:border-tl-gold/30 hover:shadow-gold transition-all cursor-pointer flex flex-col"
     >
       {/* Top: avatar + badges */}
       <div className="flex items-start justify-between mb-4">
@@ -114,19 +112,19 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
             {candidate.name.slice(0, 2).toUpperCase()}
           </div>
           {candidate.verified && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-blue-500 border-2 border-card flex items-center justify-center">
-              <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-tl-teal border-2 border-tl-bg-surface flex items-center justify-center">
+              <CheckCircle2 className="w-2.5 h-2.5 text-tl-bg-base" />
             </span>
           )}
         </div>
         <div className="flex flex-col items-end gap-1">
           {candidate.verified && (
-            <span className="text-[10px] font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+            <span className="tl-tag-teal text-[10px]">
               Verified
             </span>
           )}
           {candidate.premium && (
-            <span className="flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+            <span className="tl-tag-gold flex items-center gap-1 text-[10px]">
               <Zap className="w-2.5 h-2.5" /> Premium
             </span>
           )}
@@ -135,11 +133,11 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
 
       {/* Identity */}
       <div className="mb-3">
-        <p className="text-base font-bold text-foreground">{candidate.name}</p>
-        <p className="text-sm text-muted-foreground">{candidate.title}</p>
+        <p className="text-base font-bold text-tl-text-primary">{candidate.name}</p>
+        <p className="text-sm text-tl-text-secondary">{candidate.title}</p>
         <div className="flex items-center gap-1 mt-1.5">
-          <MapPin className="w-3 h-3 text-muted-foreground/60" />
-          <span className="text-xs text-muted-foreground">{candidate.location}</span>
+          <MapPin className="w-3 h-3 text-tl-text-secondary/60" />
+          <span className="text-xs text-tl-text-secondary">{candidate.location}</span>
         </div>
       </div>
 
@@ -148,8 +146,8 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
         <span className={cn(
           'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium',
           candidate.availability.toLowerCase().includes('immediately') || candidate.availability.toLowerCase().includes('now')
-            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+            ? 'bg-tl-teal/10 text-tl-teal border border-tl-teal/20'
+            : 'bg-tl-gold/10 text-tl-gold border border-tl-gold/20'
         )}>
           <span className="w-1.5 h-1.5 rounded-full bg-current" />
           {candidate.availability}
@@ -169,8 +167,8 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
             className={cn(
               'inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full border font-medium',
               s.verified
-                ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
-                : 'bg-white/[0.05] border-white/[0.1] text-muted-foreground'
+                ? 'bg-tl-teal/10 border-tl-teal/20 text-tl-teal'
+                : 'bg-tl-bg-elevated border-tl-border-subtle text-tl-text-secondary'
             )}
           >
             {s.verified && <CheckCircle2 className="w-2.5 h-2.5" />}
@@ -178,12 +176,12 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
           </span>
         ))}
         {extraCount > 0 && (
-          <span className="text-[11px] text-muted-foreground px-2 py-0.5">+{extraCount} more</span>
+          <span className="text-[11px] text-tl-text-secondary px-2 py-0.5">+{extraCount} more</span>
         )}
       </div>
 
       {/* Salary */}
-      <p className="text-sm text-emerald-400 font-semibold mb-4 mt-auto">
+      <p className="font-mono text-sm text-tl-gold font-semibold mb-4 mt-auto">
         ${Math.round(candidate.salaryExpectation / 1000)}K / yr
       </p>
 
@@ -191,7 +189,7 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
       <div className="flex gap-2">
         <Link
           href={`/company/candidates/${candidate.id}`}
-          className="flex-1 text-sm font-semibold py-2 px-3 rounded-xl border border-border hover:bg-white/[0.06] text-foreground text-center transition-all"
+          className="flex-1 text-sm font-semibold py-2 px-3 rounded-xl border border-tl-border-subtle hover:border-tl-gold/40 hover:text-tl-gold text-tl-text-primary text-center transition-all"
         >
           View Profile
         </Link>
@@ -200,8 +198,8 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
           className={cn(
             'p-2 rounded-xl border transition-all duration-200',
             saved
-              ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
-              : 'border-border text-muted-foreground hover:text-foreground hover:border-white/[0.2]'
+              ? 'bg-tl-gold/20 border-tl-gold/40 text-tl-gold'
+              : 'border-tl-border-subtle text-tl-text-secondary hover:text-tl-gold hover:border-tl-gold/30'
           )}
         >
           {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
@@ -220,27 +218,27 @@ function CandidateListRow({ candidate, idx }: { candidate: Candidate; idx: numbe
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: idx * 0.03 }}
-      className="glass-card px-5 py-4 hover:border-white/[0.15] transition-all flex items-center gap-4"
+      className="tl-card px-5 py-4 hover:border-tl-gold/30 transition-all flex items-center gap-4"
     >
       <div className={cn('w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0', avatarColor(candidate.name))}>
         {candidate.name.slice(0, 2).toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="font-semibold text-foreground">{candidate.name}</p>
-          {candidate.verified && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
-          {candidate.premium && <Star className="w-3.5 h-3.5 text-amber-400 shrink-0 fill-current" />}
+          <p className="font-semibold text-tl-text-primary">{candidate.name}</p>
+          {candidate.verified && <CheckCircle2 className="w-3.5 h-3.5 text-tl-teal shrink-0" />}
+          {candidate.premium && <Star className="w-3.5 h-3.5 text-tl-gold shrink-0 fill-current" />}
         </div>
-        <p className="text-sm text-muted-foreground">{candidate.title} · {candidate.location}</p>
+        <p className="text-sm text-tl-text-secondary">{candidate.title} · {candidate.location}</p>
       </div>
       <div className="hidden md:flex gap-1.5 flex-wrap max-w-[180px]">
         {candidate.skills.slice(0, 2).map((s) => (
-          <span key={s.name} className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.1] text-muted-foreground">
+          <span key={s.name} className="text-[11px] px-2 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-subtle text-tl-text-secondary">
             {s.name}
           </span>
         ))}
       </div>
-      <span className="hidden lg:block text-sm text-emerald-400 font-semibold shrink-0">
+      <span className="hidden lg:block font-mono text-sm text-tl-gold font-semibold shrink-0">
         ${Math.round(candidate.salaryExpectation / 1000)}K
       </span>
       <div className="shrink-0">
@@ -248,13 +246,13 @@ function CandidateListRow({ candidate, idx }: { candidate: Candidate; idx: numbe
       </div>
       <Link
         href={`/company/candidates/${candidate.id}`}
-        className="text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all shrink-0"
+        className="text-xs font-medium px-3 py-1.5 rounded-lg bg-tl-gold/10 border border-tl-gold/20 text-tl-gold hover:bg-tl-gold/20 transition-all shrink-0"
       >
         View
       </Link>
       <button
         onClick={() => setSaved((p) => !p)}
-        className={cn('p-1.5 rounded-lg transition-all shrink-0', saved ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground')}
+        className={cn('p-1.5 rounded-lg transition-all shrink-0', saved ? 'text-tl-gold' : 'text-tl-text-secondary hover:text-tl-gold')}
       >
         {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
       </button>
@@ -368,7 +366,7 @@ export default function CandidatesPage() {
   const salaryDisplay = salaryMin >= 1000 ? `$${(salaryMin / 1000).toFixed(0)}K` : salaryMin === 0 ? 'Any' : `$${salaryMin}`
 
   return (
-    <div className="flex h-full min-h-screen bg-background">
+    <div className="flex h-full min-h-screen bg-tl-bg-base">
 
       {/* ── LEFT FILTER SIDEBAR ───────────────────────────────────────── */}
       <AnimatePresence initial={false}>
@@ -378,24 +376,24 @@ export default function CandidatesPage() {
             animate={{ width: 256, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-y-auto overflow-x-hidden"
+            className="flex-shrink-0 border-r border-tl-border-subtle flex flex-col overflow-y-auto overflow-x-hidden bg-tl-bg-surface"
             style={{ minWidth: 0 }}
           >
             <div className="w-64">
               {/* Filters header */}
-              <div className="glass-card m-4 p-5 space-y-5">
+              <div className="tl-card m-4 p-5 space-y-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <SlidersHorizontal className="w-4 h-4 text-blue-400" />
-                    <h2 className="text-sm font-semibold text-foreground">Filters</h2>
+                    <SlidersHorizontal className="w-4 h-4 text-tl-gold" />
+                    <h2 className="text-sm font-semibold text-tl-text-primary">Filters</h2>
                     {activeFilters > 0 && (
-                      <span className="text-[10px] font-bold bg-blue-500 text-white rounded-full px-1.5 py-0.5">
+                      <span className="tl-tag-gold text-[10px] font-bold">
                         {activeFilters}
                       </span>
                     )}
                   </div>
                   {activeFilters > 0 && (
-                    <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-red-400 transition-colors">
+                    <button onClick={clearFilters} className="text-xs text-tl-text-secondary hover:text-tl-rose transition-colors">
                       Clear
                     </button>
                   )}
@@ -403,18 +401,18 @@ export default function CandidatesPage() {
 
                 {/* Search */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tl-text-secondary" />
                   <input
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                     placeholder="Search candidates…"
-                    className="w-full bg-muted rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full bg-tl-bg-surface border border-tl-border-subtle rounded-xl pl-9 pr-4 py-2.5 text-sm text-tl-text-primary placeholder:text-tl-text-secondary/60 focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all"
                   />
                 </div>
 
                 {/* Experience Level */}
                 <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Experience Level</p>
+                  <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider mb-2.5">Experience Level</p>
                   <div className="space-y-2">
                     {EXPERIENCE_LEVELS.map((lvl) => (
                       <label key={lvl} className="flex items-center gap-2.5 cursor-pointer group">
@@ -427,9 +425,9 @@ export default function CandidatesPage() {
                             )
                             setPage(1)
                           }}
-                          className="w-4 h-4 rounded accent-blue-500"
+                          className="w-4 h-4 rounded border-tl-gold checked:bg-tl-gold accent-[#C9A84C]"
                         />
-                        <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                        <span className="text-sm text-tl-text-secondary group-hover:text-tl-text-primary transition-colors">
                           {EXPERIENCE_LABELS[lvl]}
                         </span>
                       </label>
@@ -439,7 +437,7 @@ export default function CandidatesPage() {
 
                 {/* Work Mode */}
                 <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Work Mode</p>
+                  <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider mb-2.5">Work Mode</p>
                   <div className="space-y-2">
                     {WORK_MODES.map((mode) => (
                       <label key={mode} className="flex items-center gap-2.5 cursor-pointer group">
@@ -452,9 +450,9 @@ export default function CandidatesPage() {
                             )
                             setPage(1)
                           }}
-                          className="w-4 h-4 rounded accent-blue-500"
+                          className="w-4 h-4 rounded border-tl-gold checked:bg-tl-gold accent-[#C9A84C]"
                         />
-                        <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                        <span className="text-sm text-tl-text-secondary group-hover:text-tl-text-primary transition-colors">
                           {WORK_MODE_LABELS[mode]}
                         </span>
                       </label>
@@ -465,8 +463,8 @@ export default function CandidatesPage() {
                 {/* Min Salary */}
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Min Salary</p>
-                    <span className="text-xs font-semibold text-foreground">{salaryDisplay}</span>
+                    <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider">Min Salary</p>
+                    <span className="font-mono text-xs font-semibold text-tl-gold">{salaryDisplay}</span>
                   </div>
                   <input
                     type="range"
@@ -475,29 +473,29 @@ export default function CandidatesPage() {
                     step={10000}
                     value={salaryMin}
                     onChange={(e) => { setSalaryMin(Number(e.target.value)); setPage(1) }}
-                    className="w-full accent-blue-500"
+                    className="w-full accent-[#C9A84C]"
                   />
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <div className="flex justify-between text-[10px] text-tl-text-secondary mt-1">
                     <span>$0</span><span>$200K</span>
                   </div>
                 </div>
 
                 {/* Skills */}
                 <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Skills</p>
+                  <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider mb-2.5">Skills</p>
                   <input
                     value={skillInput}
                     onChange={(e) => setSkillInput(e.target.value)}
                     onKeyDown={handleSkillKeyDown}
                     placeholder="Type skill + Enter…"
-                    className="w-full bg-muted rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full bg-tl-bg-surface border border-tl-border-subtle rounded-lg px-3 py-2 text-xs text-tl-text-primary placeholder:text-tl-text-secondary/60 focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all"
                   />
                   {skillTags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {skillTags.map((s) => (
                         <span
                           key={s}
-                          className="inline-flex items-center gap-1 text-[11px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full"
+                          className="inline-flex items-center gap-1 text-[11px] tl-tag-gold"
                         >
                           {s}
                           <button onClick={() => setSkillTags((p) => p.filter((x) => x !== s))}>
@@ -511,11 +509,11 @@ export default function CandidatesPage() {
 
                 {/* Availability */}
                 <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Availability</p>
+                  <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider mb-2.5">Availability</p>
                   <select
                     value={availabilityFilter}
                     onChange={(e) => { setAvailabilityFilter(e.target.value); setPage(1) }}
-                    className="w-full bg-muted border-0 rounded-lg px-3 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full bg-tl-bg-surface border border-tl-border-subtle rounded-lg px-3 py-2 text-sm text-tl-text-secondary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all"
                   >
                     <option value="">Any</option>
                     {AVAILABILITY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -523,14 +521,14 @@ export default function CandidatesPage() {
                 </div>
 
                 {/* Toggle switches */}
-                <div className="space-y-3 pt-1 border-t border-border">
+                <div className="space-y-3 pt-1 border-t border-tl-border-subtle">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Verified only</span>
+                    <span className="text-sm text-tl-text-secondary">Verified only</span>
                     <Toggle value={verifiedOnly} onChange={() => { setVerifiedOnly((p) => !p); setPage(1) }} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Premium profiles</span>
-                    <Toggle value={premiumOnly} onChange={() => { setPremiumOnly((p) => !p); setPage(1) }} color="bg-amber-500" />
+                    <span className="text-sm text-tl-text-secondary">Premium profiles</span>
+                    <Toggle value={premiumOnly} onChange={() => { setPremiumOnly((p) => !p); setPage(1) }} gold />
                   </div>
                 </div>
               </div>
@@ -543,24 +541,24 @@ export default function CandidatesPage() {
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Header */}
-        <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-white/[0.06]">
+        <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-tl-border-subtle">
           <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowFilters((p) => !p)}
-                className="p-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-all"
+                className="p-2 rounded-xl border border-tl-border-subtle text-tl-text-secondary hover:text-tl-gold hover:border-tl-gold/30 hover:bg-tl-gold/5 transition-all"
                 title="Toggle filters"
               >
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Talent Pool</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  <span className="text-blue-400 font-semibold">{filtered.length}</span> candidates found
+                <h1 className="font-display text-2xl text-tl-text-primary">Talent Pool</h1>
+                <p className="text-sm text-tl-text-secondary mt-0.5">
+                  <span className="font-mono text-tl-gold font-semibold">{filtered.length}</span> candidates found
                   {activeFilters > 0 && (
                     <button
                       onClick={clearFilters}
-                      className="ml-2 text-[11px] text-red-400/70 hover:text-red-400 transition-colors"
+                      className="ml-2 text-[11px] text-tl-rose/70 hover:text-tl-rose transition-colors"
                     >
                       Clear {activeFilters} filter{activeFilters !== 1 ? 's' : ''}
                     </button>
@@ -572,11 +570,11 @@ export default function CandidatesPage() {
             <div className="flex items-center gap-3 flex-wrap">
               {/* Sort */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground hidden sm:block">Sort:</span>
+                <span className="text-sm text-tl-text-secondary hidden sm:block">Sort:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'match' | 'recent' | 'salary')}
-                  className="bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="bg-tl-bg-surface border border-tl-border-subtle rounded-xl px-3 py-2 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all"
                 >
                   <option value="match">Best Match</option>
                   <option value="recent">Most Recent</option>
@@ -585,16 +583,16 @@ export default function CandidatesPage() {
               </div>
 
               {/* View toggle */}
-              <div className="flex items-center gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+              <div className="flex items-center gap-1 p-1 bg-tl-bg-surface rounded-xl border border-tl-border-subtle">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={cn('p-2 rounded-lg transition-all', viewMode === 'grid' ? 'bg-white/[0.1] text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                  className={cn('p-2 rounded-lg transition-all', viewMode === 'grid' ? 'bg-tl-bg-elevated text-tl-gold' : 'text-tl-text-secondary hover:text-tl-text-primary')}
                 >
                   <Grid3x3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={cn('p-2 rounded-lg transition-all', viewMode === 'list' ? 'bg-white/[0.1] text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                  className={cn('p-2 rounded-lg transition-all', viewMode === 'list' ? 'bg-tl-bg-elevated text-tl-gold' : 'text-tl-text-secondary hover:text-tl-text-primary')}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -614,10 +612,10 @@ export default function CandidatesPage() {
                 exit={{ opacity: 0 }}
                 className="flex flex-col items-center justify-center h-64 text-center"
               >
-                <Search className="w-12 h-12 text-muted-foreground/20 mb-4" />
-                <p className="text-sm font-medium text-foreground">No candidates found</p>
-                <p className="text-xs text-muted-foreground mt-1">Try adjusting your search or filters</p>
-                <button onClick={clearFilters} className="mt-4 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                <Search className="w-12 h-12 text-tl-text-secondary/20 mb-4" />
+                <p className="text-sm font-medium text-tl-text-primary">No candidates found</p>
+                <p className="text-xs text-tl-text-secondary mt-1">Try adjusting your search or filters</p>
+                <button onClick={clearFilters} className="mt-4 text-xs text-tl-gold hover:text-tl-gold/80 transition-colors">
                   Clear all filters
                 </button>
               </motion.div>
@@ -651,19 +649,19 @@ export default function CandidatesPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex-shrink-0 border-t border-white/[0.06] px-6 py-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex-shrink-0 border-t border-tl-border-subtle px-6 py-4 flex items-center justify-between">
+            <p className="text-sm text-tl-text-secondary">
               Showing{' '}
-              <span className="text-foreground font-medium">
+              <span className="font-mono text-tl-text-primary font-medium">
                 {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, filtered.length)}
               </span>{' '}
-              of <span className="text-foreground font-medium">{filtered.length}</span>
+              of <span className="font-mono text-tl-text-primary font-medium">{filtered.length}</span>
             </p>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
+                className="p-2 rounded-lg border border-tl-border-subtle text-tl-text-secondary hover:text-tl-gold hover:border-tl-gold/30 disabled:opacity-30 transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -674,10 +672,10 @@ export default function CandidatesPage() {
                     key={p}
                     onClick={() => setPage(p)}
                     className={cn(
-                      'w-8 h-8 rounded-lg text-sm font-medium transition-all',
+                      'w-8 h-8 rounded-lg font-mono text-sm font-medium transition-all',
                       page === p
-                        ? 'bg-blue-500 text-white'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                        ? 'bg-tl-gold text-tl-bg-base'
+                        : 'text-tl-text-secondary hover:text-tl-gold hover:bg-tl-gold/10'
                     )}
                   >
                     {p}
@@ -687,7 +685,7 @@ export default function CandidatesPage() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
+                className="p-2 rounded-lg border border-tl-border-subtle text-tl-text-secondary hover:text-tl-gold hover:border-tl-gold/30 disabled:opacity-30 transition-all"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

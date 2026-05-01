@@ -7,7 +7,6 @@ import { jobs } from '@/lib/data'
 import { formatSalary, timeAgo, cn } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -41,8 +40,8 @@ function getMatchScore(id: string): number {
 
 // ─── Avatar color hash ────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
-  'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500', 'bg-teal-500',
+  'bg-tl-blue', 'bg-tl-teal', 'bg-tl-rose', 'bg-tl-gold',
+  'bg-blue-700', 'bg-cyan-700', 'bg-fuchsia-700', 'bg-teal-700',
 ]
 function avatarColor(name: string) {
   let h = 0
@@ -58,8 +57,8 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
       className={cn(
         'px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 shrink-0',
         active
-          ? 'bg-primary/15 border-primary/40 text-primary'
-          : 'bg-muted/40 border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+          ? 'bg-tl-gold/15 border-tl-gold/40 text-tl-gold'
+          : 'bg-tl-bg-elevated border-tl-border-default text-tl-text-secondary hover:border-tl-gold/20 hover:text-tl-text-primary'
       )}
     >
       {children}
@@ -75,7 +74,7 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
         onClick={() => onChange(!checked)}
         className={cn(
           'relative w-10 h-[22px] rounded-full transition-all duration-200 shrink-0',
-          checked ? 'bg-primary' : 'bg-muted'
+          checked ? 'bg-tl-teal' : 'bg-tl-bg-elevated'
         )}
         aria-label={label}
       >
@@ -86,8 +85,8 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
           )}
         />
       </button>
-      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-        <span className="text-foreground font-medium">{label}</span>
+      <span className="text-sm text-tl-text-secondary group-hover:text-tl-text-primary transition-colors">
+        <span className="text-tl-text-primary font-medium">{label}</span>
       </span>
     </label>
   )
@@ -102,7 +101,7 @@ function JobCard({ job, saved, onSave }: { job: typeof jobs[0] & { score: number
   const isNew = (Date.now() - new Date(job.postedAt).getTime()) < 1000 * 60 * 60 * 48
 
   return (
-    <div className="glass-card p-5 hover:border-primary/40 transition-all duration-300 cursor-pointer group">
+    <div className="tl-card p-5 hover:border-tl-gold/40 transition-all duration-300 cursor-pointer group">
       <div className="flex items-start gap-4">
         {/* Left: avatar + featured badge */}
         <div className="relative shrink-0">
@@ -110,8 +109,8 @@ function JobCard({ job, saved, onSave }: { job: typeof jobs[0] & { score: number
             {job.company.name[0]}
           </div>
           {job.featured && (
-            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
-              <Star className="w-2.5 h-2.5 text-white fill-current" />
+            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-tl-gold flex items-center justify-center">
+              <Star className="w-2.5 h-2.5 text-tl-bg-base fill-current" />
             </span>
           )}
         </div>
@@ -122,45 +121,49 @@ function JobCard({ job, saved, onSave }: { job: typeof jobs[0] & { score: number
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <Link
               href={`/talent/jobs/${job.id}`}
-              className="text-lg font-bold text-foreground hover:text-primary transition-colors leading-tight"
+              className="text-lg font-bold text-tl-text-primary hover:text-tl-gold transition-colors leading-tight"
             >
               {job.title}
             </Link>
             {isNew && (
-              <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold leading-none">
+              <span className="tl-tag-teal text-[10px] font-bold leading-none">
                 NEW
               </span>
             )}
             {job.featured && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-semibold">
+              <span className="tl-tag-gold text-[10px] font-semibold">
                 Featured
               </span>
             )}
           </div>
 
           {/* Row 2: company + location + salary */}
-          <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 mb-2 text-sm text-muted-foreground">
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 mb-2 text-sm text-tl-text-secondary">
             <span className="flex items-center gap-1 font-medium">
               {job.company.name}
-              {job.company.verified && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
+              {job.company.verified && <CheckCircle2 className="w-3.5 h-3.5 text-tl-teal" />}
             </span>
             <span className="flex items-center gap-1 text-xs">
               <MapPin className="w-3 h-3 shrink-0" />{job.location}
             </span>
-            <span className="flex items-center gap-1 text-xs text-emerald-400 font-semibold">
+            <span className="flex items-center gap-1 text-xs text-tl-teal font-semibold font-mono">
               <Banknote className="w-3 h-3 shrink-0" />{formatSalary(job.salaryMin, job.salaryMax)}
             </span>
           </div>
 
           {/* Row 3: badges */}
           <div className="flex flex-wrap gap-1.5 mt-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-muted/50 border border-border text-[10px] text-muted-foreground capitalize">
-              {WORK_MODE_LABELS[job.workMode]}
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-muted/50 border border-border text-[10px] text-muted-foreground">
+            {job.workMode === 'remote' ? (
+              <span className="tl-tag-teal capitalize">{WORK_MODE_LABELS[job.workMode]}</span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] text-tl-text-secondary capitalize">
+                {WORK_MODE_LABELS[job.workMode]}
+              </span>
+            )}
+            <span className="px-2.5 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] text-tl-text-secondary">
               {JOB_TYPE_LABELS[job.type]}
             </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-muted/50 border border-border text-[10px] text-muted-foreground">
+            <span className="px-2.5 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] text-tl-text-secondary">
               {EXPERIENCE_LABELS[job.level]}
             </span>
           </div>
@@ -168,17 +171,17 @@ function JobCard({ job, saved, onSave }: { job: typeof jobs[0] & { score: number
           {/* Row 4: skills */}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {job.skills.slice(0, 4).map(s => (
-              <span key={s} className="px-2 py-0.5 rounded-full bg-primary/8 border border-primary/15 text-[10px] text-primary font-medium">
+              <span key={s} className="tl-tag-gold text-[10px]">
                 {s}
               </span>
             ))}
             {job.skills.length > 4 && (
-              <span className="text-[10px] text-muted-foreground self-center">+{job.skills.length - 4} more</span>
+              <span className="text-[10px] text-tl-text-secondary self-center">+{job.skills.length - 4} more</span>
             )}
           </div>
 
           {/* Row 5: meta */}
-          <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3 mt-2 text-[10px] text-tl-text-secondary">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" /> Posted {timeAgo(job.postedAt)}
             </span>
@@ -191,14 +194,14 @@ function JobCard({ job, saved, onSave }: { job: typeof jobs[0] & { score: number
         {/* Right: match ring + actions */}
         <div className="shrink-0 flex flex-col items-center gap-2">
           <MatchRing score={job.score} size={72} />
-          <span className="text-xs text-center text-muted-foreground">{job.score}% match</span>
+          <span className="text-xs text-center font-mono text-tl-gold font-semibold">{job.score}%</span>
           <Link href={`/talent/jobs/${job.id}`}>
-            <Button size="sm" className="h-8 text-xs px-4">Apply</Button>
+            <button className="btn-gold h-8 text-xs px-4">Apply</button>
           </Link>
           <Button
             variant="ghost"
             size="icon"
-            className={cn('h-8 w-8', saved && 'text-primary')}
+            className={cn('h-8 w-8 text-tl-text-secondary hover:text-tl-gold', saved && 'text-tl-gold')}
             onClick={e => { e.stopPropagation(); onSave() }}
           >
             <Bookmark className={cn('w-3.5 h-3.5', saved && 'fill-current')} />
@@ -290,10 +293,10 @@ export default function JobsPage() {
         transition={{ duration: 0.4 }}
         className="mb-6"
       >
-        <h1 className="text-2xl font-bold text-foreground">Find Your Next Role</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
+        <h1 className="text-2xl font-display font-bold text-tl-text-primary">Find Your Next Role</h1>
+        <p className="text-tl-text-secondary mt-1 text-sm">
           {jobs.length} jobs available &middot;{' '}
-          <span className="text-emerald-400 font-semibold">{highMatchCount} match 80%+</span>
+          <span className="text-tl-teal font-semibold font-mono">{highMatchCount} match 80%+</span>
         </p>
       </motion.div>
 
@@ -302,34 +305,37 @@ export default function JobsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.07 }}
-        className="glass-card p-4 mb-4"
+        className="tl-card p-4 mb-4"
       >
         {/* Row 1 */}
         <div className="flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
+          <div className="relative flex-1 min-w-[200px] bg-tl-bg-surface border border-tl-border-default focus-within:border-tl-gold rounded-xl transition-colors">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tl-text-secondary" />
+            <input
               placeholder="Job title, company, or keyword"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
-              className="pl-9"
+              className="w-full bg-transparent pl-9 pr-4 py-2.5 text-sm text-tl-text-primary placeholder:text-tl-text-secondary focus:outline-none rounded-xl"
             />
           </div>
           <Button
             variant="outline"
             onClick={() => setShowFilters(p => !p)}
-            className={cn('gap-2 shrink-0', showFilters && 'border-primary/40 bg-primary/10 text-primary')}
+            className={cn(
+              'gap-2 shrink-0 border-tl-border-default text-tl-text-secondary hover:text-tl-text-primary bg-tl-bg-surface',
+              showFilters && 'border-tl-gold/40 bg-tl-gold/10 text-tl-gold'
+            )}
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+              <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-tl-gold text-tl-bg-base text-[10px] font-bold">
                 {activeFilterCount}
               </span>
             )}
           </Button>
           <Select value={sortBy} onValueChange={v => setSortBy(v as SortBy)}>
-            <SelectTrigger className="h-10 w-44 text-sm">
+            <SelectTrigger className="h-10 w-44 text-sm bg-tl-bg-surface border-tl-border-default text-tl-text-primary">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -351,10 +357,10 @@ export default function JobsPage() {
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="border-t border-border pt-4 mt-4 space-y-4">
+              <div className="border-t border-tl-border-subtle pt-4 mt-4 space-y-4">
                 {/* Work Mode */}
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Work Mode</p>
+                  <p className="text-[10px] text-tl-text-secondary uppercase tracking-wider font-semibold mb-2">Work Mode</p>
                   <div className="flex flex-wrap gap-1.5">
                     {(['remote', 'hybrid', 'onsite'] as WorkMode[]).map(m => (
                       <FilterPill
@@ -370,7 +376,7 @@ export default function JobsPage() {
 
                 {/* Job Type */}
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Job Type</p>
+                  <p className="text-[10px] text-tl-text-secondary uppercase tracking-wider font-semibold mb-2">Job Type</p>
                   <div className="flex flex-wrap gap-1.5">
                     {(['full-time', 'part-time', 'contract', 'internship', 'freelance'] as JobType[]).map(t => (
                       <FilterPill
@@ -386,7 +392,7 @@ export default function JobsPage() {
 
                 {/* Experience Level */}
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Experience Level</p>
+                  <p className="text-[10px] text-tl-text-secondary uppercase tracking-wider font-semibold mb-2">Experience Level</p>
                   <div className="flex flex-wrap gap-1.5">
                     {(['entry', 'mid', 'senior', 'lead', 'executive'] as ExperienceLevel[]).map(l => (
                       <FilterPill
@@ -401,7 +407,7 @@ export default function JobsPage() {
                 </div>
 
                 {/* 80%+ match toggle + clear */}
-                <div className="flex items-center justify-between flex-wrap gap-3 pt-1 border-t border-border">
+                <div className="flex items-center justify-between flex-wrap gap-3 pt-1 border-t border-tl-border-subtle">
                   <ToggleSwitch
                     checked={minMatch}
                     onChange={v => { setMinMatch(v); setPage(1) }}
@@ -410,7 +416,7 @@ export default function JobsPage() {
                   {activeFilterCount > 0 && (
                     <button
                       onClick={clearAll}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-400 transition-colors"
+                      className="flex items-center gap-1.5 text-xs text-tl-text-secondary hover:text-tl-rose transition-colors"
                     >
                       <X className="w-3.5 h-3.5" /> Clear All
                     </button>
@@ -424,8 +430,8 @@ export default function JobsPage() {
 
       {/* ── RESULTS COUNT + ACTIVE FILTERS ──────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <p className="text-sm text-muted-foreground">
-          <span className="text-foreground font-semibold">{filtered.length}</span> jobs found
+        <p className="text-sm text-tl-text-secondary">
+          <span className="text-tl-text-primary font-semibold font-mono">{filtered.length}</span> jobs found
           {search && <span className="ml-1">for &ldquo;{search}&rdquo;</span>}
         </p>
 
@@ -433,33 +439,33 @@ export default function JobsPage() {
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap gap-2">
             {workModes.map(m => (
-              <span key={m} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium">
+              <span key={m} className="inline-flex items-center gap-1 tl-tag-gold">
                 {WORK_MODE_LABELS[m as WorkMode]}
-                <button onClick={() => toggleFilter(workModes, setWorkModes, m)} className="hover:text-rose-400">
+                <button onClick={() => toggleFilter(workModes, setWorkModes, m)} className="hover:text-tl-rose ml-0.5">
                   <X className="w-2.5 h-2.5" />
                 </button>
               </span>
             ))}
             {jobTypes.map(t => (
-              <span key={t} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium">
+              <span key={t} className="inline-flex items-center gap-1 tl-tag-gold">
                 {JOB_TYPE_LABELS[t as JobType]}
-                <button onClick={() => toggleFilter(jobTypes, setJobTypes, t)} className="hover:text-rose-400">
+                <button onClick={() => toggleFilter(jobTypes, setJobTypes, t)} className="hover:text-tl-rose ml-0.5">
                   <X className="w-2.5 h-2.5" />
                 </button>
               </span>
             ))}
             {experienceLevels.map(l => (
-              <span key={l} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium">
+              <span key={l} className="inline-flex items-center gap-1 tl-tag-gold">
                 {EXPERIENCE_LABELS[l as ExperienceLevel]}
-                <button onClick={() => toggleFilter(experienceLevels, setExperienceLevels, l)} className="hover:text-rose-400">
+                <button onClick={() => toggleFilter(experienceLevels, setExperienceLevels, l)} className="hover:text-tl-rose ml-0.5">
                   <X className="w-2.5 h-2.5" />
                 </button>
               </span>
             ))}
             {minMatch && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium">
+              <span className="inline-flex items-center gap-1 tl-tag-gold">
                 80%+ Match
-                <button onClick={() => { setMinMatch(false); setPage(1) }} className="hover:text-rose-400">
+                <button onClick={() => { setMinMatch(false); setPage(1) }} className="hover:text-tl-rose ml-0.5">
                   <X className="w-2.5 h-2.5" />
                 </button>
               </span>
@@ -476,20 +482,20 @@ export default function JobsPage() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="glass-card p-16 flex flex-col items-center text-center gap-4"
+            className="tl-card p-16 flex flex-col items-center text-center gap-4"
           >
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-              <Search className="w-8 h-8 text-muted-foreground/40" />
+            <div className="w-16 h-16 rounded-2xl bg-tl-bg-elevated flex items-center justify-center">
+              <Search className="w-8 h-8 text-tl-text-secondary/40" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">No jobs found</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
+              <h3 className="text-lg font-semibold text-tl-text-primary mb-1">No jobs found</h3>
+              <p className="text-sm text-tl-text-secondary max-w-xs">
                 Try adjusting your filters or search to find more opportunities.
               </p>
             </div>
-            <Button variant="outline" onClick={clearAll}>
+            <button className="btn-ghost" onClick={clearAll}>
               <X className="w-4 h-4 mr-2" /> Clear Filters
-            </Button>
+            </button>
           </motion.div>
         ) : (
           <motion.div
@@ -515,42 +521,41 @@ export default function JobsPage() {
       {/* ── PAGINATION ──────────────────────────────────────────────────────── */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-8">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9"
+          <button
+            className="btn-ghost h-9 w-9 p-0 flex items-center justify-center disabled:opacity-40"
             disabled={page === 1}
             onClick={() => setPage(p => Math.max(1, p - 1))}
           >
             <ChevronLeft className="w-4 h-4" />
-          </Button>
+          </button>
 
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-            <Button
+            <button
               key={p}
-              variant={page === p ? 'default' : 'outline'}
-              size="icon"
-              className="h-9 w-9"
               onClick={() => setPage(p)}
+              className={cn(
+                'h-9 w-9 rounded-xl text-sm font-mono font-semibold border transition-all duration-200',
+                page === p
+                  ? 'bg-tl-gold text-tl-bg-base border-tl-gold'
+                  : 'bg-tl-bg-surface border-tl-border-default text-tl-text-secondary hover:border-tl-gold/40 hover:text-tl-text-primary'
+              )}
             >
               {p}
-            </Button>
+            </button>
           ))}
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9"
+          <button
+            className="btn-ghost h-9 w-9 p-0 flex items-center justify-center disabled:opacity-40"
             disabled={page === totalPages}
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
           >
             <ChevronRight className="w-4 h-4" />
-          </Button>
+          </button>
         </div>
       )}
 
       {filtered.length > 0 && (
-        <p className="text-center text-xs text-muted-foreground mt-4">
+        <p className="text-center text-xs text-tl-text-secondary mt-4 font-mono">
           Showing {(page - 1) * ITEMS + 1}–{Math.min(page * ITEMS, filtered.length)} of {filtered.length} jobs
         </p>
       )}

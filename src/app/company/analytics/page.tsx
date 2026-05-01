@@ -211,7 +211,7 @@ export default function AnalyticsPage() {
   ]
 
   return (
-    <div className="p-6 max-w-screen-xl">
+    <div className="p-6 max-w-screen">
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

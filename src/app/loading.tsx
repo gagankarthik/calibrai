@@ -2,25 +2,18 @@ import { Zap } from 'lucide-react'
 
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-5">
-      {/* Logo mark */}
+    <div className="min-h-screen bg-tl-bg-base flex flex-col items-center justify-center gap-5">
       <div className="relative">
-        {/* Spinner ring */}
-        <div className="w-16 h-16 rounded-full border-2 border-white/[0.08] border-t-blue-500 animate-spin" />
-        {/* Logo in center */}
+        <div className="w-16 h-16 rounded-full border-2 border-tl-border-subtle border-t-tl-gold animate-spin" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <Zap className="w-4.5 h-4.5 text-white" />
+          <div className="w-9 h-9 rounded-lg bg-tl-gold/10 border border-tl-gold/30 flex items-center justify-center shadow-gold">
+            <Zap className="w-4 h-4 text-tl-gold" />
           </div>
         </div>
       </div>
-
-      {/* Brand name */}
       <div className="flex flex-col items-center gap-1">
-        <span className="text-sm font-bold text-foreground">
-          Calibr<span className="gradient-text">AI</span>
-        </span>
-        <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
+        <span className="font-display text-sm font-bold gradient-text">TalentLoop</span>
+        <span className="text-xs text-tl-text-secondary animate-pulse">Loading...</span>
       </div>
     </div>
   )

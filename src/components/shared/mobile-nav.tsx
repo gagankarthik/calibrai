@@ -17,11 +17,9 @@ import {
   Menu,
   X,
   UserCircle,
-  GraduationCap,
   FileText,
   FlaskConical,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 const companyNavItems = [
@@ -49,73 +47,59 @@ function MobileNav({ items, label }: { items: typeof companyNavItems; label: str
 
   return (
     <>
-      {/* Hamburger trigger */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden w-9 h-9 rounded-xl"
+      <button
+        className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all"
         onClick={() => setOpen(true)}
         aria-label="Open navigation menu"
       >
         <Menu className="w-5 h-5" />
-      </Button>
+      </button>
 
-      {/* Overlay + drawer */}
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop */}
             <motion.div
               key="mobile-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
               onClick={() => setOpen(false)}
             />
 
-            {/* Drawer */}
             <motion.aside
               key="mobile-drawer"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col md:hidden bg-card/95 backdrop-blur-xl border-r border-border shadow-2xl"
+              className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col md:hidden bg-tl-bg-surface/95 backdrop-blur-xl border-r border-tl-border-subtle shadow-elevated"
               role="dialog"
               aria-modal="true"
               aria-label={`${label} navigation`}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-tl-border-subtle">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-lg bg-tl-gold/10 border border-tl-gold/30 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-tl-gold" />
                   </div>
-                  <span className="text-sm font-bold text-foreground">
-                    Calibr<span className="gradient-text">AI</span>
-                  </span>
+                  <span className="font-display text-sm font-bold gradient-text">TalentLoop</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-8 h-8 rounded-xl"
+                <button
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all"
                   onClick={() => setOpen(false)}
                   aria-label="Close navigation menu"
                 >
                   <X className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
 
-              {/* Section label */}
               <div className="px-5 pt-4 pb-2">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  {label}
-                </p>
+                <p className="text-[10px] font-semibold text-tl-text-secondary uppercase tracking-wider">{label}</p>
               </div>
 
-              {/* Nav items */}
               <nav className="flex-1 overflow-y-auto px-3 space-y-1 pb-4">
                 {items.map((item, i) => {
                   const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -132,10 +116,10 @@ function MobileNav({ items, label }: { items: typeof companyNavItems; label: str
                         onClick={() => setOpen(false)}
                         aria-current={active ? 'page' : undefined}
                       >
-                        <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-tl-gold' : 'text-tl-text-secondary')} aria-hidden="true" />
                         <span className="flex-1">{item.label}</span>
                         {'badge' in item && item.badge && (
-                          <Badge variant="ghost" className="text-[10px] h-5 px-1.5">
+                          <Badge variant="ghost" className="text-[10px] h-5 px-1.5 bg-tl-gold/10 text-tl-gold border border-tl-gold/20">
                             {item.badge}
                           </Badge>
                         )}

@@ -64,7 +64,7 @@ const faqItems = [
   },
   {
     q: "How is our data secured?",
-    a: "Calibr is SOC2 Type II certified. All data is encrypted in transit (TLS 1.3) and at rest (AES-256). Enterprise plans support custom data residency in the EU or US, and we offer a dedicated security review process.",
+    a: "TalentLoop is SOC2 Type II certified. All data is encrypted in transit (TLS 1.3) and at rest (AES-256). Enterprise plans support custom data residency in the EU or US, and we offer a dedicated security review process.",
   },
 ]
 
@@ -348,7 +348,7 @@ function RoiCalculator() {
             asChild
             className="group bg-gradient-to-r from-emerald-600 to-emerald-500 border-0 shadow-glow-cyan shrink-0"
           >
-            <Link href="/register">
+            <Link href="/auth/register?role=company">
               Start capturing this ROI
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -538,7 +538,7 @@ export default function PricingPage() {
                     variant={plan.id === 'enterprise' ? 'outline' : 'default'}
                     asChild
                   >
-                    <Link href="/register">
+                    <Link href="/auth/register?role=company">
                       {plan.id === 'enterprise' ? 'Talk to Sales' : 'Start Free Trial'}
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </Link>
@@ -666,7 +666,7 @@ export default function PricingPage() {
               <span className="gradient-text">ROI</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Drag the sliders to match your hiring reality and see exactly how much Calibr saves you.
+              Drag the sliders to match your hiring reality and see exactly how much TalentLoop saves you.
             </p>
           </motion.div>
 
@@ -690,7 +690,7 @@ export default function PricingPage() {
           >
             <p className="font-semibold text-foreground/70 mb-1.5">How we calculate this:</p>
             <div className="grid sm:grid-cols-2 gap-2">
-              <p>Agency savings = (Current cost per hire – $3,200 Calibr cost) × monthly hires × 12</p>
+              <p>Agency savings = (Current cost per hire – $3,200 TalentLoop cost) × monthly hires × 12</p>
               <p>Productivity gain = Time saved (days) × daily salary rate (annual salary ÷ 260 working days)</p>
             </div>
           </motion.div>

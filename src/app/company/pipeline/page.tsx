@@ -21,50 +21,50 @@ import {
   Clock,
 } from 'lucide-react'
 
-// ─── Stage styling ────────────────────────────────────────────────────────────
+// ─── Stage dot colors (TalentLoop palette) ────────────────────────────────────
 
 const STAGE_DOT: Record<PipelineStage, string> = {
-  new: 'bg-blue-400',
-  screening: 'bg-purple-400',
-  phone_screen: 'bg-indigo-400',
-  technical: 'bg-amber-400',
-  onsite: 'bg-cyan-400',
-  offer: 'bg-emerald-400',
-  hired: 'bg-green-400',
-  rejected: 'bg-red-400',
+  new: 'bg-tl-blue',
+  screening: 'bg-tl-gold',
+  phone_screen: 'bg-tl-teal',
+  technical: 'bg-tl-gold',
+  onsite: 'bg-tl-teal',
+  offer: 'bg-tl-teal',
+  hired: 'bg-tl-teal',
+  rejected: 'bg-tl-rose',
 }
 
 const STAGE_TEXT: Record<PipelineStage, string> = {
-  new: 'text-blue-400',
-  screening: 'text-purple-400',
-  phone_screen: 'text-indigo-400',
-  technical: 'text-amber-400',
-  onsite: 'text-cyan-400',
-  offer: 'text-emerald-400',
-  hired: 'text-green-400',
-  rejected: 'text-red-400',
+  new: 'text-tl-blue',
+  screening: 'text-tl-gold',
+  phone_screen: 'text-tl-teal',
+  technical: 'text-tl-gold',
+  onsite: 'text-tl-teal',
+  offer: 'text-tl-teal',
+  hired: 'text-tl-teal',
+  rejected: 'text-tl-rose',
 }
 
 // ─── Match score color ────────────────────────────────────────────────────────
 
 function matchColor(score: number) {
-  if (score >= 90) return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
-  if (score >= 75) return 'bg-blue-500/15 text-blue-400 border-blue-500/25'
-  if (score >= 60) return 'bg-amber-500/15 text-amber-400 border-amber-500/25'
-  return 'bg-red-500/15 text-red-400 border-red-500/25'
+  if (score >= 90) return 'bg-tl-teal/15 text-tl-teal border-tl-teal/25'
+  if (score >= 75) return 'bg-tl-gold/15 text-tl-gold border-tl-gold/25'
+  if (score >= 60) return 'bg-tl-gold/10 text-tl-gold border-tl-gold/20'
+  return 'bg-tl-rose/15 text-tl-rose border-tl-rose/25'
 }
 
 // ─── Avatar color from name ───────────────────────────────────────────────────
 
 function avatarColor(name: string): string {
   const colors = [
-    'bg-blue-500/20 text-blue-400',
-    'bg-purple-500/20 text-purple-400',
-    'bg-emerald-500/20 text-emerald-400',
-    'bg-amber-500/20 text-amber-400',
-    'bg-cyan-500/20 text-cyan-400',
-    'bg-rose-500/20 text-rose-400',
-    'bg-indigo-500/20 text-indigo-400',
+    'bg-tl-blue/20 text-tl-blue',
+    'bg-tl-gold/20 text-tl-gold',
+    'bg-tl-teal/20 text-tl-teal',
+    'bg-tl-rose/20 text-tl-rose',
+    'bg-tl-teal/15 text-tl-teal',
+    'bg-tl-gold/15 text-tl-gold',
+    'bg-tl-blue/15 text-tl-blue',
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff
@@ -87,7 +87,7 @@ function CandidateCard({ app }: { app: Application }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="glass-card p-4 cursor-pointer hover:border-primary/40 transition-all group"
+      className="tl-card p-4 cursor-pointer hover:border-tl-gold/40 transition-all group shadow-card"
     >
       {/* Top row */}
       <div className="flex items-start gap-2.5 mb-2.5">
@@ -95,31 +95,31 @@ function CandidateCard({ app }: { app: Application }) {
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{candidate.name}</p>
-          <p className="text-xs text-muted-foreground truncate">{candidate.title}</p>
+          <p className="text-sm font-semibold text-tl-text-primary truncate">{candidate.name}</p>
+          <p className="text-xs text-tl-text-secondary truncate">{candidate.title}</p>
         </div>
-        <button className="hidden group-hover:flex p-1 rounded-lg hover:bg-white/[0.08] text-muted-foreground transition-all shrink-0">
+        <button className="hidden group-hover:flex p-1 rounded-lg hover:bg-tl-bg-elevated text-tl-text-secondary transition-all shrink-0">
           <MoreHorizontal className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Match + days */}
       <div className="flex items-center justify-between mb-2.5">
-        <span className={cn('text-[11px] font-semibold px-2.5 py-0.5 rounded-full border', matchColor(app.matchScore))}>
+        <span className={cn('text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border', matchColor(app.matchScore))}>
           {app.matchScore}% match
         </span>
         <span className={cn(
           'text-[10px] font-semibold px-2 py-0.5 rounded-full',
           isStale
-            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-            : 'bg-muted text-muted-foreground'
+            ? 'bg-tl-rose/10 text-tl-rose border border-tl-rose/20'
+            : 'bg-tl-bg-elevated text-tl-text-secondary'
         )}>
           {daysInStage}d
         </span>
       </div>
 
       {/* Applied role */}
-      <p className="text-[11px] text-muted-foreground truncate mb-3">
+      <p className="text-[11px] text-tl-text-secondary truncate mb-3">
         {app.job?.title ?? 'Unknown Role'}
       </p>
 
@@ -127,21 +127,21 @@ function CandidateCard({ app }: { app: Application }) {
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
         <button
           title="Schedule Interview"
-          className="flex items-center justify-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-muted-foreground hover:text-foreground transition-colors flex-1"
+          className="flex items-center justify-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-gold/10 text-tl-text-secondary hover:text-tl-gold transition-colors flex-1"
         >
           <Calendar className="w-3 h-3" />
           <span>Schedule</span>
         </button>
         <button
           title="Message"
-          className="flex items-center justify-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-muted-foreground hover:text-foreground transition-colors flex-1"
+          className="flex items-center justify-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-teal/10 text-tl-text-secondary hover:text-tl-teal transition-colors flex-1"
         >
           <MessageSquare className="w-3 h-3" />
           <span>Message</span>
         </button>
         <button
           title="Move to next stage"
-          className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors shrink-0"
+          className="p-1.5 rounded-lg bg-tl-gold/10 hover:bg-tl-gold/20 text-tl-gold transition-colors shrink-0"
         >
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
@@ -165,11 +165,11 @@ function KanbanColumn({
       <div className="flex items-center justify-between px-1 mb-2">
         <div className="flex items-center gap-2">
           <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', STAGE_DOT[stage])} />
-          <span className={cn('text-sm font-semibold', STAGE_TEXT[stage])}>
+          <span className={cn('font-mono text-sm font-semibold', STAGE_TEXT[stage])}>
             {STAGE_LABELS[stage]}
           </span>
         </div>
-        <span className="text-xs font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+        <span className="font-mono text-xs font-bold bg-tl-bg-elevated text-tl-text-secondary px-2 py-0.5 rounded-full">
           {cards.length}
         </span>
       </div>
@@ -177,8 +177,8 @@ function KanbanColumn({
       {/* Cards */}
       <div className="space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-280px)] pr-0.5">
         {cards.length === 0 ? (
-          <div className="border-2 border-dashed border-border/50 rounded-xl py-8 flex items-center justify-center">
-            <p className="text-xs text-muted-foreground/50">No candidates in {STAGE_LABELS[stage]}</p>
+          <div className="border-2 border-dashed border-tl-border-subtle rounded-xl py-8 flex items-center justify-center">
+            <p className="text-xs text-tl-text-secondary/50">No candidates in {STAGE_LABELS[stage]}</p>
           </div>
         ) : (
           cards.map((app) => <CandidateCard key={app.id} app={app} />)
@@ -186,7 +186,7 @@ function KanbanColumn({
       </div>
 
       {/* Footer add button */}
-      <button className="flex items-center justify-center gap-1.5 py-2.5 w-full rounded-xl border border-dashed border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all duration-200">
+      <button className="flex items-center justify-center gap-1.5 py-2.5 w-full rounded-xl border border-dashed border-tl-border-subtle text-xs text-tl-text-secondary hover:text-tl-gold hover:border-tl-gold/30 hover:bg-tl-gold/5 transition-all duration-200">
         <Plus className="w-3.5 h-3.5" />
         Add
       </button>
@@ -208,7 +208,7 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: idx * 0.04 }}
-      className="border-b border-border/50 hover:bg-white/[0.02] transition-colors group"
+      className="border-b border-tl-border-subtle hover:bg-tl-bg-elevated/30 transition-colors group"
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
@@ -216,31 +216,31 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
             {initials}
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">{candidate.name}</p>
-            <p className="text-xs text-muted-foreground">{candidate.title}</p>
+            <p className="text-sm font-semibold text-tl-text-primary">{candidate.name}</p>
+            <p className="text-xs text-tl-text-secondary">{candidate.title}</p>
           </div>
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full border', STAGE_COLORS[app.stage])}>
+        <span className={cn('tl-tag-teal text-xs font-medium')}>
           {STAGE_LABELS[app.stage]}
         </span>
       </td>
       <td className="px-4 py-3">
-        <span className="text-sm text-muted-foreground">{app.job?.title ?? '—'}</span>
+        <span className="text-sm text-tl-text-secondary">{app.job?.title ?? '—'}</span>
       </td>
       <td className="px-4 py-3">
-        <span className="text-xs text-muted-foreground">{timeAgo(app.appliedAt)}</span>
+        <span className="text-xs text-tl-text-secondary">{timeAgo(app.appliedAt)}</span>
       </td>
       <td className="px-4 py-3">
-        <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', matchColor(app.matchScore))}>
+        <span className={cn('font-mono text-xs font-semibold px-2 py-0.5 rounded-full border', matchColor(app.matchScore))}>
           {app.matchScore}%
         </span>
       </td>
       <td className="px-4 py-3">
         <span className={cn(
-          'text-xs font-semibold px-2 py-0.5 rounded-full',
-          daysInStage > 7 ? 'text-rose-400 bg-rose-500/10' : 'text-muted-foreground bg-muted'
+          'font-mono text-xs font-semibold px-2 py-0.5 rounded-full',
+          daysInStage > 7 ? 'text-tl-rose bg-tl-rose/10' : 'text-tl-text-secondary bg-tl-bg-elevated'
         )}>
           {daysInStage}d
         </span>
@@ -248,7 +248,7 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
       <td className="px-4 py-3">
         <Link
           href={`/company/candidates/${candidate.id}`}
-          className="text-xs font-medium text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-all"
+          className="text-xs font-medium text-tl-gold hover:text-tl-gold/80 opacity-0 group-hover:opacity-100 transition-all"
         >
           View →
         </Link>
@@ -304,12 +304,12 @@ export default function PipelinePage() {
     <div className="flex flex-col h-full min-h-screen">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 py-5 border-b border-border">
+      <div className="flex-shrink-0 px-6 py-5 border-b border-tl-border-subtle">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           {/* Left: title + count */}
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">Hiring Pipeline</h1>
-            <span className="text-xs font-bold bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-full">
+            <h1 className="font-display text-2xl text-tl-text-primary">Hiring Pipeline</h1>
+            <span className="font-mono text-xs font-bold bg-tl-gold/10 text-tl-gold border border-tl-gold/20 px-2.5 py-1 rounded-full">
               {filteredApps.length} candidates
             </span>
           </div>
@@ -318,12 +318,12 @@ export default function PipelinePage() {
           <div className="flex items-center gap-2 flex-wrap">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tl-text-secondary" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search candidates…"
-                className="pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-48"
+                className="pl-9 pr-4 py-2 bg-tl-bg-surface border border-tl-border-subtle rounded-xl text-sm text-tl-text-primary placeholder:text-tl-text-secondary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 w-48 transition-all"
               />
             </div>
 
@@ -332,26 +332,26 @@ export default function PipelinePage() {
               <select
                 value={selectedJob}
                 onChange={(e) => setSelectedJob(e.target.value)}
-                className="appearance-none bg-card border border-border rounded-xl pl-3 pr-8 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="appearance-none bg-tl-bg-surface border border-tl-border-subtle rounded-xl pl-3 pr-8 py-2 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all"
               >
                 <option value="all">All Jobs</option>
                 {jobs.map((j) => (
                   <option key={j.id} value={j.id}>{j.title}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-tl-text-secondary pointer-events-none" />
             </div>
 
             {/* View toggle */}
-            <div className="flex items-center gap-1 p-1 glass rounded-xl border border-border">
+            <div className="flex items-center gap-1 p-1 bg-tl-bg-surface rounded-xl border border-tl-border-subtle">
               <button
                 onClick={() => setViewMode('kanban')}
                 title="Kanban view"
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
                   viewMode === 'kanban'
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-tl-bg-elevated text-tl-gold border border-tl-gold/30'
+                    : 'text-tl-text-secondary hover:text-tl-text-primary'
                 )}
               >
                 <Kanban className="w-3.5 h-3.5" />
@@ -363,8 +363,8 @@ export default function PipelinePage() {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
                   viewMode === 'list'
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-tl-bg-elevated text-tl-gold border border-tl-gold/30'
+                    : 'text-tl-text-secondary hover:text-tl-text-primary'
                 )}
               >
                 <LayoutList className="w-3.5 h-3.5" />
@@ -373,7 +373,7 @@ export default function PipelinePage() {
             </div>
 
             {/* Add candidate */}
-            <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all">
+            <button className="btn-gold flex items-center gap-1.5 px-3 py-2 text-sm">
               <Plus className="w-4 h-4" />
               Add Candidate
             </button>
@@ -385,14 +385,11 @@ export default function PipelinePage() {
           {PIPELINE_STAGES.map((stage) => (
             <button
               key={stage}
-              className={cn(
-                'flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border whitespace-nowrap transition-all',
-                STAGE_COLORS[stage]
-              )}
+              className="tl-tag-teal flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 whitespace-nowrap"
             >
               <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', STAGE_DOT[stage])} />
               {STAGE_LABELS[stage]}
-              <span className="font-bold">{stageCounts[stage] ?? 0}</span>
+              <span className="font-mono font-bold">{stageCounts[stage] ?? 0}</span>
             </button>
           ))}
         </div>
@@ -421,20 +418,20 @@ export default function PipelinePage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="glass-card overflow-hidden"
+              className="tl-card overflow-hidden"
             >
               {filteredApps.length === 0 ? (
                 <div className="p-16 flex flex-col items-center justify-center text-center">
-                  <Users className="w-12 h-12 text-muted-foreground/20 mb-4" />
-                  <p className="text-sm font-medium text-foreground">No candidates found</p>
-                  <p className="text-xs text-muted-foreground mt-1">Try adjusting your search or filters</p>
+                  <Users className="w-12 h-12 text-tl-text-secondary/20 mb-4" />
+                  <p className="text-sm font-medium text-tl-text-primary">No candidates found</p>
+                  <p className="text-xs text-tl-text-secondary mt-1">Try adjusting your search or filters</p>
                 </div>
               ) : (
                 <table className="w-full min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-border bg-white/[0.02]">
+                    <tr className="border-b border-tl-border-subtle bg-tl-bg-base/50">
                       {['Candidate', 'Stage', 'Applied For', 'Applied Date', 'Match', 'Days', 'Actions'].map((h) => (
-                        <th key={h} className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
+                        <th key={h} className="text-left text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider px-4 py-3">
                           {h}
                         </th>
                       ))}
@@ -454,10 +451,10 @@ export default function PipelinePage() {
 
       {/* ── Stage velocity strip ─────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pb-6">
-        <div className="glass-card p-4">
+        <div className="tl-card p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold text-foreground">Avg. Days Per Stage</h3>
+            <Clock className="w-4 h-4 text-tl-text-secondary" />
+            <h3 className="text-sm font-semibold text-tl-text-primary">Avg. Days Per Stage</h3>
           </div>
           <div className="flex items-center gap-3 overflow-x-auto pb-1">
             {PIPELINE_STAGES.slice(0, -1).map((stage, i) => {
@@ -465,15 +462,15 @@ export default function PipelinePage() {
               return (
                 <div key={stage} className="flex items-center gap-3 shrink-0">
                   <div className="text-center">
-                    <div className={cn('w-16 py-2 rounded-xl text-xs font-bold text-center', STAGE_COLORS[stage])}>
+                    <div className="w-16 py-2 rounded-xl text-xs font-mono font-bold text-center bg-tl-gold/10 text-tl-gold border border-tl-gold/20">
                       {days}d
                     </div>
-                    <div className="text-[10px] text-muted-foreground mt-1 w-16 text-center truncate">
+                    <div className="text-[10px] text-tl-text-secondary mt-1 w-16 text-center truncate">
                       {STAGE_LABELS[stage]}
                     </div>
                   </div>
                   {i < PIPELINE_STAGES.length - 2 && (
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0" />
+                    <ChevronRight className="w-3.5 h-3.5 text-tl-border-subtle shrink-0" />
                   )}
                 </div>
               )

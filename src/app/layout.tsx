@@ -1,36 +1,51 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Playfair_Display, DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { CookieConsent } from '@/components/shared/cookie-consent'
 import './globals.css'
 
-const inter = Inter({
+const playfair = Playfair_Display({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-playfair',
   display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+})
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700'],
+})
+
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://calibr.io'),
+  metadataBase: new URL('https://talentloop.io'),
   title: {
-    default: 'Calibr — AI-Powered Talent Acquisition Platform',
-    template: '%s | Calibr',
+    default: 'TalentLoop — AI-Powered Talent Acquisition Platform',
+    template: '%s | TalentLoop',
   },
   description:
-    'Bridge the gap between exceptional companies and world-class candidates. AI-powered matching, zero ghosting, real salary data.',
-  keywords: ['recruiting', 'talent acquisition', 'AI matching', 'job search', 'hiring platform'],
-  authors: [{ name: 'Calibr' }],
-  creator: 'Calibr',
+    'Close roles 3× faster with AI matching, zero ghosting, and real salary intelligence. Where exceptional companies meet world-class talent.',
+  keywords: ['recruiting', 'talent acquisition', 'AI matching', 'job search', 'hiring platform', 'ATS'],
+  authors: [{ name: 'TalentLoop' }],
+  creator: 'TalentLoop',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    title: 'Calibr — AI-Powered Talent Acquisition',
+    title: 'TalentLoop — AI-Powered Talent Acquisition',
     description: 'Where exceptional companies meet world-class candidates.',
-    siteName: 'Calibr',
+    siteName: 'TalentLoop',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Calibr',
+    title: 'TalentLoop',
     description: 'AI-powered talent acquisition that actually works.',
   },
   robots: {
@@ -42,12 +57,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t===null&&d)){document.documentElement.classList.add('dark')}})()` }} />
-        {/* Skip to main content — ADA / WCAG 2.1 SC 2.4.1 */}
+      <body className={`${playfair.variable} ${dmSans.variable} ${jetbrains.variable} font-sans antialiased`}>
+        {/* Skip to main content — WCAG 2.1 SC 2.4.1 */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:font-medium focus:shadow-lg focus:outline-none"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-tl-gold focus:text-tl-bg-base focus:font-medium focus:shadow-lg focus:outline-none"
         >
           Skip to main content
         </a>
@@ -58,9 +72,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           richColors
           toastOptions={{
             style: {
-              background: 'hsl(222 47% 9%)',
-              border: '1px solid hsl(222 47% 16%)',
-              color: 'hsl(213 31% 91%)',
+              background: '#1A1D26',
+              border: '1px solid rgba(201,168,76,0.2)',
+              color: '#F2F0E8',
             },
           }}
         />
