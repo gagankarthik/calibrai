@@ -1,15 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { jobs, companies } from '@/lib/data'
-import { formatSalary, timeAgo, formatDate, cn } from '@/lib/utils'
-import { MatchScore, MatchRing } from '@/components/shared/match-score'
-import { Badge } from '@/components/ui/badge'
+import { jobs } from '@/lib/data'
+import { formatSalary, timeAgo, cn } from '@/lib/utils'
+import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
 import {
   ArrowLeft,
   MapPin,
@@ -20,518 +17,426 @@ import {
   Users,
   Eye,
   CheckCircle2,
-  CheckCheck,
-  X,
-  Shield,
-  Star,
+  Info,
   Bookmark,
   Share2,
-  Bell,
   Clock,
-  DollarSign,
-  Sparkles,
-  ChevronRight,
-  MonitorSmartphone,
-  GraduationCap,
+  Zap,
   Heart,
+  BookOpen,
+  TrendingUp,
+  Bell,
+  Plus,
+  ExternalLink,
+  ChevronRight,
+  Calendar,
 } from 'lucide-react'
-import type { Job } from '@/lib/types'
+import { WORK_MODE_LABELS, JOB_TYPE_LABELS, EXPERIENCE_LABELS } from '@/lib/constants'
 
-// Alex's known skills
-const alexSkills = ['React', 'TypeScript', 'Next.js', 'CSS/Tailwind', 'GraphQL', 'Performance']
-
-const workModeConfig: Record<string, { icon: React.ReactNode; label: string; badgeVariant: 'cyan' | 'purple' | 'blue' }> = {
-  remote: { icon: <Wifi className="w-3 h-3" />, label: 'Remote', badgeVariant: 'cyan' },
-  hybrid: { icon: <MonitorSmartphone className="w-3 h-3" />, label: 'Hybrid', badgeVariant: 'purple' },
-  onsite: { icon: <Building2 className="w-3 h-3" />, label: 'On-site', badgeVariant: 'blue' },
+// ─── Deterministic match score ────────────────────────────────────────────────
+function getMatchScore(id: string): number {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff
+  return 70 + (Math.abs(hash) % 28)
 }
 
-const levelLabels: Record<string, string> = {
-  entry: 'Entry Level',
-  mid: 'Mid Level',
-  senior: 'Senior Level',
-  lead: 'Lead / Staff',
-  executive: 'Executive',
+// ─── Avatar color hash ────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
+  'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500', 'bg-teal-500',
+]
+function avatarColor(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
-const jobScores: Record<string, number> = {
-  j1: 94,
-  j2: 84,
-  j3: 78,
-  j4: 72,
-  j5: 88,
-  j6: 65,
+// ─── Benefit icon map ─────────────────────────────────────────────────────────
+function benefitIcon(benefit: string): React.ReactNode {
+  const b = benefit.toLowerCase()
+  if (b.includes('remote') || b.includes('wifi'))  return <Wifi className="w-4 h-4 text-cyan-400 shrink-0" />
+  if (b.includes('health') || b.includes('wellness') || b.includes('benefit')) return <Heart className="w-4 h-4 text-rose-400 shrink-0" />
+  if (b.includes('401') || b.includes('pension'))  return <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
+  if (b.includes('learn') || b.includes('education') || b.includes('conference')) return <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
+  if (b.includes('pto') || b.includes('vacation') || b.includes('unlimited')) return <Calendar className="w-4 h-4 text-violet-400 shrink-0" />
+  if (b.includes('equity') || b.includes('stock') || b.includes('salary')) return <TrendingUp className="w-4 h-4 text-amber-400 shrink-0" />
+  return <Zap className="w-4 h-4 text-amber-400 shrink-0" />
 }
 
-const benefitIcons: Record<string, React.ReactNode> = {
-  'Equity': <Star className="w-4 h-4 text-amber-400" />,
-  'Remote': <Wifi className="w-4 h-4 text-cyan-400" />,
-  'Remote Options': <Wifi className="w-4 h-4 text-cyan-400" />,
-  'Fully Remote': <Wifi className="w-4 h-4 text-cyan-400" />,
-  'Top Health': <Heart className="w-4 h-4 text-rose-400" />,
-  '$1K Equipment': <Briefcase className="w-4 h-4 text-blue-400" />,
-  'Learning Budget': <GraduationCap className="w-4 h-4 text-emerald-400" />,
-  '401K Match': <DollarSign className="w-4 h-4 text-emerald-400" />,
+// ─── Work mode badge config ───────────────────────────────────────────────────
+const WORK_MODE_STYLES: Record<string, string> = {
+  remote: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400',
+  hybrid: 'bg-violet-500/10 border-violet-500/30 text-violet-400',
+  onsite: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
 }
 
-function CompactJobCard({ job }: { job: Job }) {
-  const score = jobScores[job.id] ?? 70
-  const wm = workModeConfig[job.workMode]
+function WorkModeIcon({ mode }: { mode: string }) {
+  if (mode === 'remote') return <Wifi className="w-3.5 h-3.5" />
+  if (mode === 'hybrid') return <Building2 className="w-3.5 h-3.5" />
+  return <Globe className="w-3.5 h-3.5" />
+}
+
+// ─── Toggle Switch ────────────────────────────────────────────────────────────
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <Link href={`/talent/jobs/${job.id}`}>
-      <div className="glass-card p-4 hover:border-white/[0.2] hover:shadow-[0_0_24px_rgba(59,130,246,0.07)] transition-all duration-300 cursor-pointer group">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-9 w-9 shrink-0 ring-2 ring-white/10 group-hover:ring-white/20 transition-all">
-            <AvatarImage src={job.company.logo} />
-            <AvatarFallback className="text-xs font-bold">{job.company.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground mb-0.5">{job.company.name}</p>
-            <p className="text-sm font-semibold text-foreground leading-snug truncate">{job.title}</p>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                {wm.icon}
-                {wm.label}
-              </span>
-              <span className="text-xs font-semibold text-emerald-400">
-                {formatSalary(job.salaryMin, job.salaryMax)}
-              </span>
-            </div>
-          </div>
-          <MatchRing score={score} size={44} strokeWidth={3} />
-        </div>
-      </div>
-    </Link>
+    <button
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative w-10 h-[22px] rounded-full transition-all duration-200 shrink-0',
+        checked ? 'bg-primary' : 'bg-muted'
+      )}
+      aria-label="Toggle"
+    >
+      <span
+        className={cn(
+          'absolute top-0.5 left-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-transform duration-200',
+          checked && 'translate-x-[18px]'
+        )}
+      />
+    </button>
   )
 }
 
+// ─── Alex's skills for match analysis ────────────────────────────────────────
+const ALEX_SKILLS = ['react', 'typescript', 'next.js', 'css', 'tailwind', 'graphql', 'node.js', 'javascript', 'performance']
+function hasSkill(skill: string): boolean {
+  const low = skill.toLowerCase()
+  return ALEX_SKILLS.some(s => low.includes(s) || s.includes(low.split(' ')[0]))
+}
+
+// ─── Fade-up animation helper ─────────────────────────────────────────────────
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, delay },
+})
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function JobDetailPage({ params }: { params: { id: string } }) {
-  const job = jobs.find((j) => j.id === params.id) || jobs[0]
-  const company = job.company
-  const score = jobScores[job.id] ?? 94
-  const wm = workModeConfig[job.workMode]
-  const [saved, setSaved] = useState(false)
-  const [alertEnabled, setAlertEnabled] = useState(false)
+  const job     = jobs.find(j => j.id === params.id) ?? jobs[0]
+  const score   = getMatchScore(job.id)
+  const [saved, setSaved]     = useState(false)
+  const [applied, setApplied] = useState(false)
+  const [alertOn, setAlertOn] = useState(false)
 
-  // Similar jobs (exclude current)
-  const similarJobs = jobs.filter((j) => j.id !== job.id).slice(0, 3)
+  const matchedSkills  = useMemo(() => job.skills.filter(s => hasSkill(s)), [job.skills])
+  const missingSkills  = useMemo(() => job.skills.filter(s => !hasSkill(s)), [job.skills])
+  const topThree       = matchedSkills.slice(0, 3)
 
-  // Skill match analysis
-  const normalizedAlexSkills = alexSkills.map((s) => s.toLowerCase())
-  const skillMatchData = job.skills.map((skill) => {
-    const hasSkill = normalizedAlexSkills.some(
-      (as) => as.includes(skill.toLowerCase()) || skill.toLowerCase().includes(as.replace('css/', '').replace('/tailwind', ''))
-    )
-    const isVerified = ['React', 'TypeScript', 'Next.js', 'CSS/Tailwind'].some(
-      (v) => v.toLowerCase() === skill.toLowerCase() || skill.toLowerCase().includes(v.toLowerCase().split('/')[0])
-    )
-    return { name: skill, has: hasSkill, verified: isVerified && hasSkill }
-  })
-  const matchedCount = skillMatchData.filter((s) => s.has).length
+  const similarJobs = useMemo(() =>
+    jobs
+      .filter(j => j.id !== job.id && j.company.industry === job.company.industry)
+      .slice(0, 3)
+      .map(j => ({ ...j, score: getMatchScore(j.id) })),
+    [job]
+  )
+
+  const daysPosted = Math.floor((Date.now() - new Date(job.postedAt).getTime()) / 86400000)
+  const daysLeft   = Math.max(0, Math.ceil((new Date(job.expiresAt).getTime() - Date.now()) / 86400000))
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Back nav */}
-      <motion.div
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3 }}
-        className="mb-6"
-      >
+
+      {/* ── BREADCRUMB ──────────────────────────────────────────────────────── */}
+      <motion.div {...fadeUp(0)} className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
         <Link
           href="/talent/jobs"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+          className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
           Back to Jobs
         </Link>
+        <ChevronRight className="w-3.5 h-3.5 opacity-40" />
+        <span className="text-foreground font-medium truncate">{job.title}</span>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── LEFT COLUMN ─────────────────────────────────────────────────── */}
-        <div className="lg:col-span-2 space-y-5">
+      {/* ── JOB HEADER CARD ─────────────────────────────────────────────────── */}
+      <motion.div {...fadeUp(0.05)} className="glass-card p-8 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-6">
 
-          {/* Job Header Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="glass-card p-6"
-          >
-            {/* Company row */}
-            <div className="flex items-center gap-3 mb-4">
-              <Avatar className="h-14 w-14 ring-2 ring-white/10">
-                <AvatarImage src={company.logo} />
-                <AvatarFallback className="text-base font-bold">
-                  {company.name.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">{company.name}</span>
-                  {company.verified && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Verified
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{company.industry} · {company.size} employees</p>
+          {/* Left: avatar + center info */}
+          <div className="flex flex-col sm:flex-row gap-5 flex-1 min-w-0">
+            {/* Avatar */}
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className={cn('w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl font-black', avatarColor(job.company.name))}>
+                {job.company.name[0]}
               </div>
-              <div className="ml-auto">
-                <MatchScore score={score} size="lg" />
-              </div>
-            </div>
-
-            {/* Title */}
-            <h1 className="text-3xl font-bold text-foreground mb-4">{job.title}</h1>
-
-            {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                {job.location}
-              </span>
-              <Badge variant={wm.badgeVariant} className="flex items-center gap-1">
-                {wm.icon}
-                {wm.label}
-              </Badge>
-              <Badge variant="ghost" className="capitalize">{job.type}</Badge>
-              <Badge variant="ghost">{levelLabels[job.level]}</Badge>
-            </div>
-
-            {/* Salary */}
-            <div className="mb-4">
-              <span className="text-2xl font-bold text-emerald-400">
-                {formatSalary(job.salaryMin, job.salaryMax)}
-              </span>
-              <span className="text-sm text-muted-foreground ml-2">/ year</span>
-            </div>
-
-            {/* Stats row */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                Posted {timeAgo(job.postedAt)}
-              </span>
-              <span>·</span>
-              <span className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
-                {job.applicantCount} applicants
-              </span>
-              <span>·</span>
-              <span className="flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5" />
-                {job.viewCount.toLocaleString()} views
-              </span>
-              <span>·</span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                Expires {formatDate(job.expiresAt)}
-              </span>
-            </div>
-
-            {/* Skills tags */}
-            <div className="flex flex-wrap gap-2">
-              {job.skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="tag text-xs bg-blue-500/[0.07] border-blue-500/20 text-blue-400"
-                >
-                  {skill}
+              {job.company.verified && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Verified
                 </span>
-              ))}
+              )}
             </div>
-          </motion.div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-black text-foreground leading-tight mb-1">{job.title}</h1>
+              <p className="text-xl text-muted-foreground font-medium mb-3">{job.company.name}</p>
+
+              {/* Meta badges */}
+              <div className="flex flex-wrap gap-2 mt-3 mb-4">
+                <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium', WORK_MODE_STYLES[job.workMode] ?? WORK_MODE_STYLES.onsite)}>
+                  <WorkModeIcon mode={job.workMode} />
+                  {WORK_MODE_LABELS[job.workMode]}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-muted/40 text-xs text-muted-foreground">
+                  <MapPin className="w-3 h-3" />{job.location}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-muted/40 text-xs text-muted-foreground">
+                  <Briefcase className="w-3 h-3" />{JOB_TYPE_LABELS[job.type]}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-muted/40 text-xs text-muted-foreground">
+                  {EXPERIENCE_LABELS[job.level]}
+                </span>
+              </div>
+
+              {/* Salary */}
+              <p className="text-2xl font-bold text-primary">
+                ${job.salaryMin.toLocaleString()} &ndash; ${job.salaryMax.toLocaleString()}
+                <span className="text-sm font-normal text-muted-foreground ml-1">/ year</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Right: match ring + CTA */}
+          <div className="flex flex-col items-center gap-3 shrink-0 sm:min-w-[160px]">
+            <MatchRing score={score} size={100} />
+            <p className="text-sm font-semibold text-foreground text-center">You're a {score}% match</p>
+            <Button
+              className="h-12 w-48 text-base font-semibold"
+              onClick={() => setApplied(true)}
+            >
+              {applied ? '✓ Applied!' : 'Apply Now →'}
+            </Button>
+            <Button
+              variant="ghost"
+              className={cn('w-48 gap-2', saved && 'text-primary')}
+              onClick={() => setSaved(!saved)}
+            >
+              <Bookmark className={cn('w-4 h-4', saved && 'fill-current')} />
+              {saved ? 'Saved' : 'Save Job'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats strip */}
+        <div className="border-t border-border mt-6 pt-6 flex flex-wrap gap-8 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Users className="w-4 h-4" />{job.applicantCount} applicants
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Eye className="w-4 h-4" />{(job.viewCount || 892).toLocaleString()} views
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4" />Posted {daysPosted}d ago
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="w-4 h-4" />Expires in {daysLeft}d
+          </span>
+        </div>
+      </motion.div>
+
+      {/* ── TWO-COLUMN LAYOUT ────────────────────────────────────────────────── */}
+      <div className="grid lg:grid-cols-3 gap-8 mt-8">
+
+        {/* ── LEFT COLUMN ────────────────────────────────────────────────────── */}
+        <div className="lg:col-span-2 space-y-6">
 
           {/* About the Role */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.07 }}
-            className="glass-card p-6"
-          >
-            <h2 className="text-lg font-semibold text-foreground mb-4">About the Role</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-6">{job.description}</p>
+          <motion.div {...fadeUp(0.1)} className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">About the Role</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">{job.description}</p>
+          </motion.div>
 
-            {/* Requirements */}
-            <h3 className="text-sm font-semibold text-foreground mb-3">Requirements</h3>
-            <ul className="space-y-2.5 mb-6">
+          {/* What You'll Do */}
+          <motion.div {...fadeUp(0.14)} className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">What You&apos;ll Do</h3>
+            <ul className="space-y-3">
               {job.requirements.map((req, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <CheckCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                   {req}
                 </li>
               ))}
             </ul>
-
-            {/* Nice to Have */}
-            {job.niceToHave && job.niceToHave.length > 0 && (
-              <>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Nice to Have</h3>
-                <ul className="space-y-2.5">
-                  {job.niceToHave.map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                      <div className="w-4 h-4 mt-0.5 shrink-0 flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                      </div>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
           </motion.div>
 
-          {/* Skills Match */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.12 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-foreground">Your Skills Match</h2>
-              <MatchRing score={score} size={64} strokeWidth={5} />
-            </div>
+          {/* Nice to Have */}
+          {job.niceToHave.length > 0 && (
+            <motion.div {...fadeUp(0.17)} className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Nice to Have</h3>
+              <ul className="space-y-3">
+                {job.niceToHave.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <Plus className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              {skillMatchData.map((skill) => (
-                <div
-                  key={skill.name}
-                  className={cn(
-                    'flex items-center justify-between gap-3 p-3 rounded-xl border transition-all',
-                    skill.has
-                      ? 'bg-emerald-500/[0.06] border-emerald-500/20'
-                      : 'bg-white/[0.03] border-white/[0.08]'
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    {skill.has ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    ) : (
-                      <X className="w-4 h-4 text-muted-foreground/50 shrink-0" />
-                    )}
-                    <span className={cn('text-sm font-medium', skill.has ? 'text-foreground' : 'text-muted-foreground')}>
-                      {skill.name}
-                    </span>
+          {/* What We Offer */}
+          {job.benefits.length > 0 && (
+            <motion.div {...fadeUp(0.2)} className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">What We Offer</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {job.benefits.map(b => (
+                  <div key={b} className="flex items-center gap-3 text-sm text-muted-foreground">
+                    {benefitIcon(b)}
+                    <span>{b}</span>
                   </div>
-                  {skill.verified && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full shrink-0">
-                      <Shield className="w-2.5 h-2.5" />
-                      Verified
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
-            <p className="text-sm text-muted-foreground">
-              You match{' '}
-              <span className="text-emerald-400 font-semibold">{matchedCount} of {skillMatchData.length}</span>
-              {' '}required skills
-            </p>
-          </motion.div>
-
-          {/* About the Company */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.16 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center gap-3 mb-5">
-              <Avatar className="h-11 w-11 ring-2 ring-white/10">
-                <AvatarImage src={company.logo} />
-                <AvatarFallback className="text-sm font-bold">{company.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
+          {/* About Company */}
+          <motion.div {...fadeUp(0.23)} className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">About {job.company.name}</h3>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0', avatarColor(job.company.name))}>
+                {job.company.name[0]}
+              </div>
               <div>
-                <h2 className="text-lg font-semibold text-foreground">About {company.name}</h2>
-                <p className="text-xs text-muted-foreground">{company.website}</p>
+                <p className="font-semibold text-foreground">{job.company.name}</p>
+                {job.company.verified && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-blue-400">
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Verified Company
+                  </span>
+                )}
               </div>
             </div>
-
-            {/* Company badges */}
             <div className="flex flex-wrap gap-2 mb-4">
-              <Badge variant="ghost">{company.industry}</Badge>
-              <Badge variant="ghost">{company.size} employees</Badge>
-              <Badge variant="ghost">
-                <MapPin className="w-3 h-3" />
-                {company.location}
-              </Badge>
+              <span className="px-2.5 py-1 rounded-full bg-muted/50 border border-border text-xs text-muted-foreground">{job.company.industry}</span>
+              <span className="px-2.5 py-1 rounded-full bg-muted/50 border border-border text-xs text-muted-foreground">{job.company.size} employees</span>
+              <span className="px-2.5 py-1 rounded-full bg-muted/50 border border-border text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="w-3 h-3" />{job.company.location}
+              </span>
             </div>
-
-            <p className="text-sm text-muted-foreground leading-relaxed mb-5">{company.description}</p>
-
-            {/* Culture */}
-            <div className="mb-5">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Culture</p>
-              <div className="flex flex-wrap gap-2">
-                {company.culture.map((c) => (
-                  <span key={c} className="tag text-xs bg-purple-500/[0.07] border-purple-500/20 text-purple-400">{c}</span>
-                ))}
-              </div>
-            </div>
-
-            {/* Benefits */}
-            <div className="mb-5">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Benefits</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {company.benefits.map((b) => (
-                  <div key={b} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {benefitIcons[b] ?? <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                    {b}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Rating */}
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex items-center gap-1">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <Star
-                    key={i}
-                    className={cn('w-4 h-4', i < Math.round(company.rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30')}
-                  />
-                ))}
-              </div>
-              <span className="text-sm font-semibold text-foreground">{company.rating}</span>
-              <span className="text-xs text-muted-foreground">({company.reviewCount.toLocaleString()} reviews)</span>
-            </div>
-
-            <Link
-              href={`/company/profile`}
-              className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors group"
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">{job.company.description}</p>
+            <a
+              href={`https://${job.company.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
             >
-              View Company Profile
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
+              <ExternalLink className="w-3.5 h-3.5" /> Visit Website
+            </a>
           </motion.div>
 
           {/* Similar Jobs */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <h2 className="text-lg font-semibold text-foreground mb-3">Similar Jobs</h2>
-            <div className="space-y-3">
-              {similarJobs.map((sj) => (
-                <CompactJobCard key={sj.id} job={sj} />
-              ))}
-            </div>
-          </motion.div>
+          {similarJobs.length > 0 && (
+            <motion.div {...fadeUp(0.26)} className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Similar Jobs</h3>
+              <div className="space-y-1">
+                {similarJobs.map(sj => (
+                  <div key={sj.id} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0', avatarColor(sj.company.name))}>
+                      {sj.company.name[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{sj.title}</p>
+                      <p className="text-xs text-muted-foreground">{sj.company.name}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs font-semibold text-primary">{sj.score}%</span>
+                      <Link href={`/talent/jobs/${sj.id}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                        View <ChevronRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
 
-        {/* ── RIGHT COLUMN (Sticky Apply Sidebar) ──────────────────────────── */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 space-y-4">
-            <motion.div
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="gradient-border p-5 bg-card"
-            >
-              {/* Match ring */}
-              <div className="flex flex-col items-center mb-5">
-                <MatchRing score={score} size={72} strokeWidth={5} />
-                <p className="text-xs text-muted-foreground mt-2">AI Match Score</p>
-              </div>
+        {/* ── RIGHT STICKY COLUMN ──────────────────────────────────────────────── */}
+        <div className="lg:col-span-1 space-y-4 sticky top-24 self-start">
 
-              {/* Apply heading */}
-              <div className="text-center mb-5">
-                <h3 className="text-base font-bold text-foreground">Apply to {job.title}</h3>
-                <p className="text-sm text-muted-foreground mt-0.5">At {company.name}</p>
-                <p className="text-lg font-bold text-emerald-400 mt-2">
-                  {formatSalary(job.salaryMin, job.salaryMax)}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">/ year</span>
-                </p>
-              </div>
-
-              {/* Quick facts */}
-              <div className="grid grid-cols-3 gap-2 mb-5">
-                <div className="text-center p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-                  <Wifi className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
-                  <p className="text-[10px] text-muted-foreground leading-tight">Remote-Friendly</p>
-                </div>
-                <div className="text-center p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-                  <Briefcase className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-                  <p className="text-[10px] text-muted-foreground leading-tight">Full-time</p>
-                </div>
-                <div className="text-center p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-                  <GraduationCap className="w-4 h-4 text-purple-400 mx-auto mb-1" />
-                  <p className="text-[10px] text-muted-foreground leading-tight">Senior Level</p>
-                </div>
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="space-y-2.5 mb-5">
-                <Button className="w-full btn-primary font-semibold">
-                  Apply Now
-                </Button>
-                <Button
-                  variant="outline"
-                  className={cn('w-full gap-2', saved && 'border-blue-500/40 text-blue-400 bg-blue-500/10')}
-                  onClick={() => setSaved(!saved)}
-                >
-                  <Bookmark className={cn('w-4 h-4', saved && 'fill-current')} />
-                  {saved ? 'Saved' : 'Save for Later'}
-                </Button>
-              </div>
-
-              <Separator className="mb-5" />
-
-              {/* AI reasons */}
-              <div className="mb-5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  Why you're a strong match
-                </p>
-                <div className="space-y-2.5">
-                  {[
-                    { icon: <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />, text: 'React expertise: 96% skill overlap' },
-                    { icon: <Wifi className="w-3.5 h-3.5 text-cyan-400 shrink-0" />, text: 'Work mode: Remote aligns with your preference' },
-                    { icon: <DollarSign className="w-3.5 h-3.5 text-amber-400 shrink-0" />, text: 'Salary: Within your $210K target' },
-                  ].map((reason, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground">
-                      {reason.icon}
-                      <span>{reason.text}</span>
+          {/* Why You're a Strong Match */}
+          <motion.div {...fadeUp(0.1)} className="glass-card p-5">
+            <h4 className="text-sm font-semibold text-foreground mb-3">Why You&apos;re a Strong Match</h4>
+            {topThree.length > 0 ? (
+              <div className="space-y-2.5">
+                {topThree.map((skill, i) => (
+                  <div key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                     </div>
+                    <span>Your <span className="text-foreground font-medium">{skill}</span> expertise matches this role</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Build your skills to improve your match score.</p>
+            )}
+            <p className="mt-3 text-[10px] text-muted-foreground italic bg-muted/30 rounded-lg p-2.5 leading-relaxed">
+              AI Analysis: Strong technical alignment based on your profile and this role&apos;s requirements.
+            </p>
+          </motion.div>
+
+          {/* Skills Breakdown */}
+          <motion.div {...fadeUp(0.14)} className="glass-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-semibold text-foreground">Skills Breakdown</h4>
+              <span className="text-xs text-muted-foreground">{matchedSkills.length}/{job.skills.length} matched</span>
+            </div>
+
+            {matchedSkills.length > 0 && (
+              <div className="mb-4">
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-emerald-400 mb-2">Matched</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {matchedSkills.map(s => (
+                    <span key={s} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-medium">
+                      <CheckCircle2 className="w-3 h-3 shrink-0" />{s}
+                    </span>
                   ))}
                 </div>
               </div>
+            )}
 
-              <Separator className="mb-5" />
-
-              {/* Alert toggle */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Set Job Alert</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Get notified of similar openings</p>
+            {missingSkills.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-amber-400 mb-2">To Learn</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {missingSkills.slice(0, 5).map(s => (
+                    <span key={s} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-medium">
+                      <Info className="w-3 h-3 shrink-0" />{s}
+                    </span>
+                  ))}
                 </div>
-                <button
-                  onClick={() => setAlertEnabled(!alertEnabled)}
-                  className={cn(
-                    'w-10 h-[22px] rounded-full transition-all duration-200 relative flex-shrink-0',
-                    alertEnabled ? 'bg-blue-500' : 'bg-white/10'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'absolute top-0.5 left-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-transform duration-200',
-                      alertEnabled && 'translate-x-[18px]'
-                    )}
-                  />
-                </button>
               </div>
+            )}
+          </motion.div>
 
-              {/* Share */}
-              <Button variant="ghost" className="w-full gap-2 text-muted-foreground hover:text-foreground">
-                <Share2 className="w-4 h-4" />
-                Share this Job
-              </Button>
-            </motion.div>
-          </div>
+          {/* Set Job Alert */}
+          <motion.div {...fadeUp(0.18)} className="glass-card p-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Get notified of similar roles</p>
+              {alertOn && (
+                <p className="text-xs text-primary mt-0.5 flex items-center gap-1">
+                  <Bell className="w-3 h-3" /> Alert is active
+                </p>
+              )}
+            </div>
+            <ToggleSwitch checked={alertOn} onChange={setAlertOn} />
+          </motion.div>
+
+          {/* Share */}
+          <motion.div {...fadeUp(0.21)}>
+            <Button variant="ghost" className="w-full gap-2 text-muted-foreground hover:text-foreground">
+              <Share2 className="w-4 h-4" /> Share This Job
+            </Button>
+          </motion.div>
+
+          {/* Report */}
+          <motion.div {...fadeUp(0.23)} className="text-center">
+            <button className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors underline underline-offset-2">
+              Report listing
+            </button>
+          </motion.div>
         </div>
       </div>
     </div>

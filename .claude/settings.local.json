@@ -7,7 +7,18 @@
       "Bash(echo \"Exit: $?\")",
       "Bash(node *)",
       "Bash(xargs sed *)",
-      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\AWS_SETUP.md\"\\).Count; \\(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\lib\\\\api.ts\"\\).Count)"
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\AWS_SETUP.md\"\\).Count; \\(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\lib\\\\api.ts\"\\).Count)",
+      "Bash(npx next *)",
+      "Bash(Get-Item \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\company\\\\dashboard\\\\page.tsx\")",
+      "Bash(Select-Object Name, Length)",
+      "PowerShell(Get-Content *)",
+      "Bash(Get-Item \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\company\\\\dashboard\\\\page.tsx\", \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\company\\\\analytics\\\\page.tsx\", \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\company\\\\messages\\\\page.tsx\", \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\company\\\\settings\\\\page.tsx\")",
+      "Bash(Select-Object Name, Length, LastWriteTime)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\talent\" -Recurse -Filter \"page.tsx\")",
+      "Bash(Select-Object FullName, Length)",
+      "Bash(powershell -Command \"Select-String -Path 'src\\\\app\\\\company\\\\dashboard\\\\page.tsx' -Pattern 'LayoutKanban'\")",
+      "Bash(dir C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge *)",
+      "Bash(grep -n \"hex\\\\|#[0-9a-fA-F]\\\\{3,6\\\\}\\\\|rgb\\(\" \"C:/Users/gagan/Desktop/talentbridge/src/app/page.tsx\")"
     ]
   }
 }

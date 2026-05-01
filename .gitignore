@@ -1,3 +1,75 @@
-/node_modules
-/dist
-.next/*
+# ─── Next.js ──────────────────────────────────────────────────────────────────
+.next/
+out/
+build/
+dist/
+
+# ─── Environment variables — NEVER commit real secrets ────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.staging
+
+# ─── Node.js ──────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ─── TypeScript ───────────────────────────────────────────────────────────────
+*.tsbuildinfo
+next-env.d.ts
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+.playwright/
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.editorconfig
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+
+# ─── AWS ──────────────────────────────────────────────────────────────────────
+.aws/
+aws-exports.js
+
+# ─── Uploads / User content ───────────────────────────────────────────────────
+public/uploads/
+public/avatars/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── Sentry ───────────────────────────────────────────────────────────────────
+.sentryclirc
+
+# ─── Vercel ───────────────────────────────────────────────────────────────────
+.vercel
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+.cache/
+.turbo/
+.eslintcache
+
+# ─── Claude Code ─────────────────────────────────────────────────────────────
+.claude/

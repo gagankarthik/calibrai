@@ -1,13 +1,10 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { analytics, applications, jobs } from '@/lib/data'
-import { MatchScore } from '@/components/shared/match-score'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { jobs, applications } from '@/lib/data'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import {
   Briefcase,
   Users,
@@ -15,481 +12,632 @@ import {
   Clock,
   TrendingUp,
   TrendingDown,
-  Minus,
-  Brain,
-  Clock3,
-  Target,
-  AlertTriangle,
-  Eye,
-  ArrowRight,
   Plus,
-  Search,
   Kanban,
-  Download,
   Calendar,
-  MapPin,
-  Wifi,
-  Building2,
-  MonitorSmartphone,
-  DollarSign,
+  BarChart3,
+  ChevronRight,
+  AlertCircle,
+  Info,
+  Zap,
+  Sparkles,
 } from 'lucide-react'
-import { formatSalary, timeAgo } from '@/lib/utils'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
+
+// ─── Animation variants ────────────────────────────────────────────────────────
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  hidden: { opacity: 0, y: 18 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: 'easeOut' } },
 }
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  applied: { label: 'Applied', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-  screening: { label: 'Screening', className: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
-  interview: { label: 'Interview', className: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
-  technical: { label: 'Technical', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-  offer: { label: 'Offer', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-  hired: { label: 'Hired', className: 'bg-green-500/10 text-green-400 border-green-500/20' },
-  rejected: { label: 'Rejected', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
+// ─── Static data ───────────────────────────────────────────────────────────────
+
+const chartData = [
+  { week: 'Wk 1', applications: 12, interviews: 4, offers: 1 },
+  { week: 'Wk 2', applications: 19, interviews: 7, offers: 2 },
+  { week: 'Wk 3', applications: 15, interviews: 5, offers: 3 },
+  { week: 'Wk 4', applications: 28, interviews: 9, offers: 2 },
+  { week: 'Wk 5', applications: 22, interviews: 11, offers: 4 },
+  { week: 'Wk 6', applications: 31, interviews: 8, offers: 3 },
+  { week: 'Wk 7', applications: 25, interviews: 12, offers: 5 },
+  { week: 'Wk 8', applications: 38, interviews: 14, offers: 6 },
+]
+
+const STAGE_DOT_COLORS = [
+  'bg-blue-400',
+  'bg-purple-400',
+  'bg-amber-400',
+  'bg-emerald-400',
+  'bg-green-400',
+]
+
+const activityEvents = [
+  {
+    id: '1',
+    initial: 'E',
+    initBg: 'bg-blue-500/20 text-blue-400',
+    text: 'Emma R. applied for Senior Engineer',
+    time: '2 min ago',
+    badge: 'New Application',
+    badgeCls: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  },
+  {
+    id: '2',
+    initial: 'J',
+    initBg: 'bg-purple-500/20 text-purple-400',
+    text: 'James T. interview scheduled for Product Manager',
+    time: '18 min ago',
+    badge: 'Interview Scheduled',
+    badgeCls: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  },
+  {
+    id: '3',
+    initial: 'S',
+    initBg: 'bg-emerald-500/20 text-emerald-400',
+    text: 'Sarah K. received an offer for Staff Engineer',
+    time: '1h ago',
+    badge: 'Offer Sent',
+    badgeCls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  },
+  {
+    id: '4',
+    initial: 'M',
+    initBg: 'bg-amber-500/20 text-amber-400',
+    text: 'Alex P. moved to Technical Interview stage',
+    time: '3h ago',
+    badge: 'Stage Moved',
+    badgeCls: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  },
+  {
+    id: '5',
+    initial: 'M',
+    initBg: 'bg-gray-500/20 text-gray-400',
+    text: 'Maria L. application viewed by hiring manager',
+    time: '2h ago',
+    badge: 'Viewed',
+    badgeCls: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+  },
+  {
+    id: '6',
+    initial: 'R',
+    initBg: 'bg-cyan-500/20 text-cyan-400',
+    text: 'Ryan M. sent a message about the Design Lead role',
+    time: '5h ago',
+    badge: 'Message',
+    badgeCls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+  },
+]
+
+const CHART_COLORS = {
+  grid: 'rgba(255,255,255,0.05)',
+  text: 'hsl(215,20%,55%)',
 }
 
-const workModeIcon: Record<string, React.ReactNode> = {
-  remote: <Wifi className="w-3 h-3" />,
-  hybrid: <MonitorSmartphone className="w-3 h-3" />,
-  onsite: <Building2 className="w-3 h-3" />,
+// ─── Custom tooltip ─────────────────────────────────────────────────────────────
+
+interface TooltipPayloadEntry {
+  name: string
+  value: number
+  color: string
 }
+
+interface ChartTooltipProps {
+  active?: boolean
+  payload?: TooltipPayloadEntry[]
+  label?: string
+}
+
+function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="glass rounded-xl p-3 min-w-[160px] shadow-xl border border-border">
+      <p className="text-xs font-semibold text-foreground mb-2">{label}</p>
+      {payload.map((entry) => (
+        <div key={entry.name} className="flex items-center gap-2 text-xs py-0.5">
+          <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
+          <span className="text-muted-foreground">{entry.name}:</span>
+          <span className="text-foreground font-medium ml-auto">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CompanyDashboard() {
-  const kpiCards: Array<{ icon: React.ElementType; iconColor: string; iconBg: string; label: string; value: number; valueDisplay: string; trend: string; trendType: 'positive' | 'negative' | 'neutral'; TrendIcon: React.ElementType }> = [
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d')
+
+  // Real data
+  const activeJobs = jobs.filter((j) => j.status === 'active')
+  const totalApplicants = applications.length
+  const hiredThisMonth = applications.filter((a) => a.status === 'hired').length
+  const avgDaysToHire = 14
+
+  const kpiCards = [
     {
       icon: Briefcase,
-      iconColor: 'text-blue-400',
       iconBg: 'bg-blue-500/10',
-      label: 'Total Active Jobs',
-      value: analytics.totalJobs,
-      valueDisplay: analytics.totalJobs.toString(),
+      iconCls: 'text-blue-400',
+      value: activeJobs.length.toString(),
+      label: 'Active Jobs',
       trend: '+2 this week',
       trendType: 'positive' as const,
       TrendIcon: TrendingUp,
     },
     {
       icon: Users,
-      iconColor: 'text-purple-400',
       iconBg: 'bg-purple-500/10',
+      iconCls: 'text-purple-400',
+      value: totalApplicants.toLocaleString(),
       label: 'Total Applicants',
-      value: analytics.totalApplicants,
-      valueDisplay: analytics.totalApplicants.toLocaleString(),
-      trend: '+287 this week',
+      trend: '+23 today',
       trendType: 'positive' as const,
       TrendIcon: TrendingUp,
     },
     {
       icon: UserCheck,
-      iconColor: 'text-emerald-400',
       iconBg: 'bg-emerald-500/10',
+      iconCls: 'text-emerald-400',
+      value: hiredThisMonth.toString(),
       label: 'Hired This Month',
-      value: analytics.hiredThisMonth,
-      valueDisplay: analytics.hiredThisMonth.toString(),
-      trend: 'On track',
-      trendType: 'neutral' as const,
-      TrendIcon: Minus,
+      trend: '+3 vs last month',
+      trendType: 'positive' as const,
+      TrendIcon: TrendingUp,
     },
     {
       icon: Clock,
-      iconColor: 'text-amber-400',
       iconBg: 'bg-amber-500/10',
+      iconCls: 'text-amber-400',
+      value: `${avgDaysToHire} days`,
       label: 'Avg Time to Hire',
-      value: analytics.avgTimeToHire,
-      valueDisplay: `${analytics.avgTimeToHire}d`,
-      trend: '-4 days vs last month',
+      trend: '-3 days improvement',
       trendType: 'positive' as const,
       TrendIcon: TrendingDown,
     },
   ]
 
-  const aiInsights = [
+  const aiRecommendations = [
     {
-      icon: Clock3,
-      iconColor: 'text-blue-400',
-      borderColor: 'border-l-blue-500',
-      title: 'Peak Apply Time',
-      description: 'Tuesdays 10am–12pm see 3.2× more quality applications. Schedule job boosts accordingly.',
+      id: 'r1',
+      icon: AlertCircle,
+      iconCls: 'text-amber-400',
+      bg: 'bg-amber-500/10',
+      text: 'Emma R. in Screening for 9 days — Move to Interview?',
+      action: 'Schedule',
+      actionCls: 'text-amber-400 hover:bg-amber-500/10 border-amber-500/30',
     },
     {
-      icon: Target,
-      iconColor: 'text-emerald-400',
-      borderColor: 'border-l-emerald-500',
-      title: 'Top Source',
-      description: 'Calibr drives 46% of quality hires. Consider increasing budget allocation here.',
+      id: 'r2',
+      icon: Info,
+      iconCls: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      text: 'Senior Engineer has 40% fewer views this week — Boost listing?',
+      action: 'Boost',
+      actionCls: 'text-blue-400 hover:bg-blue-500/10 border-blue-500/30',
     },
     {
-      icon: AlertTriangle,
-      iconColor: 'text-amber-400',
-      borderColor: 'border-l-amber-500',
-      title: 'Candidate Drop-off',
-      description: 'Technical stage has 52% drop-off. Consider switching to an async assessment format.',
+      id: 'r3',
+      icon: Zap,
+      iconCls: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+      text: '2 offers haven\'t been responded to in 3+ days — Follow up?',
+      action: 'Follow Up',
+      actionCls: 'text-purple-400 hover:bg-purple-500/10 border-purple-500/30',
     },
   ]
 
   const quickActions = [
-    { icon: Plus, label: 'Post New Job', href: '/company/jobs/new', gradient: 'from-blue-600 to-purple-600' },
-    { icon: Search, label: 'Browse Talent Pool', href: '/company/candidates', gradient: 'from-purple-600 to-pink-600' },
-    { icon: Kanban, label: 'View Pipeline', href: '/company/pipeline', gradient: 'from-cyan-600 to-blue-600' },
-    { icon: Download, label: 'Download Report', href: '/company/analytics', gradient: 'from-emerald-600 to-cyan-600' },
+    {
+      icon: Plus,
+      label: 'Post Job',
+      desc: 'Start a new role',
+      href: '/company/jobs/new',
+      iconBg: 'bg-blue-500/10',
+      iconCls: 'text-blue-400',
+    },
+    {
+      icon: Kanban,
+      label: 'Pipeline',
+      desc: 'Review candidates',
+      href: '/company/pipeline',
+      iconBg: 'bg-purple-500/10',
+      iconCls: 'text-purple-400',
+    },
+    {
+      icon: Calendar,
+      label: 'Schedule',
+      desc: 'Book interviews',
+      href: '/company/pipeline',
+      iconBg: 'bg-amber-500/10',
+      iconCls: 'text-amber-400',
+    },
+    {
+      icon: BarChart3,
+      label: 'Analytics',
+      desc: 'View insights',
+      href: '/company/analytics',
+      iconBg: 'bg-emerald-500/10',
+      iconCls: 'text-emerald-400',
+    },
   ]
 
   return (
-    <div className="p-6 space-y-6 max-w-screen-xl">
-      {/* Page Header */}
+    <div className="p-6 max-w-screen-xl">
+      {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="space-y-1"
+        className="flex items-start justify-between mb-8 gap-4 flex-wrap"
       >
-        <h1 className="text-2xl font-bold text-foreground">
-          Good morning, Stripe Team 👋
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Here's your hiring overview for today
-        </p>
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+            Good morning, Stripe Corp 👋
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Thursday, May 1, 2026 · 3 urgent items need your attention
+          </p>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Hiring Health: Strong
+          </span>
+          <Button asChild className="gap-2 bg-primary text-primary-foreground">
+            <Link href="/company/jobs/new">
+              <Plus className="w-4 h-4" /> Post New Job
+            </Link>
+          </Button>
+        </div>
       </motion.div>
 
-      {/* KPI Cards */}
+      {/* ── KPI CARDS ───────────────────────────────────────────────────────── */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
       >
         {kpiCards.map((card) => (
-          <motion.div key={card.label} variants={itemVariants} className="stat-card group">
-            <div className="flex items-start justify-between">
-              <div className={`p-2.5 rounded-xl ${card.iconBg} transition-transform duration-300 group-hover:scale-110`}>
-                <card.icon className={`w-5 h-5 ${card.iconColor}`} />
-              </div>
-              <div
-                className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
-                  card.trendType === 'positive'
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : card.trendType === 'negative'
-                    ? 'bg-rose-500/10 text-rose-400'
-                    : 'bg-white/5 text-muted-foreground'
-                }`}
-              >
-                <card.TrendIcon className="w-3 h-3" />
-                <span>{card.trend}</span>
-              </div>
+          <motion.div
+            key={card.label}
+            variants={itemVariants}
+            className="glass-card p-5 hover:border-primary/30 transition-all group"
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${card.iconBg} transition-transform duration-200 group-hover:scale-110`}>
+              <card.icon className={`w-5 h-5 ${card.iconCls}`} />
             </div>
-            <div>
-              <div className="text-3xl font-bold text-foreground tracking-tight">
-                {card.valueDisplay}
-              </div>
-              <div className="text-sm text-muted-foreground mt-0.5">{card.label}</div>
+            <div className="text-3xl font-black text-foreground tracking-tight">{card.value}</div>
+            <div className="text-sm text-muted-foreground mt-1">{card.label}</div>
+            <div className="flex items-center gap-1 mt-2">
+              <card.TrendIcon
+                className={`w-3 h-3 ${card.trendType === 'positive' ? 'text-emerald-400' : 'text-rose-400'}`}
+              />
+              <span
+                className={`text-xs font-medium ${card.trendType === 'positive' ? 'text-emerald-400' : 'text-rose-400'}`}
+              >
+                {card.trend}
+              </span>
             </div>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* ROI Metrics */}
-      <motion.div variants={itemVariants} initial="hidden" animate="visible" className="glass-card p-5 space-y-5">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-teal-500/10">
-            <DollarSign className="w-5 h-5 text-teal-400" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-foreground">ROI at a Glance</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Your investment vs. outcomes this quarter</p>
-          </div>
-        </div>
-
-        {/* 4 metric blocks */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Cost per Hire */}
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Cost per Hire</div>
-            <div className="text-2xl font-bold text-foreground">$3,200</div>
-            <div className="text-xs text-emerald-400 font-medium">vs $5,800 industry avg</div>
-          </div>
-
-          {/* Time to Fill */}
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Time to Fill</div>
-            <div className="text-2xl font-bold text-foreground">18 days</div>
-            <div className="text-xs text-emerald-400 font-medium">Industry avg: 42 days</div>
-          </div>
-
-          {/* Quality of Hire Score */}
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Quality of Hire Score</div>
-            <div className="text-2xl font-bold text-foreground">4.6/5</div>
-            <div className="text-xs text-muted-foreground font-medium">Based on 30-day performance</div>
-          </div>
-
-          {/* Revenue Impact */}
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Revenue Impact</div>
-            <div className="text-2xl font-bold text-foreground">$2.4M</div>
-            <div className="text-xs text-emerald-400 font-medium">Estimated productivity unlocked</div>
-          </div>
-        </div>
-
-        {/* Savings progress bar */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-medium">
-            <span className="text-muted-foreground">Calibr savings vs traditional recruiting</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Traditional: $87,000</span>
-            <div className="flex-1 h-2.5 rounded-full bg-white/[0.06] overflow-hidden flex">
-              <div
-                className="h-full rounded-l-full bg-rose-500/60"
-                style={{ width: `${(32 / 87) * 100}%` }}
-              />
-              <div
-                className="h-full rounded-r-full bg-emerald-500/70"
-                style={{ width: `${((87 - 32) / 87) * 100}%` }}
-              />
+      {/* ── MAIN CONTENT — 3-col grid ────────────────────────────────────────── */}
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        {/* LEFT: Hiring Activity Chart + Jobs table */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Hiring Activity Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="glass-card p-6"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-semibold text-foreground">Hiring Activity</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Applications, interviews and offers over time</p>
+              </div>
+              {/* Time range pills */}
+              <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
+                {(['7d', '30d', '90d'] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setTimeRange(r)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
+                      timeRange === r
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
-            <span className="text-xs text-emerald-400 font-semibold whitespace-nowrap">With Calibr: $32,000</span>
-          </div>
-          <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-rose-500/60" />Spend retained</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/70" />Savings: $55,000 (63%)</span>
-          </div>
-        </div>
-      </motion.div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={timeRange}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gApps" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gInts" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gOffs" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                    <XAxis dataKey="week" tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11, color: CHART_COLORS.text, paddingTop: 12 }}
+                      formatter={(value) => (
+                        <span style={{ color: CHART_COLORS.text }}>{value}</span>
+                      )}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="applications"
+                      name="Applications"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      fill="url(#gApps)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="interviews"
+                      name="Interviews"
+                      stroke="#8B5CF6"
+                      strokeWidth={2}
+                      fill="url(#gInts)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="offers"
+                      name="Offers"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                      fill="url(#gOffs)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
 
-      {/* Two-column: Applications + AI Insights */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-      >
-        {/* Recent Applications (2/3) */}
-        <motion.div variants={itemVariants} className="lg:col-span-2 glass-card p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold text-foreground">Recent Applications</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Latest candidate activity</p>
+          {/* Active Jobs Table */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.18 }}
+            className="glass-card p-0 overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div>
+                <h2 className="font-semibold text-foreground">Active Jobs Overview</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{activeJobs.length} positions currently open</p>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1">
+                <Link href="/company/jobs">
+                  Manage all <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </Button>
             </div>
-            <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground gap-1">
-              <Link href="/company/pipeline">
-                View all <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </Button>
-          </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/20">
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-6 py-3">
+                      Job Title
+                    </th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3 hidden sm:table-cell">
+                      Applicants
+                    </th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3 hidden md:table-cell">
+                      Pipeline
+                    </th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 py-3">
+                      Status
+                    </th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {activeJobs.slice(0, 5).map((job) => (
+                    <tr key={job.id} className="hover:bg-muted/20 transition-colors group">
+                      <td className="px-6 py-3.5">
+                        <div className="font-medium text-foreground">{job.title}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px]">
+                            {job.department}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 hidden sm:table-cell">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="font-semibold text-foreground">{job.applicantCount}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 hidden md:table-cell">
+                        <div className="flex items-center gap-1">
+                          {STAGE_DOT_COLORS.map((cls, i) => (
+                            <span key={i} className={`w-2.5 h-2.5 rounded-full ${cls}`} />
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                            job.status === 'active'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                          }`}
+                        >
+                          {job.status === 'active' ? 'Active' : 'Paused'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Link href="/company/pipeline">View</Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        </div>
 
-          <div className="space-y-3">
-            {applications.slice(0, 5).map((app) => {
-              const candidate = app.candidate
-              if (!candidate) return null
-              const statusCfg = statusConfig[app.status] ?? statusConfig.applied
-              return (
+        {/* RIGHT: AI Recommendations + Recent Activity */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* AI Recommendations */}
+          <motion.div
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.12 }}
+            className="glass-card p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <h2 className="font-semibold text-foreground">AI Insights</h2>
+              </div>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                3 actions
+              </span>
+            </div>
+            <div className="space-y-3">
+              {aiRecommendations.map((rec) => (
                 <div
-                  key={app.id}
-                  className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group"
+                  key={rec.id}
+                  className="p-3.5 rounded-xl bg-muted/30 border border-border space-y-2.5"
                 >
-                  {/* Avatar */}
-                  <Avatar className="h-10 w-10 shrink-0 ring-2 ring-white/10">
-                    <AvatarImage src={candidate.avatar} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs font-bold">
-                      {candidate.name.split(' ').map((n) => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-foreground">{candidate.name}</span>
-                      <MatchScore score={app.matchScore} size="sm" showLabel={false} />
+                  <div className="flex items-start gap-2">
+                    <div className={`p-1.5 rounded-lg ${rec.bg} shrink-0 mt-0.5`}>
+                      <rec.icon className={`w-3.5 h-3.5 ${rec.iconCls}`} />
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs text-muted-foreground truncate">{app.job.title}</span>
-                      <span className="text-muted-foreground/40">·</span>
-                      <span className="text-xs text-muted-foreground">{timeAgo(app.appliedAt)}</span>
-                    </div>
+                    <p className="text-xs text-foreground leading-relaxed">{rec.text}</p>
                   </div>
-
-                  {/* Status badge */}
-                  <span className={`hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${statusCfg.className}`}>
-                    {statusCfg.label}
-                  </span>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs px-2.5">
-                      <Eye className="w-3.5 h-3.5 mr-1" />
-                      Profile
-                    </Button>
-                    <Button size="sm" className="h-7 text-xs px-2.5 bg-blue-600/80 hover:bg-blue-600 text-white">
-                      <ArrowRight className="w-3.5 h-3.5 mr-1" />
-                      Next Stage
-                    </Button>
-                  </div>
+                  <button
+                    className={`w-full text-[11px] font-semibold py-1.5 rounded-lg border transition-all ${rec.actionCls}`}
+                  >
+                    {rec.action}
+                  </button>
                 </div>
-              )
-            })}
-          </div>
-        </motion.div>
-
-        {/* AI Insights (1/3) */}
-        <motion.div variants={itemVariants} className="glass-card p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-purple-500/10">
-              <Brain className="w-4 h-4 text-purple-400" />
+              ))}
             </div>
-            <div>
-              <h2 className="font-semibold text-foreground">AI Insights</h2>
-              <p className="text-xs text-muted-foreground">Powered by Calibr AI</p>
-            </div>
-          </div>
+          </motion.div>
 
-          <div className="space-y-3">
-            {aiInsights.map((insight) => (
-              <div
-                key={insight.title}
-                className={`p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] border-l-2 ${insight.borderColor} hover:bg-white/[0.05] transition-all duration-200`}
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <insight.icon className={`w-4 h-4 ${insight.iconColor} shrink-0`} />
-                  <span className="text-sm font-semibold text-foreground">{insight.title}</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{insight.description}</p>
+          {/* Recent Activity */}
+          <motion.div
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="glass-card p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <h2 className="font-semibold text-foreground">Live Feed</h2>
               </div>
-            ))}
-          </div>
-
-          <div className="pt-2 border-t border-border">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Offer Accept Rate</span>
-              <span className="font-semibold text-emerald-400">{analytics.offerAcceptRate}%</span>
+              <Link
+                href="/company/pipeline"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                View All
+              </Link>
             </div>
-            <Progress value={analytics.offerAcceptRate} className="mt-2 h-1.5" />
-          </div>
-        </motion.div>
-      </motion.div>
+            <div className="space-y-3">
+              {activityEvents.map((ev, i) => (
+                <motion.div
+                  key={ev.id}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06, duration: 0.3 }}
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${ev.initBg}`}
+                  >
+                    {ev.initial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-foreground truncate">{ev.text}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{ev.time}</p>
+                  </div>
+                  <span
+                    className={`hidden sm:inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0 ${ev.badgeCls}`}
+                  >
+                    {ev.badge}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
 
-      {/* Bottom Row: Active Jobs + Quick Actions */}
+      {/* ── QUICK ACTIONS ────────────────────────────────────────────────────── */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
       >
-        {/* Active Jobs */}
-        <motion.div variants={itemVariants} className="glass-card p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold text-foreground">Active Jobs</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{jobs.filter(j => j.status === 'active').length} positions open</p>
-            </div>
-            <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground gap-1">
-              <Link href="/company/jobs">
-                Manage all <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {jobs.slice(0, 4).map((job) => (
+        {quickActions.map((action) => (
+          <motion.div key={action.label} variants={itemVariants}>
+            <Link
+              href={action.href}
+              className="glass-card p-5 hover:border-primary/30 cursor-pointer transition-all group block text-center"
+            >
               <div
-                key={job.id}
-                className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group"
+                className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3 ${action.iconBg} transition-transform duration-200 group-hover:scale-110`}
               >
-                {/* Job info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-foreground truncate">{job.title}</span>
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">
-                      {job.department}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      {job.location}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      {workModeIcon[job.workMode]}
-                      <span className="capitalize">{job.workMode}</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Applicants */}
-                <div className="hidden sm:block text-right shrink-0">
-                  <div className="text-sm font-semibold text-foreground">{job.applicantCount}</div>
-                  <div className="text-[10px] text-muted-foreground">applicants</div>
-                </div>
-
-                {/* Posted date */}
-                <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                  <Calendar className="w-3 h-3" />
-                  <span>{new Date(job.postedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                </div>
-
-                {/* View button */}
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs px-2.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                >
-                  <Link href={`/company/jobs`}>
-                    <Eye className="w-3.5 h-3.5" />
-                  </Link>
-                </Button>
+                <action.icon className={`w-5 h-5 ${action.iconCls}`} />
               </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Quick Actions */}
-        <motion.div variants={itemVariants} className="glass-card p-5 space-y-4">
-          <div>
-            <h2 className="font-semibold text-foreground">Quick Actions</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Jump to common tasks</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action) => (
-              <Link
-                key={action.label}
-                href={action.href}
-                className="glass-card p-4 flex flex-col items-center gap-3 text-center hover:border-white/[0.15] hover:bg-white/[0.06] transition-all duration-200 cursor-pointer group"
-              >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200`}>
-                  <action.icon className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xs font-medium text-foreground leading-snug">{action.label}</span>
-              </Link>
-            ))}
-          </div>
-
-          {/* Bottom stats strip */}
-          <div className="pt-2 border-t border-border grid grid-cols-3 gap-3">
-            <div className="text-center">
-              <div className="text-lg font-bold text-foreground">{analytics.offerAcceptRate}%</div>
-              <div className="text-[10px] text-muted-foreground">Offer Accept</div>
-            </div>
-            <div className="text-center border-x border-border">
-              <div className="text-lg font-bold text-foreground">${(analytics.costPerHire / 1000).toFixed(1)}K</div>
-              <div className="text-[10px] text-muted-foreground">Cost/Hire</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-foreground">{analytics.qualityOfHire}/5</div>
-              <div className="text-[10px] text-muted-foreground">Quality Score</div>
-            </div>
-          </div>
-        </motion.div>
+              <div className="font-semibold text-foreground text-sm">{action.label}</div>
+              <div className="text-xs text-muted-foreground mt-1">{action.desc}</div>
+            </Link>
+          </motion.div>
+        ))}
       </motion.div>
     </div>
   )

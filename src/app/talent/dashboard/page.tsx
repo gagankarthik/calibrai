@@ -1,629 +1,440 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useRef, useMemo } from 'react'
+import { motion, useInView, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { jobs, applications } from '@/lib/data'
-import { formatSalary, timeAgo, getMatchBg } from '@/lib/utils'
-import { MatchScore, MatchRing } from '@/components/shared/match-score'
-import { Badge } from '@/components/ui/badge'
+import { formatSalary, timeAgo, cn } from '@/lib/utils'
+import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Bookmark,
   MapPin,
-  Briefcase,
   CheckCircle2,
-  TrendingUp,
-  FileText,
   Users,
+  FileText,
+  Calendar,
   Award,
-  Download,
-  ChevronDown,
-  ChevronUp,
   Sparkles,
+  Bell,
+  Zap,
+  Edit,
   ArrowRight,
-  Target,
-  DollarSign,
-  Eye,
   Clock,
-  Star,
-  Wifi,
-  Building2,
-  Globe,
 } from 'lucide-react'
 import type { ApplicationStatus } from '@/lib/types'
 
-// ─── Stagger variants ──────────────────────────────────────────────────────────
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
+// ─── Deterministic match score (no randomness) ────────────────────────────────
+function getMatchScore(id: string): number {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff
+  return 70 + (Math.abs(hash) % 28)
 }
 
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+// ─── Avatar color hash ────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
+  'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500', 'bg-teal-500',
+]
+function avatarColor(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
-// ─── Alex's skill set (matches data.ts candidates[0]) ─────────────────────────
-const alexSkills = ['React', 'TypeScript', 'Next.js', 'CSS/Tailwind', 'GraphQL', 'Performance']
-
-// ─── AI match reasons per job ─────────────────────────────────────────────────
-const matchReasons: Record<string, string[]> = {
-  j1: [
-    'Your React expertise matches 96% of requirements',
-    'Hybrid work mode aligns with your preference',
-    'Salary range fits your $210K target',
-  ],
-  j2: [
-    'Your TypeScript skills transfer well to growth PM',
-    'Remote-first matches your work preference',
-    'Salary range is within your expectations',
-  ],
-  j3: [
-    'Senior-level experience aligns with Staff role',
-    'Fully remote matches your work preference',
-    'Top-of-market salary exceeds your target',
-  ],
+// ─── Status pill config ───────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<ApplicationStatus, { label: string; className: string; dotClass: string }> = {
+  applied:   { label: 'Applied',      className: 'bg-blue-500/10 text-blue-400 border-blue-500/30',       dotClass: 'bg-blue-400' },
+  screening: { label: 'Screening',    className: 'bg-purple-500/10 text-purple-400 border-purple-500/30', dotClass: 'bg-violet-400' },
+  interview: { label: 'Interview',    className: 'bg-amber-500/10 text-amber-400 border-amber-500/30',    dotClass: 'bg-amber-400' },
+  technical: { label: 'Technical',    className: 'bg-orange-500/10 text-orange-400 border-orange-500/30', dotClass: 'bg-orange-400' },
+  offer:     { label: 'Offer',        className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', dotClass: 'bg-emerald-400' },
+  hired:     { label: 'Hired',        className: 'bg-green-500/10 text-green-400 border-green-500/30',    dotClass: 'bg-green-400' },
+  rejected:  { label: 'Not Selected', className: 'bg-red-500/10 text-red-400 border-red-500/30',          dotClass: 'bg-red-400' },
 }
 
-// ─── Status badge config ──────────────────────────────────────────────────────
-const statusConfig: Record<
-  ApplicationStatus,
-  { label: string; variant: 'default' | 'purple' | 'cyan' | 'warning' | 'success' | 'rose' }
-> = {
-  applied: { label: 'Applied', variant: 'default' },
-  screening: { label: 'Screening', variant: 'purple' },
-  interview: { label: 'Interview', variant: 'cyan' },
-  technical: { label: 'Technical', variant: 'warning' },
-  offer: { label: 'Offer', variant: 'success' },
-  hired: { label: 'Hired', variant: 'success' },
-  rejected: { label: 'Rejected', variant: 'rose' },
-}
+const STATUS_ORDER: ApplicationStatus[] = ['applied', 'screening', 'interview', 'offer', 'hired']
 
-const stageLabels: Record<string, string> = {
-  new: 'Application Received',
-  screening: 'Resume Screening',
-  phone_screen: 'Phone Screen',
-  technical: 'Technical Interview',
-  onsite: 'Onsite Interview',
-  offer: 'Offer Extended',
-  hired: 'Hired',
-  rejected: 'Not Selected',
-}
+// ─── In-demand skills ─────────────────────────────────────────────────────────
+const DEMAND_SKILLS = [
+  { name: 'React',      pct: 94, color: 'bg-emerald-500' },
+  { name: 'TypeScript', pct: 89, color: 'bg-emerald-500' },
+  { name: 'Node.js',    pct: 78, color: 'bg-blue-500' },
+  { name: 'AWS',        pct: 71, color: 'bg-blue-500' },
+  { name: 'GraphQL',    pct: 65, color: 'bg-amber-500' },
+]
 
-const workModeIcon: Record<string, React.ReactNode> = {
-  remote: <Wifi className="w-3 h-3" />,
-  hybrid: <Building2 className="w-3 h-3" />,
-  onsite: <Globe className="w-3 h-3" />,
-}
-
-// ─── Application Timeline Card ────────────────────────────────────────────────
-function ApplicationCard({ app }: { app: typeof applications[0] }) {
-  const [expanded, setExpanded] = useState(false)
-  const cfg = statusConfig[app.status]
-
+// ─── Toggle Switch ────────────────────────────────────────────────────────────
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <motion.div
-      layout
-      className="glass-card p-4 hover:border-white/[0.15] transition-all duration-300 cursor-pointer"
-      onClick={() => setExpanded((e) => !e)}
-    >
-      <div className="flex items-start gap-3">
-        {/* Timeline dot */}
-        <div className="mt-0.5 shrink-0 flex flex-col items-center gap-1">
-          <div
-            className={`w-2.5 h-2.5 rounded-full ${
-              app.status === 'offer'
-                ? 'bg-emerald-400'
-                : app.status === 'interview' || app.status === 'technical'
-                ? 'bg-blue-400'
-                : app.status === 'rejected'
-                ? 'bg-rose-400'
-                : 'bg-muted-foreground/40'
-            }`}
-          />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-foreground truncate">
-                {app.job.title}
-              </h4>
-              <p className="text-xs text-muted-foreground mt-0.5">{app.job.company.name}</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge variant={cfg.variant}>{cfg.label}</Badge>
-              {expanded ? (
-                <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {timeAgo(app.appliedAt)}
-            </span>
-            <span className="text-[10px] text-muted-foreground">
-              Stage: <span className="text-foreground/80">{stageLabels[app.stage]}</span>
-            </span>
-          </div>
-
-          {expanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 pt-3 border-t border-border space-y-2"
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Match Score</span>
-                <MatchScore score={app.matchScore} size="sm" />
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Salary Range</span>
-                <span className="text-emerald-400 font-medium">
-                  {formatSalary(app.job.salaryMin, app.job.salaryMax)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Last Update</span>
-                <span className="text-foreground/80">{timeAgo(app.updatedAt)}</span>
-              </div>
-              {app.notes && (
-                <p className="text-[11px] text-muted-foreground italic border-l-2 border-blue-500/40 pl-2">
-                  {app.notes}
-                </p>
-              )}
-              <Button variant="outline" size="sm" className="w-full mt-1 text-xs h-7">
-                View Application
-              </Button>
-            </motion.div>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-// ─── Job Match Card ───────────────────────────────────────────────────────────
-function JobMatchCard({ job, index }: { job: typeof jobs[0]; index: number }) {
-  const score = index === 0 ? 96 : index === 1 ? 84 : 78
-  const reasons = matchReasons[job.id] ?? matchReasons.j1
-
-  return (
-    <motion.div
-      variants={item}
-      className="relative group overflow-hidden rounded-2xl"
-      style={{
-        background:
-          'linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box, linear-gradient(135deg, rgba(59,130,246,0.4), rgba(139,92,246,0.35), rgba(6,182,212,0.3)) border-box',
-        border: '1px solid transparent',
-      }}
-    >
-      {/* Glow on hover */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl"
-        style={{ boxShadow: 'inset 0 0 60px rgba(59,130,246,0.06)' }} />
-
-      {/* Featured badge */}
-      {job.featured && (
-        <div className="absolute top-3 right-3 z-10">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-semibold">
-            <Star className="w-2.5 h-2.5 fill-current" />
-            Featured
-          </span>
-        </div>
+    <button
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative w-10 h-[22px] rounded-full transition-all duration-200 shrink-0',
+        checked ? 'bg-primary' : 'bg-muted'
       )}
-
-      <div className="p-5">
-        {/* Company row */}
-        <div className="flex items-start gap-3 mb-4">
-          <Avatar className="h-11 w-11 ring-2 ring-white/10 shrink-0">
-            <AvatarImage src={job.company.logo} />
-            <AvatarFallback className="text-sm font-bold">
-              {job.company.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-sm font-medium text-foreground">{job.company.name}</span>
-              {job.company.verified && (
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              )}
-            </div>
-            <h3 className="text-base font-semibold text-foreground mt-0.5 leading-snug pr-16">
-              {job.title}
-            </h3>
-          </div>
-
-          {/* Match Ring — hero element */}
-          <div className="shrink-0 flex flex-col items-center gap-1">
-            <MatchRing score={score} size={64} strokeWidth={5} />
-            <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">
-              AI Match
-            </span>
-          </div>
-        </div>
-
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <Badge variant="ghost" className="flex items-center gap-1 text-[11px]">
-            {workModeIcon[job.workMode]}
-            <span className="capitalize">{job.workMode}</span>
-          </Badge>
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="w-3 h-3" />
-            {job.location}
-          </span>
-          <span className="text-xs font-semibold text-emerald-400">
-            {formatSalary(job.salaryMin, job.salaryMax)}
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
-            <Clock className="w-3 h-3" />
-            {timeAgo(job.postedAt)}
-          </span>
-        </div>
-
-        {/* AI Reasons */}
-        <div className="mb-4 space-y-1.5">
-          {reasons.map((r, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <div className="mt-0.5 w-4 h-4 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center shrink-0">
-                <Sparkles className="w-2.5 h-2.5 text-blue-400" />
-              </div>
-              <span className="text-xs text-muted-foreground leading-snug">{r}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Skills match */}
-        <div className="mb-4">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">
-            Skills Match
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {job.skills.map((skill) => {
-              const have = alexSkills.includes(skill)
-              return (
-                <span
-                  key={skill}
-                  className={`tag text-[11px] ${
-                    have
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                      : 'bg-white/[0.04] border-white/[0.08] text-muted-foreground'
-                  }`}
-                >
-                  {have && <CheckCircle2 className="w-2.5 h-2.5" />}
-                  {skill}
-                </span>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button className="flex-1 h-9 text-sm">
-            Apply Now
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
-            <Bookmark className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    </motion.div>
+      aria-label="Toggle"
+    >
+      <span
+        className={cn(
+          'absolute top-0.5 left-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-transform duration-200',
+          checked && 'translate-x-[18px]'
+        )}
+      />
+    </button>
   )
 }
 
-// ─── Quick Action Card ────────────────────────────────────────────────────────
-function QuickAction({
-  icon: Icon,
-  label,
-  description,
-  href,
-  gradient,
-}: {
-  icon: React.ElementType
-  label: string
-  description: string
-  href: string
-  gradient: string
-}) {
+// ─── Skill demand bar row ─────────────────────────────────────────────────────
+function DemandBar({ skill, index }: { skill: typeof DEMAND_SKILLS[0]; index: number }) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true })
   return (
-    <Link href={href}>
-      <motion.div
-        variants={item}
-        whileHover={{ y: -2 }}
-        className="glass-card p-4 hover:border-white/[0.18] transition-all duration-300 cursor-pointer group h-full"
-      >
-        <div
-          className={`w-10 h-10 rounded-xl ${gradient} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200`}
-        >
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-        <h4 className="text-sm font-semibold text-foreground mb-0.5">{label}</h4>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </motion.div>
-    </Link>
+    <div ref={ref} className="flex items-center gap-2">
+      <span className="text-xs text-foreground w-20 shrink-0">{skill.name}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={inView ? { width: `${skill.pct}%` } : { width: 0 }}
+          transition={{ duration: 0.7, delay: index * 0.08, ease: 'easeOut' }}
+          className={cn('h-full rounded-full', skill.color)}
+        />
+      </div>
+      <span className="text-[10px] text-muted-foreground w-8 text-right font-medium">{skill.pct}%</span>
+    </div>
   )
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function TalentDashboardPage() {
-  const topJobs = jobs.slice(0, 3)
+  const [jobAlerts, setJobAlerts] = useState(true)
+
+  const topMatches = useMemo(
+    () => jobs.slice(0, 4).map(j => ({ ...j, score: getMatchScore(j.id) })),
+    []
+  )
   const recentApps = applications.slice(0, 5)
 
-  return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      {/* ── Section 1: Welcome Banner ── */}
-      <motion.div variants={container} initial="hidden" animate="show">
-        <motion.div variants={item}>
-          <div className="relative overflow-hidden rounded-2xl p-6"
-            style={{
-              background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.12) 50%, rgba(6,182,212,0.08) 100%)',
-              border: '1px solid rgba(59,130,246,0.2)',
-            }}
-          >
-            {/* Decorative orbs */}
-            <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+  const strongMatchCount = topMatches.filter(j => j.score >= 85).length
+  const interviewCount   = recentApps.filter(a => a.status === 'interview').length
 
-            <div className="relative">
-              <div className="flex items-start justify-between flex-wrap gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    Welcome back, Alex{' '}
-                    <span role="img" aria-label="wave">👋</span>
-                  </h1>
-                  <p className="text-muted-foreground mt-1">
-                    You have{' '}
-                    <span className="text-blue-400 font-semibold">5 new job matches</span> and{' '}
-                    <span className="text-purple-400 font-semibold">2 messages</span> waiting.
-                  </p>
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+
+      {/* ── WELCOME BANNER ──────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="glass-card p-6 mb-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Good morning, Alex 👋</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            You have{' '}
+            <span className="text-primary font-semibold">{strongMatchCount} strong matches</span>
+            {' '}and{' '}
+            <span className="text-amber-400 font-semibold">{interviewCount} upcoming interviews</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Profile completion */}
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-muted/40 border border-border">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-foreground">Profile 82% complete</span>
+              <div className="w-32 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-primary" style={{ width: '82%' }} />
+              </div>
+            </div>
+            <Link href="/talent/profile" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap flex items-center gap-1">
+              Complete <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {/* Job Alerts toggle */}
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-muted/40 border border-border">
+            <Bell className={cn('w-4 h-4', jobAlerts ? 'text-primary' : 'text-muted-foreground')} />
+            <span className="text-xs font-medium text-foreground">Job Alerts</span>
+            <ToggleSwitch checked={jobAlerts} onChange={setJobAlerts} />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── STATS ROW ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          {
+            icon: Sparkles, value: jobs.length, label: 'Jobs Matched',
+            iconClass: 'text-blue-400', bgClass: 'bg-blue-500/10 border-blue-500/20',
+          },
+          {
+            icon: FileText, value: applications.length, label: 'Applications Sent',
+            iconClass: 'text-violet-400', bgClass: 'bg-violet-500/10 border-violet-500/20',
+          },
+          {
+            icon: Calendar, value: applications.filter(a => a.status === 'interview').length, label: 'Interviews',
+            iconClass: 'text-amber-400', bgClass: 'bg-amber-500/10 border-amber-500/20',
+          },
+          {
+            icon: Award, value: applications.filter(a => a.status === 'offer').length, label: 'Offers',
+            iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10 border-emerald-500/20',
+          },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: i * 0.07 }}
+            className="glass-card p-4 text-center"
+          >
+            <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2 border', stat.bgClass)}>
+              <stat.icon className={cn('w-4 h-4', stat.iconClass)} />
+            </div>
+            <p className={cn('text-2xl font-bold', stat.iconClass)}>{stat.value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* ── TOP MATCHES ─────────────────────────────────────────────────────── */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-0.5">AI-curated for you</p>
+            <h2 className="text-xl font-bold text-foreground">Your Top Matches</h2>
+          </div>
+          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80" asChild>
+            <Link href="/talent/jobs">
+              See all <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
+          </Button>
+        </div>
+
+        {/* Horizontal scroll row */}
+        <div className="flex gap-4 overflow-x-auto pb-3 no-scrollbar">
+          {topMatches.map((job, i) => (
+            <motion.div
+              key={job.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.4, ease: 'easeOut' }}
+              className="w-72 shrink-0 glass-card p-5 flex flex-col gap-3 hover:border-primary/40 transition-all duration-300 cursor-pointer group"
+            >
+              {/* Company row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0', avatarColor(job.company.name))}>
+                    {job.company.name[0]}
+                  </div>
+                  {job.company.verified && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> Verified
+                    </span>
+                  )}
                 </div>
-                <Button variant="outline" size="sm" className="shrink-0" asChild>
-                  <Link href="/talent/profile">
-                    Complete Profile
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-base font-bold text-foreground leading-tight group-hover:text-primary transition-colors">
+                {job.title}
+              </h3>
+
+              {/* Company + location */}
+              <p className="text-sm text-muted-foreground flex items-center gap-1 -mt-1">
+                {job.company.name}
+                <span className="inline-block mx-1 opacity-30">·</span>
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate">{job.location}</span>
+              </p>
+
+              {/* Work mode + salary */}
+              <div className="flex gap-2 text-xs flex-wrap">
+                <span className="px-2 py-0.5 rounded-full bg-muted/60 border border-border text-muted-foreground capitalize">{job.workMode}</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold">
+                  {formatSalary(job.salaryMin, job.salaryMax)}
+                </span>
+              </div>
+
+              {/* Match ring centered */}
+              <div className="flex flex-col items-center gap-1 py-1">
+                <MatchRing score={job.score} size={72} />
+                <span className="text-xs text-muted-foreground font-medium">{job.score}% match</span>
+              </div>
+
+              {/* Why you match — skill tags */}
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">Why you match</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {job.skills.slice(0, 3).map(s => (
+                    <span key={s} className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="flex gap-2 mt-auto pt-1">
+                <Button size="sm" className="flex-1 h-8 text-xs">Apply Now</Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+                  <Bookmark className="w-3.5 h-3.5" />
                 </Button>
               </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
-              {/* Inline stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-                {[
-                  {
-                    label: 'Profile Strength',
-                    value: '82%',
-                    sub: 'Strong',
-                    icon: Target,
-                    color: 'text-blue-400',
-                  },
-                  {
-                    label: 'Applications This Week',
-                    value: '3',
-                    sub: '+1 from last week',
-                    icon: FileText,
-                    color: 'text-purple-400',
-                  },
-                  {
-                    label: 'Interview Rate',
-                    value: '67%',
-                    sub: 'Above average',
-                    icon: TrendingUp,
-                    color: 'text-emerald-400',
-                  },
-                  {
-                    label: 'Profile Views',
-                    value: '148',
-                    sub: '+23 this week',
-                    icon: Eye,
-                    color: 'text-cyan-400',
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3"
-                  >
-                    <div className={`flex items-center gap-1.5 mb-1.5 ${stat.color}`}>
-                      <stat.icon className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">
-                        {stat.label}
-                      </span>
-                    </div>
-                    <div className="text-xl font-bold text-foreground">{stat.value}</div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">{stat.sub}</div>
+      {/* ── TWO-COLUMN MIDDLE ────────────────────────────────────────────────── */}
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+
+        {/* Application Activity */}
+        <div className="lg:col-span-2 glass-card p-6">
+          <h3 className="font-semibold text-foreground mb-4">Application Activity</h3>
+          <div className="space-y-1">
+            {recentApps.map((app, i) => {
+              const cfg = STATUS_CONFIG[app.status]
+              const currentIdx = STATUS_ORDER.indexOf(app.status as ApplicationStatus)
+              return (
+                <motion.div
+                  key={app.id}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  {/* Avatar */}
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0', avatarColor(app.job.company.name))}>
+                    {app.job.company.name[0]}
                   </div>
-                ))}
-              </div>
-            </div>
+
+                  {/* Center */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground truncate">{app.job.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{app.job.company.name}</p>
+                    {/* 5-dot stage progress */}
+                    <div className="flex items-center gap-1 mt-1.5">
+                      {STATUS_ORDER.map((s, idx) => (
+                        <div
+                          key={s}
+                          className={cn(
+                            'w-2 h-2 rounded-full transition-all',
+                            idx < currentIdx ? 'bg-primary/60' :
+                            idx === currentIdx && app.status !== 'rejected' ? 'bg-primary' :
+                            app.status === 'rejected' && idx === 0 ? 'bg-red-500' :
+                            'bg-muted'
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right */}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold', cfg.className)}>
+                      {cfg.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" /> Updated {timeAgo(app.updatedAt)}
+                    </span>
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
-        </motion.div>
-
-        {/* ── Section 2: Top Job Matches ── */}
-        <motion.div variants={item} className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-foreground">Your Top Matches Today</h2>
-              <span className="section-eyebrow text-xs py-0.5 px-2.5">
-                <Sparkles className="w-3 h-3" />
-                Powered by AI
-              </span>
-            </div>
-            <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300" asChild>
-              <Link href="/talent/jobs">
-                View all 42 matches
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </Button>
+          <div className="mt-4 pt-4 border-t border-border">
+            <Link href="/talent/applications" className="text-sm text-primary hover:underline font-medium flex items-center gap-1">
+              View All Applications <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
+        </div>
 
-          <motion.div
-            variants={container}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-4"
-          >
-            {topJobs.map((job, i) => (
-              <JobMatchCard key={job.id} job={job} index={i} />
-            ))}
-          </motion.div>
-        </motion.div>
+        {/* Career Insights */}
+        <div className="glass-card p-6 space-y-5">
+          <h3 className="font-semibold text-foreground">Career Insights</h3>
 
-        {/* ── Section 3: Two-column ── */}
-        <motion.div variants={item} className="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Application Activity */}
+          {/* Market Position */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground">Application Activity</h2>
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" asChild>
-                <Link href="/talent/applications">View all</Link>
-              </Button>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Market Position</p>
+            <p className="text-sm font-medium text-foreground mb-3">Your target: $145k – $165k</p>
+
+            {/* CSS gauge */}
+            <div className="relative">
+              <div className="bg-muted rounded-full h-2 w-full" />
+              {/* market range band */}
+              <div className="absolute top-0 h-2 rounded-full bg-primary/20" style={{ left: '28%', width: '38%' }} />
+              {/* your range marker */}
+              <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-primary border-2 border-background shadow-lg shadow-primary/40" style={{ left: '60%', transform: 'translate(-50%, -50%)' }} />
             </div>
-            <div className="space-y-3">
-              {recentApps.map((app) => (
-                <ApplicationCard key={app.id} app={app} />
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
+              <span>P25 $120k</span>
+              <span>P50 $148k</span>
+              <span>P75 $172k</span>
+            </div>
+            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold">
+              <CheckCircle2 className="w-2.5 h-2.5" /> You're at market rate
+            </span>
+          </div>
+
+          {/* In-Demand Skills */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">In-Demand Skills</p>
+            <div className="space-y-2.5">
+              {DEMAND_SKILLS.map((s, i) => (
+                <DemandBar key={s.name} skill={s} index={i} />
               ))}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Career Insights */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">Career Insights</h2>
+      {/* ── RECOMMENDED ACTIONS ──────────────────────────────────────────────── */}
+      <section>
+        <h2 className="text-lg font-bold text-foreground mb-4">Recommended Actions</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: Zap,
+              iconClass: 'text-amber-400',
+              iconBg: 'bg-amber-500/10 border-amber-500/20',
+              title: 'Verify Your Skills',
+              subtitle: '3 skill verifications boost applications 3x',
+              cta: 'Verify Now →',
+            },
+            {
+              icon: Users,
+              iconClass: 'text-blue-400',
+              iconBg: 'bg-blue-500/10 border-blue-500/20',
+              title: 'Request a Reference',
+              subtitle: '2 past colleagues can vouch for you',
+              cta: 'Request →',
+            },
+            {
+              icon: Edit,
+              iconClass: 'text-violet-400',
+              iconBg: 'bg-violet-500/10 border-violet-500/20',
+              title: 'Update Your Headline',
+              subtitle: 'Fresh headlines get 40% more profile views',
+              cta: 'Update →',
+            },
+          ].map((card, i) => (
+            <motion.div
+              key={card.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.1 }}
+              className="glass-card p-5 hover:border-primary/30 cursor-pointer transition-all duration-300 group"
+            >
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3 border', card.iconBg)}>
+                <card.icon className={cn('w-5 h-5', card.iconClass)} />
+              </div>
+              <h4 className="text-sm font-semibold text-foreground mb-1">{card.title}</h4>
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{card.subtitle}</p>
+              <span className="text-xs font-semibold text-primary group-hover:underline">{card.cta}</span>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
-            {/* Profile Strength */}
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Target className="w-4 h-4 text-blue-400" />
-                  Profile Strength
-                </h3>
-                <span className="text-lg font-bold text-blue-400">82%</span>
-              </div>
-              <Progress value={82} className="h-2.5 mb-4" />
-              <div className="space-y-2">
-                {[
-                  { text: 'Add 2 more skills to strengthen your profile', icon: '✦' },
-                  { text: 'Upload portfolio or work samples', icon: '✦' },
-                  { text: 'Complete your work history section', icon: '✦' },
-                ].map((rec, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <span className="text-amber-400 text-xs mt-0.5 shrink-0">{rec.icon}</span>
-                    <p className="text-xs text-muted-foreground">{rec.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Market Position */}
-            <div className="glass-card p-5">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                Market Position
-              </h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Your skills are in the{' '}
-                <span className="text-emerald-400 font-semibold">top 23%</span> of React
-                developers in San Francisco.
-              </p>
-              {/* Percentile bar */}
-              <div className="relative mb-2">
-                <div className="h-3 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-400"
-                    style={{ width: '77%' }}
-                  />
-                </div>
-                {/* Marker at 77th percentile */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-emerald-400 border-2 border-background shadow-lg shadow-emerald-500/40"
-                  style={{ left: '77%' }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>Bottom</span>
-                <span className="text-emerald-400 font-semibold">You — 77th percentile</span>
-                <span>Top 1%</span>
-              </div>
-            </div>
-
-            {/* Salary Benchmark */}
-            <div className="glass-card p-5">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
-                <DollarSign className="w-4 h-4 text-purple-400" />
-                Salary Benchmark
-              </h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                React Devs in SF earn{' '}
-                <span className="text-foreground font-medium">$185K–$240K</span> avg. Your
-                target{' '}
-                <span className="text-emerald-400 font-semibold">$210K</span> is competitive.
-              </p>
-              {/* Range bar */}
-              <div className="relative">
-                <div className="h-3 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-blue-500/50 to-purple-500/50"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                {/* Your target marker at ~45% along 185-240 range => (210-185)/(240-185) = 45% */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-purple-400 border-2 border-background shadow-lg shadow-purple-500/40"
-                  style={{ left: '45%' }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-2">
-                <span>$185K</span>
-                <span className="text-purple-400 font-semibold">$210K target</span>
-                <span>$240K</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ── Section 4: Quick Actions ── */}
-        <motion.div variants={item} className="mt-8">
-          <h2 className="text-lg font-bold text-foreground mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <QuickAction
-              icon={Briefcase}
-              label="Browse 42 Jobs"
-              description="See all AI-matched opportunities"
-              href="/talent/jobs"
-              gradient="bg-gradient-to-br from-blue-500 to-blue-600"
-            />
-            <QuickAction
-              icon={Users}
-              label="Update Profile"
-              description="Strengthen to 100% for more matches"
-              href="/talent/profile"
-              gradient="bg-gradient-to-br from-purple-500 to-purple-600"
-            />
-            <QuickAction
-              icon={Award}
-              label="Skill Assessment"
-              description="Verify skills and boost credibility"
-              href="/talent/skills"
-              gradient="bg-gradient-to-br from-emerald-500 to-emerald-600"
-            />
-            <QuickAction
-              icon={Download}
-              label="Download PDF"
-              description="Export your profile as a resume"
-              href="/talent/profile"
-              gradient="bg-gradient-to-br from-amber-500 to-orange-500"
-            />
-          </div>
-        </motion.div>
-      </motion.div>
     </div>
   )
 }

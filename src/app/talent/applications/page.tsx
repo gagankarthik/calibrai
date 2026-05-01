@@ -1,416 +1,327 @@
 'use client'
 
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import { applications } from '@/lib/data'
-import { ApplicationStatus, PipelineStage } from '@/lib/types'
-import { formatSalary, timeAgo, formatDate } from '@/lib/utils'
-import { MatchScore } from '@/components/shared/match-score'
-import { Badge } from '@/components/ui/badge'
+import { formatSalary, timeAgo, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import {
-  Briefcase,
-  MapPin,
-  Clock,
-  Star,
-  MessageSquare,
-  ExternalLink,
-  XCircle,
-  CheckCircle2,
-  ChevronRight,
-  Building2,
+  Download,
   FileText,
-  TrendingUp,
-  AlertCircle,
   Zap,
+  MessageSquare,
   BadgeCheck,
-  DollarSign,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Calendar,
+  Briefcase,
+  TrendingUp,
 } from 'lucide-react'
+import type { ApplicationStatus, PipelineStage } from '@/lib/types'
+import { STAGE_LABELS } from '@/lib/constants'
 
-type FilterStatus = 'all' | ApplicationStatus
-
-const statusFilters: { value: FilterStatus; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'applied', label: 'Applied' },
-  { value: 'screening', label: 'Screening' },
-  { value: 'interview', label: 'Interview' },
-  { value: 'technical', label: 'Technical' },
-  { value: 'offer', label: 'Offer' },
-  { value: 'hired', label: 'Hired' },
-  { value: 'rejected', label: 'Rejected' },
+// ─── Avatar color hash ────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
+  'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500', 'bg-teal-500',
 ]
-
-const pipelineStages: { id: PipelineStage; label: string }[] = [
-  { id: 'new', label: 'Applied' },
-  { id: 'screening', label: 'Screening' },
-  { id: 'phone_screen', label: 'Phone Screen' },
-  { id: 'technical', label: 'Technical' },
-  { id: 'onsite', label: 'Onsite' },
-  { id: 'offer', label: 'Offer' },
-  { id: 'hired', label: 'Hired' },
-]
-
-const stageOrder: PipelineStage[] = ['new', 'screening', 'phone_screen', 'technical', 'onsite', 'offer', 'hired']
-
-const statusConfig: Record<ApplicationStatus, { label: string; color: string; bg: string; border: string; description: string }> = {
-  applied: {
-    label: 'Applied',
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
-    description: 'Your application was submitted. The hiring team will review it shortly.',
-  },
-  screening: {
-    label: 'Screening',
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/10',
-    border: 'border-purple-500/30',
-    description: 'Your application is being reviewed by the hiring team. Typically takes 3–5 business days.',
-  },
-  interview: {
-    label: 'Interview',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-500/10',
-    border: 'border-cyan-500/30',
-    description: 'Congratulations! You have been selected for an interview. Check your email for scheduling details.',
-  },
-  technical: {
-    label: 'Technical',
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/30',
-    description: 'You are in the technical assessment phase. Prepare to demonstrate your skills and problem-solving ability.',
-  },
-  offer: {
-    label: 'Offer',
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    description: 'An offer has been extended! Review the details carefully and respond within the deadline.',
-  },
-  hired: {
-    label: 'Hired',
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    description: 'Welcome aboard! You have successfully joined the team.',
-  },
-  rejected: {
-    label: 'Not Selected',
-    color: 'text-red-400',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    description: 'Unfortunately, the company has decided not to move forward at this time. Keep applying!',
-  },
+function avatarColor(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
-const workModeColors: Record<string, string> = {
-  remote: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  hybrid: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  onsite: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+// ─── Status config ────────────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<ApplicationStatus, { label: string; badgeClass: string; dotClass: string; tabClass: string }> = {
+  applied:   { label: 'Applied',       badgeClass: 'bg-blue-500/15 text-blue-400 border-blue-500/30',       dotClass: 'bg-blue-400',    tabClass: 'text-blue-400' },
+  screening: { label: 'Screening',     badgeClass: 'bg-violet-500/15 text-violet-400 border-violet-500/30', dotClass: 'bg-violet-400',  tabClass: 'text-violet-400' },
+  interview: { label: 'Interview',     badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',    dotClass: 'bg-amber-400',   tabClass: 'text-amber-400' },
+  technical: { label: 'Technical',     badgeClass: 'bg-orange-500/15 text-orange-400 border-orange-500/30', dotClass: 'bg-orange-400',  tabClass: 'text-orange-400' },
+  offer:     { label: 'Offer',         badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dotClass: 'bg-emerald-400', tabClass: 'text-emerald-400' },
+  hired:     { label: 'Hired',         badgeClass: 'bg-green-500/15 text-green-400 border-green-500/30',    dotClass: 'bg-green-400',   tabClass: 'text-green-400' },
+  rejected:  { label: 'Not Selected',  badgeClass: 'bg-red-500/15 text-red-400 border-red-500/30',          dotClass: 'bg-red-400',     tabClass: 'text-red-400' },
 }
 
-function StageTimeline({ current, status }: { current: PipelineStage; status: ApplicationStatus }) {
-  const currentIdx = stageOrder.indexOf(current)
-  const isRejected = status === 'rejected'
+// ─── Pipeline stages (excluding rejected) for timeline ───────────────────────
+type NonRejectedStage = 'new' | 'screening' | 'phone_screen' | 'technical' | 'onsite' | 'offer' | 'hired'
+const STAGES: NonRejectedStage[] = ['new', 'screening', 'phone_screen', 'technical', 'onsite', 'offer', 'hired']
+
+// ─── Stage Timeline ───────────────────────────────────────────────────────────
+function StageTimeline({ currentStage }: { currentStage: PipelineStage }) {
+  const displayStages = STAGES
+  const safeStage: NonRejectedStage = (currentStage === 'rejected' ? 'new' : currentStage) as NonRejectedStage
+  const currentIdx = displayStages.indexOf(safeStage)
 
   return (
-    <div className="flex items-center gap-0">
-      {pipelineStages.map((stage, idx) => {
-        const isCompleted = idx < currentIdx
-        const isCurrent = idx === currentIdx && !isRejected
-        const isFuture = idx > currentIdx
-
-        return (
-          <div key={stage.id} className="flex items-center">
-            <div className="flex flex-col items-center gap-1">
-              <div
-                className={`
-                  w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all
-                  ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : ''}
-                  ${isCurrent ? 'bg-blue-500/20 border-blue-400 text-blue-400 ring-2 ring-blue-400/30 ring-offset-1 ring-offset-background animate-pulse' : ''}
-                  ${isFuture ? 'bg-white/5 border-border text-muted-foreground' : ''}
-                  ${isRejected && idx === currentIdx ? 'bg-red-500/20 border-red-400 text-red-400' : ''}
-                `}
-              >
-                {isCompleted ? (
-                  <CheckCircle2 className="w-3 h-3" />
-                ) : (
-                  <span>{idx + 1}</span>
-                )}
-              </div>
-              <span
-                className={`text-[9px] font-medium whitespace-nowrap ${
-                  isCompleted ? 'text-emerald-400' :
-                  isCurrent ? 'text-blue-400' :
-                  'text-muted-foreground/50'
-                }`}
-              >
-                {stage.label}
-              </span>
-            </div>
-            {idx < pipelineStages.length - 1 && (
-              <div
-                className={`h-px w-6 sm:w-8 mb-4 transition-all ${
-                  idx < currentIdx ? 'bg-emerald-500' : 'bg-border'
-                }`}
-              />
+    <div className="flex items-center gap-0 my-3">
+      {displayStages.map((stage, i) => (
+        <div key={stage} className="flex items-center">
+          <div
+            className={cn(
+              'w-3 h-3 rounded-full border-2 transition-all',
+              i < currentIdx  ? 'bg-primary border-primary' :
+              i === currentIdx ? 'bg-primary border-primary ring-2 ring-primary/30' :
+              'bg-background border-border'
             )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map(i => (
-        <Star
-          key={i}
-          className={`w-3 h-3 ${i <= rating ? 'text-amber-400 fill-amber-400' : 'text-border'}`}
-        />
+            title={STAGE_LABELS[stage as PipelineStage]}
+          />
+          {i < displayStages.length - 1 && (
+            <div className={cn('h-0.5 w-6 lg:w-8', i < currentIdx ? 'bg-primary' : 'bg-border')} />
+          )}
+        </div>
       ))}
     </div>
   )
 }
 
+// ─── Filter type ─────────────────────────────────────────────────────────────
+type FilterStatus = ApplicationStatus | 'all'
+
+const FILTER_TABS: Array<{ value: FilterStatus; label: string }> = [
+  { value: 'all',       label: 'All' },
+  { value: 'applied',   label: 'Applied' },
+  { value: 'screening', label: 'Screening' },
+  { value: 'interview', label: 'Interview' },
+  { value: 'technical', label: 'Technical' },
+  { value: 'offer',     label: 'Offer' },
+  { value: 'hired',     label: 'Hired' },
+  { value: 'rejected',  label: 'Rejected' },
+]
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ApplicationsPage() {
-  const [activeFilter, setActiveFilter] = useState<FilterStatus>('all')
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
 
-  // In a real app, filter by candidateId === 'can1'. For demo, show all.
-  const allApplications = applications
+  const filtered = statusFilter === 'all'
+    ? applications
+    : applications.filter(a => a.status === statusFilter)
 
-  const filtered = activeFilter === 'all'
-    ? allApplications
-    : allApplications.filter(app => app.status === activeFilter)
+  const counts = Object.fromEntries(
+    ['applied', 'screening', 'interview', 'technical', 'offer', 'hired', 'rejected'].map(s => [
+      s,
+      applications.filter(a => a.status === s).length,
+    ])
+  ) as Record<ApplicationStatus, number>
 
   const stats = {
-    total: allApplications.length,
-    active: allApplications.filter(a => !['hired', 'rejected'].includes(a.status)).length,
-    interviews: allApplications.filter(a => ['interview', 'technical', 'onsite'].includes(a.status)).length,
-    offers: allApplications.filter(a => a.status === 'offer').length,
+    total:     applications.length,
+    active:    applications.filter(a => !['hired', 'rejected'].includes(a.status)).length,
+    interview: applications.filter(a => a.status === 'interview').length,
+    offers:    applications.filter(a => a.status === 'offer').length,
+  }
+
+  const listVariants = {
+    hidden: { opacity: 0 },
+    show:   { opacity: 1, transition: { staggerChildren: 0.06 } },
+  }
+  const cardVariants = {
+    hidden: { opacity: 0, y: 16 },
+    show:   { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="p-6 max-w-5xl mx-auto">
+
+      {/* ── HEADER ──────────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+      >
         <div>
-          <div className="section-eyebrow mb-3 inline-flex">
-            <FileText className="w-3.5 h-3.5" />
-            No More Black Holes
-          </div>
           <h1 className="text-2xl font-bold text-foreground">My Applications</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track every application in real time — know exactly where you stand
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Track every application in one place</p>
         </div>
         <Button variant="outline" size="sm" className="gap-2 shrink-0">
-          <TrendingUp className="w-4 h-4" />
-          Export Report
+          <Download className="w-4 h-4" /> Export Report
         </Button>
-      </div>
+      </motion.div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* ── STATS ROW ───────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.06 }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+      >
         {[
-          { label: 'Total Applied', value: stats.total, icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-          { label: 'Active', value: stats.active, icon: Zap, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-          { label: 'Interviews', value: stats.interviews, icon: MessageSquare, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
-          { label: 'Offers', value: stats.offers, icon: BadgeCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+          { label: 'Total Applied',  value: stats.total,     icon: FileText,    iconClass: 'text-blue-400',    bgClass: 'bg-blue-500/10 border-blue-500/20' },
+          { label: 'Active',         value: stats.active,    icon: Zap,         iconClass: 'text-violet-400',  bgClass: 'bg-violet-500/10 border-violet-500/20' },
+          { label: 'In Interview',   value: stats.interview, icon: Calendar,    iconClass: 'text-amber-400',   bgClass: 'bg-amber-500/10 border-amber-500/20' },
+          { label: 'Offers',         value: stats.offers,    icon: TrendingUp,  iconClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10 border-emerald-500/20' },
         ].map(stat => (
-          <div key={stat.label} className={`glass-card p-4 border ${stat.bg}`}>
-            <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center mb-2`}>
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+          <div key={stat.label} className="glass-card p-4">
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mb-2 border', stat.bgClass)}>
+              <stat.icon className={cn('w-4 h-4', stat.iconClass)} />
             </div>
-            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+            <p className={cn('text-2xl font-bold', stat.iconClass)}>{stat.value}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
           </div>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Filter Pills */}
-      <div className="flex flex-wrap gap-2">
-        {statusFilters.map(filter => (
-          <button
-            key={filter.value}
-            onClick={() => setActiveFilter(filter.value)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${
-              activeFilter === filter.value
-                ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                : 'bg-white/5 border-border text-muted-foreground hover:border-white/20 hover:text-foreground'
-            }`}
-          >
-            {filter.label}
-            {filter.value !== 'all' && (
-              <span className={`ml-1.5 text-[11px] ${activeFilter === filter.value ? 'text-white/70' : 'text-muted-foreground/60'}`}>
-                {allApplications.filter(a => a.status === filter.value).length}
+      {/* ── STATUS FILTER TABS ───────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.12 }}
+        className="flex flex-wrap gap-2 mb-6"
+      >
+        {FILTER_TABS.map(tab => {
+          const count = tab.value === 'all' ? applications.length : (counts[tab.value as ApplicationStatus] ?? 0)
+          const isActive = statusFilter === tab.value
+          const cfg = tab.value !== 'all' ? STATUS_CONFIG[tab.value as ApplicationStatus] : null
+
+          return (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 shrink-0',
+                isActive
+                  ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                  : 'bg-muted/40 border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+              )}
+            >
+              {tab.label}
+              <span className={cn(
+                'text-[10px] font-semibold',
+                isActive ? 'text-primary-foreground/70' : (cfg?.tabClass ?? 'text-muted-foreground/60')
+              )}>
+                {count}
               </span>
-            )}
-          </button>
-        ))}
-      </div>
+            </button>
+          )
+        })}
+      </motion.div>
 
-      {/* Application Cards */}
-      {filtered.length === 0 ? (
-        <div className="glass-card p-16 flex flex-col items-center justify-center text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-border flex items-center justify-center">
-            <Briefcase className="w-8 h-8 text-muted-foreground/40" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-1">No applications yet</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Start applying to matched jobs and track every application in real time — no more guessing where you stand.
-            </p>
-          </div>
-          <Button className="mt-2">
-            <Zap className="w-4 h-4 mr-2" />
-            Browse Matched Jobs
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map(app => {
-            const config = statusConfig[app.status]
-            const job = app.job
-            const company = job.company
-            const canWithdraw = !['hired', 'rejected'].includes(app.status)
-            const daysSince = Math.floor((Date.now() - new Date(app.appliedAt).getTime()) / (1000 * 60 * 60 * 24))
+      {/* ── APPLICATION LIST ─────────────────────────────────────────────────── */}
+      <AnimatePresence mode="wait">
+        {filtered.length === 0 ? (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="glass-card p-16 flex flex-col items-center text-center gap-4"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+              <FileText className="w-8 h-8 text-muted-foreground/40" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">No applications yet</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Start applying to matched jobs and track every application in real time.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/talent/jobs">Browse Jobs</Link>
+            </Button>
+          </motion.div>
+        ) : (
+          <motion.div
+            key={statusFilter}
+            variants={listVariants}
+            initial="hidden"
+            animate="show"
+            className="space-y-4"
+          >
+            {filtered.map(app => {
+              const cfg        = STATUS_CONFIG[app.status]
+              const isRejected = app.status === 'rejected'
 
-            return (
-              <div
-                key={app.id}
-                className="glass-card p-5 sm:p-6 space-y-5 hover:border-white/[0.15] transition-all duration-300"
-              >
-                {/* Card Header */}
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  {/* Company logo */}
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-border bg-white/5 flex items-center justify-center shrink-0">
-                    {company.logo ? (
-                      <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Building2 className="w-6 h-6 text-muted-foreground" />
-                    )}
-                  </div>
-
-                  {/* Job info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-start gap-2 justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base font-bold text-foreground">{job.title}</h3>
-                          {company.verified && (
-                            <BadgeCheck className="w-4 h-4 text-blue-400" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-sm font-medium text-blue-400">{company.name}</span>
-                          <span className="text-muted-foreground/40">•</span>
-                          <span className="text-xs text-muted-foreground">{company.industry}</span>
-                        </div>
+              return (
+                <motion.div
+                  key={app.id}
+                  variants={cardVariants}
+                  className={cn(
+                    'glass-card p-5 transition-all duration-300',
+                    isRejected ? 'opacity-75 border-red-500/20' : 'hover:border-primary/20'
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Avatar + status dot */}
+                    <div className="relative shrink-0">
+                      <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-base', avatarColor(app.job.company.name))}>
+                        {app.job.company.name[0]}
                       </div>
-                      <MatchScore score={app.matchScore} size="sm" />
+                      <div className={cn('absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background', cfg.dotClass)} />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${workModeColors[job.workMode] ?? 'bg-white/5 border-border text-muted-foreground'} capitalize`}>
-                        {job.workMode}
-                      </span>
-                      <Badge variant="outline" className="text-[11px] h-5 capitalize">
-                        {job.department}
-                      </Badge>
-                      {job.location && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          {job.location}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-                        <DollarSign className="w-3 h-3" />
-                        {formatSalary(job.salaryMin, job.salaryMax)}
+                    {/* Center */}
+                    <div className="flex-1 min-w-0">
+                      {/* Title + status pill */}
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="font-semibold text-lg text-foreground leading-tight truncate">{app.job.title}</h3>
+                        <span className={cn('inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold shrink-0', cfg.badgeClass)}>
+                          {cfg.label}
+                        </span>
                       </div>
-                    </div>
-                  </div>
-                </div>
 
-                <Separator />
-
-                {/* Timeline */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Application Timeline</p>
-                  <div className="overflow-x-auto pb-1">
-                    <StageTimeline current={app.stage} status={app.status} />
-                  </div>
-                </div>
-
-                {/* Status explanation */}
-                <div className={`flex items-start gap-2.5 p-3 rounded-xl ${config.bg} border ${config.border}`}>
-                  <AlertCircle className={`w-4 h-4 ${config.color} shrink-0 mt-0.5`} />
-                  <div>
-                    <p className={`text-xs font-semibold ${config.color} mb-0.5`}>
-                      Status: {config.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{config.description}</p>
-                  </div>
-                </div>
-
-                {/* Notes & Rating */}
-                {(app.notes || app.rating) && (
-                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
-                    {app.rating && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Rating:</span>
-                        <StarRating rating={app.rating} />
+                      {/* Meta */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground mb-1">
+                        <span className="flex items-center gap-1 font-medium">
+                          {app.job.company.name}
+                          {app.job.company.verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-400" />}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-muted/50 border border-border text-[10px] capitalize">{app.job.workMode}</span>
+                        <span className="flex items-center gap-1 text-xs">
+                          <MapPin className="w-3 h-3" />{app.job.location}
+                        </span>
+                        <span className="text-xs text-emerald-400 font-semibold">
+                          {formatSalary(app.job.salaryMin, app.job.salaryMax)}
+                        </span>
                       </div>
-                    )}
-                    {app.notes && (
-                      <p className="text-xs text-muted-foreground italic leading-relaxed">
-                        &ldquo;{app.notes}&rdquo;
+
+                      {/* Stage timeline */}
+                      <StageTimeline currentStage={app.stage} />
+
+                      {/* Last update */}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Last update: {timeAgo(app.updatedAt)}
                       </p>
-                    )}
-                  </div>
-                )}
 
-                {/* Footer */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5" />
-                      Applied {daysSince === 0 ? 'today' : `${daysSince}d ago`} — {formatDate(app.appliedAt)}
+                      {/* Notes preview */}
+                      {app.notes && (
+                        <p className="text-xs text-muted-foreground italic mt-2 line-clamp-1">&ldquo;{app.notes}&rdquo;</p>
+                      )}
+
+                      {/* Rejected message */}
+                      {isRejected && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          <span className="text-red-400 font-semibold">Not Selected</span>
+                          {' '}· The team decided to move forward with other candidates.
+                        </p>
+                      )}
                     </div>
-                    <div className="hidden sm:flex items-center gap-1.5">
-                      <ChevronRight className="w-3 h-3" />
-                      Last updated {timeAgo(app.updatedAt)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="text-xs h-8">
-                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                      View Job
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-xs h-8">
-                      <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-                      Message
-                    </Button>
-                    {canWithdraw && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs h-8 text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                      >
-                        <XCircle className="w-3.5 h-3.5 mr-1.5" />
-                        Withdraw
+
+                    {/* Right actions */}
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+                        <Link href={`/talent/jobs/${app.jobId}`}>
+                          <Briefcase className="w-3 h-3 mr-1" /> View Details
+                        </Link>
                       </Button>
-                    )}
+                      {!isRejected && (
+                        <Button variant="ghost" size="sm" className="h-8 text-xs">
+                          <MessageSquare className="w-3 h-3 mr-1" /> Message Recruiter
+                        </Button>
+                      )}
+                      {isRejected && (
+                        <span className="text-xs text-muted-foreground text-center px-2">Not Selected</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

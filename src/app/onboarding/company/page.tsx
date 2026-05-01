@@ -1,13 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -17,697 +14,481 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
-  Check,
-  ChevronRight,
-  ChevronLeft,
   Zap,
   Building2,
+  ChevronRight,
+  ChevronLeft,
+  Upload,
   Briefcase,
   Users,
-  Mail,
-  Plus,
-  X,
-  Rocket,
+  Plug,
   ArrowRight,
+  Check,
 } from 'lucide-react'
 
+/* ── Types ── */
+
 interface FormData {
-  // Step 1
   companyName: string
   industry: string
   companySize: string
-  websiteUrl: string
-  // Step 2
-  jobTitle: string
-  department: string
-  workMode: 'remote' | 'hybrid' | 'onsite' | ''
-  experienceLevel: string
-  salaryMin: string
-  salaryMax: string
-  // Step 3
-  teamEmails: string[]
-  teamRoles: Record<string, string>
-  notifyNewApplications: boolean
-  notifyStageChanges: boolean
-  notifyWeeklyDigest: boolean
+  website: string
+  headquarters: string
+  culture: string
+  remotePolicy: 'remote' | 'hybrid' | 'office' | ''
+  hiringFrequency: string
+  roles: string[]
 }
 
 const initialFormData: FormData = {
   companyName: '',
   industry: '',
   companySize: '',
-  websiteUrl: '',
-  jobTitle: '',
-  department: '',
-  workMode: '',
-  experienceLevel: '',
-  salaryMin: '',
-  salaryMax: '',
-  teamEmails: [],
-  teamRoles: {},
-  notifyNewApplications: true,
-  notifyStageChanges: true,
-  notifyWeeklyDigest: false,
+  website: '',
+  headquarters: '',
+  culture: '',
+  remotePolicy: '',
+  hiringFrequency: '',
+  roles: [],
 }
 
-const steps = [
-  { number: 1, label: 'Company Details', icon: Building2 },
-  { number: 2, label: 'Your First Job', icon: Briefcase },
-  { number: 3, label: 'Team Setup', icon: Users },
-  { number: 4, label: 'Launch', icon: Rocket },
+const ROLE_PILLS = [
+  'Engineering',
+  'Design',
+  'Product',
+  'Marketing',
+  'Sales',
+  'Operations',
+  'Finance',
+  'HR',
+  'Legal',
 ]
+
+/* ── Animation variants ── */
+
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
+}
+
+/* ── Field helper ── */
+
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium text-foreground">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+const inputCls =
+  'w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all'
+
+/* ── Main component ── */
 
 export default function CompanyOnboardingPage() {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [step, setStep] = useState(1)
   const [direction, setDirection] = useState(1)
-  const [formData, setFormData] = useState<FormData>(initialFormData)
-  const [emailInput, setEmailInput] = useState('')
+  const [form, setForm] = useState<FormData>(initialFormData)
 
-  const updateForm = (field: keyof FormData, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  const totalSteps = 3
+
+  const update = <K extends keyof FormData>(k: K, v: FormData[K]) =>
+    setForm((prev) => ({ ...prev, [k]: v }))
+
+  const toggleRole = (role: string) => {
+    setForm((prev) => ({
+      ...prev,
+      roles: prev.roles.includes(role)
+        ? prev.roles.filter((r) => r !== role)
+        : [...prev.roles, role],
+    }))
   }
 
   const goNext = () => {
     setDirection(1)
-    setCurrentStep((s) => Math.min(s + 1, 4))
+    setStep((s) => Math.min(s + 1, totalSteps))
   }
 
   const goBack = () => {
     setDirection(-1)
-    setCurrentStep((s) => Math.max(s - 1, 1))
-  }
-
-  const addEmail = () => {
-    const email = emailInput.trim()
-    if (email && !formData.teamEmails.includes(email)) {
-      const newEmails = [...formData.teamEmails, email]
-      updateForm('teamEmails', newEmails)
-      updateForm('teamRoles', { ...formData.teamRoles, [email]: 'Recruiter' })
-      setEmailInput('')
-    }
-  }
-
-  const removeEmail = (email: string) => {
-    const newEmails = formData.teamEmails.filter((e) => e !== email)
-    const newRoles = { ...formData.teamRoles }
-    delete newRoles[email]
-    updateForm('teamEmails', newEmails)
-    updateForm('teamRoles', newRoles)
-  }
-
-  const variants = {
-    enter: (dir: number) => ({
-      x: dir > 0 ? 60 : -60,
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (dir: number) => ({
-      x: dir > 0 ? -60 : 60,
-      opacity: 0,
-    }),
+    setStep((s) => Math.max(s - 1, 1))
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center px-4 py-12">
-      {/* Background blobs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-start px-4 py-12 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-2xl">
-        {/* Logo / Brand */}
-        <div className="flex items-center justify-center gap-2 mb-10">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-white">Calibr</span>
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2.5 mb-8 relative z-10">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <Zap className="w-4 h-4 text-white" />
         </div>
+        <span className="text-xl font-bold text-foreground">
+          Calibr<span className="gradient-text">AI</span>
+        </span>
+      </Link>
 
-        {/* Step Indicator */}
-        <div className="flex items-center justify-center mb-10">
-          {steps.map((step, idx) => {
-            const isCompleted = currentStep > step.number
-            const isActive = currentStep === step.number
-            return (
-              <div key={step.number} className="flex items-center">
-                <div className="flex flex-col items-center gap-1.5">
-                  <motion.div
-                    className={cn(
-                      'w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all duration-300',
-                      isCompleted
-                        ? 'bg-blue-500 border-blue-500 text-white'
-                        : isActive
-                        ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                        : 'bg-white/5 border-white/10 text-white/30'
-                    )}
-                    animate={isActive ? { scale: [1, 1.05, 1] } : {}}
-                    transition={{ duration: 0.4 }}
-                  >
-                    {isCompleted ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      step.number
-                    )}
-                  </motion.div>
-                  <span
-                    className={cn(
-                      'text-xs font-medium hidden sm:block',
-                      isActive ? 'text-blue-400' : isCompleted ? 'text-white/60' : 'text-white/20'
-                    )}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-                {idx < steps.length - 1 && (
-                  <div className="w-16 sm:w-24 mx-1 sm:mx-2 mb-5">
-                    <div className="h-[2px] w-full bg-white/10 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                        initial={{ width: '0%' }}
-                        animate={{
-                          width: currentStep > step.number ? '100%' : '0%',
-                        }}
-                        transition={{ duration: 0.5, ease: 'easeInOut' }}
-                      />
-                    </div>
-                  </div>
+      <div className="w-full max-w-xl relative z-10">
+        {/* Progress bar */}
+        <div className="mb-8 space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Step {step} of {totalSteps}</span>
+            <span>{Math.round((step / totalSteps) * 100)}% complete</span>
+          </div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+              animate={{ width: `${(step / totalSteps) * 100}%` }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+            />
+          </div>
+          {/* Step labels */}
+          <div className="flex justify-between pt-1">
+            {['Company Profile', 'Team & Culture', 'All Done!'].map((label, i) => (
+              <span
+                key={label}
+                className={cn(
+                  'text-xs transition-colors',
+                  step === i + 1
+                    ? 'text-primary font-medium'
+                    : step > i + 1
+                    ? 'text-muted-foreground'
+                    : 'text-muted-foreground/40'
                 )}
-              </div>
-            )
-          })}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Card */}
-        <div className="glass-card rounded-2xl p-8 overflow-hidden relative">
+        <div className="glass-card rounded-2xl overflow-hidden">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
-              key={currentStep}
+              key={step}
               custom={direction}
-              variants={variants}
+              variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="p-8"
             >
-              {currentStep === 1 && (
-                <Step1
-                  formData={formData}
-                  updateForm={updateForm}
-                  onNext={goNext}
-                />
+              {step === 1 && (
+                <Step1 form={form} update={update} onNext={goNext} />
               )}
-              {currentStep === 2 && (
+              {step === 2 && (
                 <Step2
-                  formData={formData}
-                  updateForm={updateForm}
+                  form={form}
+                  update={update}
+                  toggleRole={toggleRole}
                   onNext={goNext}
                   onBack={goBack}
                 />
               )}
-              {currentStep === 3 && (
-                <Step3
-                  formData={formData}
-                  updateForm={updateForm}
-                  emailInput={emailInput}
-                  setEmailInput={setEmailInput}
-                  onAddEmail={addEmail}
-                  onRemoveEmail={removeEmail}
-                  onNext={goNext}
-                  onBack={goBack}
-                />
-              )}
-              {currentStep === 4 && (
-                <Step4
-                  formData={formData}
-                  onDashboard={() => router.push('/company/dashboard')}
-                />
+              {step === 3 && (
+                <Step3 form={form} onDashboard={() => router.push('/company/dashboard')} />
               )}
             </motion.div>
           </AnimatePresence>
         </div>
-
-        <p className="text-center text-white/30 text-sm mt-6">
-          Step {currentStep} of {steps.length}
-        </p>
       </div>
     </div>
   )
 }
 
-/* ─────────────────────────── Step 1 ─────────────────────────── */
+/* ── Step 1: Company Profile ── */
 
 function Step1({
-  formData,
-  updateForm,
+  form,
+  update,
   onNext,
 }: {
-  formData: FormData
-  updateForm: (field: keyof FormData, value: unknown) => void
+  form: FormData
+  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void
   onNext: () => void
 }) {
+  const canContinue = !!(form.companyName && form.industry && form.companySize)
+
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-blue-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white">Company Details</h2>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+          <Building2 className="w-4 h-4 text-blue-400" />
         </div>
-        <p className="text-white/50 text-sm ml-11">Tell us about your organization.</p>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Company Profile</h2>
+          <p className="text-sm text-muted-foreground">Tell us about your organization</p>
+        </div>
       </div>
 
       <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label className="text-white/70 text-sm">Company Name</Label>
-          <Input
+        <Field label="Company name">
+          <input
+            className={inputCls}
             placeholder="Acme Corp"
-            value={formData.companyName}
-            onChange={(e) => updateForm('companyName', e.target.value)}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50"
+            value={form.companyName}
+            onChange={(e) => update('companyName', e.target.value)}
           />
-        </div>
+        </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-white/70 text-sm">Industry</Label>
-            <Select
-              value={formData.industry}
-              onValueChange={(v) => updateForm('industry', v)}
-            >
-              <SelectTrigger className="bg-white/5 border-white/10 text-white">
+          <Field label="Industry">
+            <Select value={form.industry} onValueChange={(v) => update('industry', v)}>
+              <SelectTrigger className={cn(inputCls, 'flex items-center justify-between')}>
                 <SelectValue placeholder="Select industry" />
               </SelectTrigger>
-              <SelectContent className="bg-[#1a1a2e] border-white/10">
-                {['Technology', 'Finance', 'Healthcare', 'E-commerce', 'Media', 'Other'].map(
-                  (i) => (
-                    <SelectItem key={i} value={i} className="text-white/80 focus:bg-white/10 focus:text-white">
-                      {i}
-                    </SelectItem>
-                  )
-                )}
+              <SelectContent>
+                {[
+                  'Technology',
+                  'Finance',
+                  'Healthcare',
+                  'E-commerce',
+                  'Media & Entertainment',
+                  'Education',
+                  'Manufacturing',
+                  'Consulting',
+                  'Other',
+                ].map((i) => (
+                  <SelectItem key={i} value={i}>
+                    {i}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <Label className="text-white/70 text-sm">Company Size</Label>
-            <Select
-              value={formData.companySize}
-              onValueChange={(v) => updateForm('companySize', v)}
-            >
-              <SelectTrigger className="bg-white/5 border-white/10 text-white">
+          <Field label="Company size">
+            <Select value={form.companySize} onValueChange={(v) => update('companySize', v)}>
+              <SelectTrigger className={cn(inputCls, 'flex items-center justify-between')}>
                 <SelectValue placeholder="Select size" />
               </SelectTrigger>
-              <SelectContent className="bg-[#1a1a2e] border-white/10">
-                {['1-10', '11-50', '51-200', '201-1000', '1000+'].map((s) => (
-                  <SelectItem key={s} value={s} className="text-white/80 focus:bg-white/10 focus:text-white">
+              <SelectContent>
+                {['1–10', '11–50', '51–200', '201–1,000', '1,000+'].map((s) => (
+                  <SelectItem key={s} value={s}>
                     {s} employees
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-white/70 text-sm">Website URL</Label>
-          <Input
+        <Field label="Website URL">
+          <input
+            className={inputCls}
             placeholder="https://acme.com"
-            value={formData.websiteUrl}
-            onChange={(e) => updateForm('websiteUrl', e.target.value)}
-            className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50"
+            value={form.website}
+            onChange={(e) => update('website', e.target.value)}
           />
-        </div>
+        </Field>
+
+        <Field label="Headquarters location">
+          <input
+            className={inputCls}
+            placeholder="San Francisco, CA"
+            value={form.headquarters}
+            onChange={(e) => update('headquarters', e.target.value)}
+          />
+        </Field>
+
+        {/* Logo upload — visual only */}
+        <Field label="Company logo">
+          <div className="flex items-center justify-center w-full h-24 rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors cursor-pointer group">
+            <div className="flex flex-col items-center gap-1.5 text-muted-foreground group-hover:text-foreground transition-colors">
+              <Upload className="w-5 h-5" />
+              <span className="text-xs font-medium">Click to upload logo</span>
+              <span className="text-xs text-muted-foreground/60">PNG, JPG up to 2 MB</span>
+            </div>
+          </div>
+        </Field>
       </div>
 
       <div className="flex justify-end pt-2">
         <Button
           onClick={onNext}
-          disabled={!formData.companyName || !formData.industry || !formData.companySize}
-          className="btn-primary gap-2"
+          disabled={!canContinue}
+          className="gap-2"
+          size="lg"
         >
-          Continue
-          <ChevronRight className="w-4 h-4" />
+          Next <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
     </div>
   )
 }
 
-/* ─────────────────────────── Step 2 ─────────────────────────── */
+/* ── Step 2: Team & Culture ── */
 
 function Step2({
-  formData,
-  updateForm,
+  form,
+  update,
+  toggleRole,
   onNext,
   onBack,
 }: {
-  formData: FormData
-  updateForm: (field: keyof FormData, value: unknown) => void
+  form: FormData
+  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void
+  toggleRole: (role: string) => void
   onNext: () => void
   onBack: () => void
 }) {
-  const workModes: { value: 'remote' | 'hybrid' | 'onsite'; label: string }[] = [
-    { value: 'remote', label: 'Remote' },
-    { value: 'hybrid', label: 'Hybrid' },
-    { value: 'onsite', label: 'On-site' },
+  const remotePolicies: { value: 'remote' | 'hybrid' | 'office'; label: string; desc: string }[] = [
+    { value: 'remote', label: 'Remote-first', desc: 'Work from anywhere' },
+    { value: 'hybrid', label: 'Hybrid', desc: 'Flexible mix' },
+    { value: 'office', label: 'Office-first', desc: 'In-person culture' },
   ]
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-            <Briefcase className="w-4 h-4 text-purple-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white">Your First Job</h2>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+          <Users className="w-4 h-4 text-purple-400" />
         </div>
-        <p className="text-white/50 text-sm ml-11">Define the role you're hiring for.</p>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Team & Culture</h2>
+          <p className="text-sm text-muted-foreground">What makes your company great?</p>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-white/70 text-sm">Job Title</Label>
-            <Input
-              placeholder="Senior Engineer"
-              value={formData.jobTitle}
-              onChange={(e) => updateForm('jobTitle', e.target.value)}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-white/70 text-sm">Department</Label>
-            <Input
-              placeholder="Engineering"
-              value={formData.department}
-              onChange={(e) => updateForm('department', e.target.value)}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50"
-            />
-          </div>
-        </div>
+      <div className="space-y-5">
+        <Field label="What makes your company stand out?">
+          <textarea
+            className={cn(inputCls, 'min-h-[100px] resize-none leading-relaxed')}
+            placeholder="• We ship fast and trust our engineers&#10;• Remote-first with great async culture&#10;• Competitive pay and equity"
+            value={form.culture}
+            onChange={(e) => update('culture', e.target.value)}
+          />
+        </Field>
 
-        {/* Work Mode Segmented Control */}
-        <div className="space-y-1.5">
-          <Label className="text-white/70 text-sm">Work Mode</Label>
-          <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
-            {workModes.map((mode) => (
+        <Field label="Remote policy">
+          <div className="grid grid-cols-3 gap-3">
+            {remotePolicies.map((p) => (
               <button
-                key={mode.value}
-                onClick={() => updateForm('workMode', mode.value)}
+                key={p.value}
+                type="button"
+                onClick={() => update('remotePolicy', p.value)}
                 className={cn(
-                  'flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                  formData.workMode === mode.value
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20'
-                    : 'text-white/40 hover:text-white/70'
+                  'flex flex-col items-start gap-0.5 rounded-xl border px-3 py-3 text-left transition-all duration-200',
+                  form.remotePolicy === p.value
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-card hover:border-primary/40'
                 )}
               >
-                {mode.label}
+                <span
+                  className={cn(
+                    'text-sm font-semibold',
+                    form.remotePolicy === p.value ? 'text-foreground' : 'text-muted-foreground'
+                  )}
+                >
+                  {p.label}
+                </span>
+                <span className="text-xs text-muted-foreground">{p.desc}</span>
               </button>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <Label className="text-white/70 text-sm">Experience Level</Label>
+        <Field label="Hiring frequency">
           <Select
-            value={formData.experienceLevel}
-            onValueChange={(v) => updateForm('experienceLevel', v)}
+            value={form.hiringFrequency}
+            onValueChange={(v) => update('hiringFrequency', v)}
           >
-            <SelectTrigger className="bg-white/5 border-white/10 text-white">
-              <SelectValue placeholder="Select level" />
+            <SelectTrigger className={cn(inputCls, 'flex items-center justify-between')}>
+              <SelectValue placeholder="How often do you hire?" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a1a2e] border-white/10">
-              {['Entry', 'Mid', 'Senior', 'Lead', 'Executive'].map((l) => (
-                <SelectItem key={l} value={l} className="text-white/80 focus:bg-white/10 focus:text-white">
-                  {l}
+            <SelectContent>
+              {['1–5 hires/month', '5–20 hires/month', '20+ hires/month'].map((h) => (
+                <SelectItem key={h} value={h}>
+                  {h}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </Field>
 
-        {/* Salary Range */}
-        <div className="space-y-1.5">
-          <Label className="text-white/70 text-sm">Salary Range (Annual)</Label>
-          <div className="flex gap-3 items-center">
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
-              <Input
-                type="number"
-                placeholder="80,000"
-                value={formData.salaryMin}
-                onChange={(e) => updateForm('salaryMin', e.target.value)}
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50 pl-7"
-              />
-            </div>
-            <span className="text-white/30 text-sm">to</span>
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
-              <Input
-                type="number"
-                placeholder="120,000"
-                value={formData.salaryMax}
-                onChange={(e) => updateForm('salaryMax', e.target.value)}
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50 pl-7"
-              />
-            </div>
+        <Field label="Typical roles you hire for">
+          <div className="flex flex-wrap gap-2 pt-1">
+            {ROLE_PILLS.map((role) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => toggleRole(role)}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200',
+                  form.roles.includes(role)
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                )}
+              >
+                {role}
+              </button>
+            ))}
           </div>
-        </div>
+        </Field>
       </div>
 
       <div className="flex justify-between pt-2">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="gap-2 text-white/60 hover:text-white"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back
+        <Button variant="ghost" onClick={onBack} className="gap-2">
+          <ChevronLeft className="w-4 h-4" /> Back
         </Button>
-        <Button
-          onClick={onNext}
-          disabled={!formData.jobTitle || !formData.workMode}
-          className="btn-primary gap-2"
-        >
-          Continue
-          <ChevronRight className="w-4 h-4" />
+        <Button onClick={onNext} className="gap-2" size="lg">
+          Next <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
     </div>
   )
 }
 
-/* ─────────────────────────── Step 3 ─────────────────────────── */
+/* ── Step 3: Ready! ── */
 
 function Step3({
-  formData,
-  updateForm,
-  emailInput,
-  setEmailInput,
-  onAddEmail,
-  onRemoveEmail,
-  onNext,
-  onBack,
-}: {
-  formData: FormData
-  updateForm: (field: keyof FormData, value: unknown) => void
-  emailInput: string
-  setEmailInput: (v: string) => void
-  onAddEmail: () => void
-  onRemoveEmail: (email: string) => void
-  onNext: () => void
-  onBack: () => void
-}) {
-  const roleOptions = ['Admin', 'Recruiter', 'Hiring Manager', 'Viewer']
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-            <Users className="w-4 h-4 text-green-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white">Team Setup</h2>
-        </div>
-        <p className="text-white/50 text-sm ml-11">Invite colleagues and set permissions.</p>
-      </div>
-
-      {/* Invite members */}
-      <div className="space-y-3">
-        <Label className="text-white/70 text-sm">Invite Team Members</Label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-            <Input
-              type="email"
-              placeholder="colleague@company.com"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onAddEmail()}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50 pl-9"
-            />
-          </div>
-          <Button
-            onClick={onAddEmail}
-            variant="outline"
-            className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            Add
-          </Button>
-        </div>
-
-        {/* Email chips */}
-        {formData.teamEmails.length > 0 && (
-          <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-            <AnimatePresence>
-              {formData.teamEmails.map((email) => (
-                <motion.div
-                  key={email}
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="flex items-center gap-3 p-2.5 bg-white/5 rounded-lg border border-white/10"
-                >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                    {email[0].toUpperCase()}
-                  </div>
-                  <span className="text-white/70 text-sm flex-1 truncate">{email}</span>
-                  <Select
-                    value={formData.teamRoles[email] || 'Recruiter'}
-                    onValueChange={(v) =>
-                      updateForm('teamRoles', { ...formData.teamRoles, [email]: v })
-                    }
-                  >
-                    <SelectTrigger className="h-7 text-xs bg-white/5 border-white/10 text-white/60 w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a2e] border-white/10">
-                      {roleOptions.map((r) => (
-                        <SelectItem key={r} value={r} className="text-xs text-white/80 focus:bg-white/10 focus:text-white">
-                          {r}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <button
-                    onClick={() => onRemoveEmail(email)}
-                    className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {formData.teamEmails.length === 0 && (
-          <div className="flex items-center justify-center py-6 border border-dashed border-white/10 rounded-xl text-white/30 text-sm gap-2">
-            <Users className="w-4 h-4" />
-            No team members added yet
-          </div>
-        )}
-      </div>
-
-      {/* Notifications */}
-      <div className="space-y-3">
-        <Label className="text-white/70 text-sm">Notification Preferences</Label>
-        <div className="space-y-3 p-4 bg-white/3 rounded-xl border border-white/8">
-          {[
-            {
-              field: 'notifyNewApplications' as const,
-              label: 'New applications',
-              desc: 'Get notified when candidates apply',
-            },
-            {
-              field: 'notifyStageChanges' as const,
-              label: 'Stage changes',
-              desc: 'When a candidate moves through the pipeline',
-            },
-            {
-              field: 'notifyWeeklyDigest' as const,
-              label: 'Weekly digest',
-              desc: 'Summary email every Monday morning',
-            },
-          ].map((item) => (
-            <div key={item.field} className="flex items-start gap-3">
-              <Checkbox
-                id={item.field}
-                checked={formData[item.field] as boolean}
-                onCheckedChange={(checked) => updateForm(item.field, checked)}
-                className="mt-0.5 border-white/20 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-              />
-              <div className="space-y-0.5">
-                <Label htmlFor={item.field} className="text-white/80 text-sm cursor-pointer">
-                  {item.label}
-                </Label>
-                <p className="text-white/40 text-xs">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex justify-between pt-2">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="gap-2 text-white/60 hover:text-white"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back
-        </Button>
-        <Button onClick={onNext} className="btn-primary gap-2">
-          Continue
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-/* ─────────────────────────── Step 4 ─────────────────────────── */
-
-function Step4({
-  formData,
+  form,
   onDashboard,
 }: {
-  formData: FormData
+  form: FormData
   onDashboard: () => void
 }) {
   const nextSteps = [
     {
       icon: Briefcase,
-      title: 'Post your job',
+      title: 'Post Your First Job',
       desc: 'Publish to top job boards instantly',
       href: '/company/jobs/new',
-      color: 'from-blue-500/20 to-blue-600/10 border-blue-500/20',
+      color: 'from-blue-500/20 to-blue-600/10 border-blue-500/20 hover:border-blue-500/40',
+      iconBg: 'bg-blue-500/10',
       iconColor: 'text-blue-400',
     },
     {
       icon: Users,
-      title: 'Browse candidates',
-      desc: 'Explore AI-matched talent profiles',
+      title: 'Browse Talent Pool',
+      desc: 'Explore 50k+ verified profiles',
       href: '/company/candidates',
-      color: 'from-purple-500/20 to-purple-600/10 border-purple-500/20',
+      color: 'from-purple-500/20 to-purple-600/10 border-purple-500/20 hover:border-purple-500/40',
+      iconBg: 'bg-purple-500/10',
       iconColor: 'text-purple-400',
     },
     {
-      icon: Zap,
-      title: 'View dashboard',
-      desc: 'See your hiring overview',
-      href: '/company/dashboard',
-      color: 'from-green-500/20 to-green-600/10 border-green-500/20',
-      iconColor: 'text-green-400',
+      icon: Plug,
+      title: 'Set Up Integrations',
+      desc: 'Connect your existing tools',
+      href: '/company/settings',
+      color: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/20 hover:border-emerald-500/40',
+      iconBg: 'bg-emerald-500/10',
+      iconColor: 'text-emerald-400',
     },
   ]
 
@@ -717,23 +498,17 @@ function Step4({
       <div className="flex flex-col items-center text-center gap-4 pt-2">
         <div className="relative">
           <motion.div
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center"
+            className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-primary/20 flex items-center justify-center"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: 'backOut' }}
           >
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 48 48"
-              fill="none"
-              className="overflow-visible"
-            >
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="overflow-visible">
               <motion.circle
                 cx="24"
                 cy="24"
                 r="22"
-                stroke="url(#grad)"
+                stroke="url(#grad1)"
                 strokeWidth="2"
                 fill="none"
                 initial={{ pathLength: 0 }}
@@ -752,7 +527,7 @@ function Step4({
                 transition={{ duration: 0.5, ease: 'easeOut', delay: 0.7 }}
               />
               <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                <linearGradient id="grad1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
                   <stop stopColor="#3b82f6" />
                   <stop offset="1" stopColor="#a855f7" />
                 </linearGradient>
@@ -766,7 +541,7 @@ function Step4({
           <motion.div
             className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl"
             initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1.3 }}
+            animate={{ opacity: 1, scale: 1.4 }}
             transition={{ duration: 1, delay: 0.5 }}
           />
         </div>
@@ -775,10 +550,11 @@ function Step4({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
+          className="space-y-1"
         >
-          <h2 className="text-3xl font-bold text-white mb-2">Ready to Launch!</h2>
-          <p className="text-white/50 text-sm max-w-sm mx-auto">
-            Your workspace is set up and ready. Here's a summary of what you've configured.
+          <h2 className="text-3xl font-bold gradient-text">Your workspace is ready!</h2>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+            Here&apos;s a summary of what you&apos;ve configured.
           </p>
         </motion.div>
       </div>
@@ -787,33 +563,39 @@ function Step4({
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1 }}
-        className="bg-white/5 rounded-xl border border-white/10 p-4 space-y-3"
+        transition={{ delay: 1.0 }}
+        className="glass-card rounded-xl p-4 space-y-3"
       >
-        <h3 className="text-white/50 text-xs font-semibold uppercase tracking-wider">Summary</h3>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Summary
+        </p>
         <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-0.5">
-            <p className="text-white/40 text-xs">Company</p>
-            <p className="text-white font-medium text-sm truncate">
-              {formData.companyName || '—'}
-            </p>
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-white/40 text-xs">Industry</p>
-            <p className="text-white font-medium text-sm truncate">
-              {formData.industry || '—'}
-            </p>
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-white/40 text-xs">First Role</p>
-            <p className="text-white font-medium text-sm truncate">
-              {formData.jobTitle || '—'}
-            </p>
-          </div>
+          {[
+            { label: 'Company', value: form.companyName || '—' },
+            { label: 'Industry', value: form.industry || '—' },
+            { label: 'Culture', value: form.remotePolicy ? (form.remotePolicy === 'remote' ? 'Remote-first' : form.remotePolicy === 'hybrid' ? 'Hybrid' : 'Office-first') : '—' },
+          ].map((item) => (
+            <div key={item.label} className="space-y-0.5">
+              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p className="text-sm font-medium text-foreground truncate">{item.value}</p>
+            </div>
+          ))}
         </div>
+        {form.roles.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {form.roles.map((r) => (
+              <span
+                key={r}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary"
+              >
+                <Check className="w-2.5 h-2.5" /> {r}
+              </span>
+            ))}
+          </div>
+        )}
       </motion.div>
 
-      {/* Next step cards */}
+      {/* Next-step cards */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -827,25 +609,25 @@ function Step4({
               key={item.href}
               href={item.href}
               className={cn(
-                'group p-4 rounded-xl border bg-gradient-to-br flex flex-col gap-2.5 hover:scale-[1.02] transition-transform duration-200',
+                'group flex flex-col gap-2.5 rounded-xl border bg-gradient-to-br p-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg',
                 item.color
               )}
             >
               <div
                 className={cn(
-                  'w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center',
-                  item.iconColor
+                  'w-8 h-8 rounded-lg flex items-center justify-center',
+                  item.iconBg
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className={cn('w-4 h-4', item.iconColor)} />
               </div>
               <div>
-                <p className="text-white text-sm font-semibold">{item.title}</p>
-                <p className="text-white/40 text-xs mt-0.5">{item.desc}</p>
+                <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
               </div>
               <ArrowRight
                 className={cn(
-                  'w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-1 group-hover:translate-x-0 duration-200',
+                  'w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200',
                   item.iconColor
                 )}
               />
@@ -861,14 +643,8 @@ function Step4({
         transition={{ delay: 1.2 }}
         className="flex justify-center"
       >
-        <Button
-          onClick={onDashboard}
-          size="lg"
-          className="btn-primary gap-2 px-8"
-        >
-          <Rocket className="w-4 h-4" />
-          Go to Dashboard
-          <ArrowRight className="w-4 h-4" />
+        <Button onClick={onDashboard} size="lg" className="gap-2 px-8">
+          Go to Dashboard <ArrowRight className="w-4 h-4" />
         </Button>
       </motion.div>
     </div>
