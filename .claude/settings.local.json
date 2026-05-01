@@ -6,7 +6,8 @@
       "Bash(npm run *)",
       "Bash(echo \"Exit: $?\")",
       "Bash(node *)",
-      "Bash(xargs sed *)"
+      "Bash(xargs sed *)",
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\AWS_SETUP.md\"\\).Count; \\(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\lib\\\\api.ts\"\\).Count)"
     ]
   }
 }

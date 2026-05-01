@@ -227,6 +227,36 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* ADA / WCAG 2.1 — visible focus rings for keyboard users */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+/* WCAG 2.4.7 — keyboard-visible focus for all interactive elements */
+@layer base {
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Remove default outline only when custom ring is applied */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* WCAG 2.3.3 — respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Noise texture overlay */

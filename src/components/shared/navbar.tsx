@@ -17,35 +17,40 @@ const navLinks = [
     label: 'For Companies',
     href: '#companies',
     children: [
-      { label: 'AI Candidate Matching', href: '#' },
-      { label: 'Pipeline Management', href: '#' },
-      { label: 'Analytics & Insights', href: '#' },
-      { label: 'ATS Integrations', href: '#' },
+      { label: 'AI Candidate Matching', href: '#companies' },
+      { label: 'Pipeline Management', href: '#companies' },
+      { label: 'Analytics & Insights', href: '#companies' },
+      { label: 'ATS Integrations', href: '#companies' },
     ],
   },
   {
     label: 'For Job Seekers',
     href: '#seekers',
     children: [
-      { label: 'Smart Job Matching', href: '#' },
-      { label: 'Skills Verification', href: '#' },
-      { label: 'Salary Intelligence', href: '#' },
-      { label: 'Career Path Graph', href: '#' },
+      { label: 'Smart Job Matching', href: '#seekers' },
+      { label: 'Skills Verification', href: '#seekers' },
+      { label: 'Salary Intelligence', href: '#seekers' },
+      { label: 'Career Path Graph', href: '#seekers' },
     ],
   },
   { label: 'Pricing', href: '/pricing' },
+  { label: 'Contact', href: '/contact' },
 ]
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const mobileMenuId = 'mobile-nav-menu'
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50">
+    <header className="fixed top-0 left-0 right-0 z-50" role="banner">
       <div className="flex items-center justify-between px-6 py-4 mx-auto max-w-7xl">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
+        <Link href="/" className="flex items-center gap-2.5" aria-label="Calibr — go to homepage">
+          <div
+            className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <Zap className="w-4 h-4 text-white" aria-hidden="true" />
           </div>
           <span className="text-lg font-bold text-foreground">
             Calibr<span className="gradient-text">AI</span>
@@ -53,14 +58,17 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
           {navLinks.map((link) =>
             link.children ? (
               <DropdownMenu key={link.label}>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200">
+                  <button
+                    className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    aria-haspopup="true"
+                  >
                     {link.label}
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="w-3 h-3" aria-hidden="true" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-52">
@@ -75,7 +83,7 @@ export function Navbar() {
               <Link
                 key={link.label}
                 href={link.href}
-                className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200"
+                className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {link.label}
               </Link>
@@ -88,21 +96,21 @@ export function Navbar() {
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" aria-haspopup="true">
                 Sign In
-                <ChevronDown className="w-3 h-3" />
+                <ChevronDown className="w-3 h-3" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
-                <Link href="/company/dashboard" className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
+                <Link href="/login" className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" aria-hidden="true" />
                   As Company
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/talent/dashboard" className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
+                <Link href="/login" className="flex items-center gap-2">
+                  <User className="w-4 h-4" aria-hidden="true" />
                   As Job Seeker
                 </Link>
               </DropdownMenuItem>
@@ -115,25 +123,37 @@ export function Navbar() {
 
         {/* Mobile Menu Toggle */}
         <button
-          className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+          className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-expanded={mobileOpen}
+          aria-controls={mobileMenuId}
+          aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
         >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileOpen ? (
+            <X className="w-5 h-5" aria-hidden="true" />
+          ) : (
+            <Menu className="w-5 h-5" aria-hidden="true" />
+          )}
         </button>
       </div>
 
       {/* Glassmorphism background */}
-      <div className="absolute inset-0 -z-10 glass border-b border-white/[0.05]" />
+      <div className="absolute inset-0 -z-10 glass border-b border-white/[0.05]" aria-hidden="true" />
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden glass border-b border-white/[0.05] px-6 pb-6">
-          <nav className="flex flex-col gap-1 pt-2">
+        <div
+          id={mobileMenuId}
+          className="md:hidden glass border-b border-white/[0.05] px-6 pb-6"
+          role="dialog"
+          aria-label="Mobile navigation"
+        >
+          <nav className="flex flex-col gap-1 pt-2" aria-label="Mobile navigation links">
             {navLinks.map((link) => (
               <Link
                 key={link.label}
                 href={link.href || '#'}
-                className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+                className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={() => setMobileOpen(false)}
               >
                 {link.label}
@@ -141,7 +161,7 @@ export function Navbar() {
             ))}
             <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
               <Button variant="outline" asChild>
-                <Link href="/company/dashboard">Sign In as Company</Link>
+                <Link href="/login">Sign In</Link>
               </Button>
               <Button asChild>
                 <Link href="/register">Get Started Free</Link>

@@ -2,698 +2,847 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
+import { motion, useInView, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Navbar } from '@/components/shared/navbar'
 import { Footer } from '@/components/shared/footer'
-import { testimonials, pricingPlans } from '@/lib/data'
-import { formatNumber } from '@/lib/utils'
+import { pricingPlans } from '@/lib/data'
 import {
-  ArrowRight,
-  Sparkles,
-  Zap,
-  Shield,
-  Users,
-  Brain,
-  CheckCircle2,
-  Star,
-  ChevronRight,
-  Building2,
-  Target,
-  Eye,
-  DollarSign,
-  TrendingUp,
-  Clock,
-  BarChart2,
-  Play,
-  Briefcase,
-  UserCheck,
-  Kanban,
-  MessageSquare,
-  Lock,
-  Globe,
+  ArrowRight, CheckCircle2, Play, Lock, Briefcase,
+  Users, Clock, UserCheck, Check, TrendingDown,
+  DollarSign, Brain, BarChart2, Zap, ChevronRight,
 } from 'lucide-react'
 
-// ─── ANIMATED COUNTER ─────────────────────────────────────────────────────────
-
-function AnimatedCounter({ target, suffix = '', prefix = '' }: { target: number; suffix?: string; prefix?: string }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLSpanElement>(null)
-  const animated = useRef(false)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !animated.current) {
-          animated.current = true
-          const duration = 2000
-          const step = target / (duration / 16)
-          let cur = 0
-          const timer = setInterval(() => {
-            cur += step
-            if (cur >= target) { setCount(target); clearInterval(timer) }
-            else setCount(Math.floor(cur))
-          }, 16)
-        }
-      },
-      { threshold: 0.4 }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [target])
-
-  return <span ref={ref}>{prefix}{formatNumber(count)}{suffix}</span>
-}
-
-// ─── SECTION REVEAL ──────────────────────────────────────────────────────────
+// ─── UTILITIES ────────────────────────────────────────────────────────────────
 
 function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-60px' })
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 32 }}
+    <motion.div ref={ref} initial={{ opacity: 0, y: 28 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}>
       {children}
     </motion.div>
   )
 }
 
-// ─── DATA ─────────────────────────────────────────────────────────────────────
+function useCounter(target: number, inView: boolean) {
+  const [count, setCount] = useState(0)
+  const animated = useRef(false)
+  useEffect(() => {
+    if (inView && !animated.current) {
+      animated.current = true
+      const duration = 1800
+      const step = target / (duration / 16)
+      let cur = 0
+      const t = setInterval(() => {
+        cur += step
+        if (cur >= target) { setCount(target); clearInterval(t) }
+        else setCount(Math.floor(cur))
+      }, 16)
+    }
+  }, [inView, target])
+  return count
+}
 
-const metrics = [
-  { label: 'Companies Hiring', value: 14200, suffix: '+', prefix: '' },
-  { label: 'Successful Hires', value: 87400, suffix: '+', prefix: '' },
-  { label: 'Days to Hire (avg)', value: 18, suffix: '', prefix: '' },
-  { label: 'Match Accuracy', value: 94, suffix: '%', prefix: '' },
-]
+// ─── HERO BACKGROUND ──────────────────────────────────────────────────────────
 
-const companyFeatures = [
-  { icon: Brain, title: 'AI Candidate Ranking', desc: 'Every applicant scored on skills, culture fit, and growth potential — not just keywords. Top 5% surface instantly.', metric: '40x faster screening' },
-  { icon: Kanban, title: 'Pipeline Kanban', desc: 'Drag-drop hiring pipeline with 6 stages, team scorecards, and automated interview scheduling built in.', metric: '65% less admin work' },
-  { icon: BarChart2, title: 'Hiring Analytics', desc: 'Full funnel analytics — cost per hire, time-to-fill, source attribution, diversity metrics, and offer accept rates.', metric: 'See full ROI' },
-  { icon: Users, title: 'Collaborative Hiring', desc: 'Invite your whole team. Share feedback, score candidates, and align on decisions — all in one place.', metric: 'No more email chains' },
-]
+function HeroBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Animated gradient orbs */}
+      <motion.div
+        className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full"
+        style={{ background: 'radial-gradient(circle, hsl(217 91% 60% / 0.12), transparent 70%)' }}
+        animate={{ x: [0, 40, 0], y: [0, 30, 0], scale: [1, 1.1, 1] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute top-20 right-0 w-[500px] h-[500px] rounded-full"
+        style={{ background: 'radial-gradient(circle, hsl(270 70% 60% / 0.09), transparent 70%)' }}
+        animate={{ x: [0, -30, 0], y: [0, 40, 0], scale: [1, 1.15, 1] }}
+        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+      />
+      <motion.div
+        className="absolute bottom-0 left-1/2 w-[400px] h-[400px] rounded-full"
+        style={{ background: 'radial-gradient(circle, hsl(160 84% 39% / 0.07), transparent 70%)' }}
+        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
+      />
 
-const talentFeatures = [
-  { icon: Target, title: 'Match Score per Job', desc: 'See exactly how well you fit each role before applying. Stop wasting time on roles where you have <50% match.', metric: '3x more interviews' },
-  { icon: Eye, title: 'Zero Ghosting Guarantee', desc: 'Real-time status at every stage. We contractually require companies to update you within 5 business days.', metric: '89% response rate' },
-  { icon: DollarSign, title: 'Verified Salary Data', desc: 'See real compensation from actual offers — not self-reported surveys. Know your market value before the call.', metric: 'Avg. +$18K negotiated' },
-  { icon: UserCheck, title: 'Skills Verification', desc: 'Complete short assessments to verify your skills. Verified candidates get 3x more matches than unverified.', metric: '300% more visibility' },
-]
+      {/* Animated dot grid */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.5" fill="hsl(var(--foreground))" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#dots)" />
+      </svg>
 
-const companies = ['Stripe', 'Notion', 'Vercel', 'Linear', 'Figma', 'Airtable', 'Loom', 'Retool']
+      {/* Pixel sparkles */}
+      {Array.from({ length: 18 }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 rounded-full bg-primary/40"
+          style={{
+            left: `${10 + (i * 5.2) % 80}%`,
+            top: `${15 + (i * 7.3) % 70}%`,
+          }}
+          animate={{
+            opacity: [0, 0.8, 0],
+            scale: [0, 1.5, 0],
+            y: [0, -24, -48],
+          }}
+          transition={{
+            duration: 3 + (i % 3),
+            delay: i * 0.4,
+            repeat: Infinity,
+            ease: 'easeOut',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
-const trustBadges = [
-  { icon: Shield, label: 'SOC2 Type II' },
-  { icon: Lock, label: 'GDPR Compliant' },
-  { icon: Globe, label: '99.9% Uptime SLA' },
-  { icon: Users, label: '14,200+ Companies' },
-]
+// ─── DASHBOARD MOCKUP ─────────────────────────────────────────────────────────
+
+function DashboardMockup() {
+  return (
+    <div className="rounded-2xl overflow-hidden border border-border shadow-2xl bg-card">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/40">
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(355 78% 65%)' }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(38 92% 55%)' }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(160 84% 39%)' }} />
+        </div>
+        <div className="flex-1 mx-4">
+          <div className="bg-background rounded-md px-3 py-1 text-xs text-muted-foreground flex items-center gap-1.5 max-w-xs mx-auto">
+            <Lock className="w-3 h-3 text-emerald-500 shrink-0" />
+            app.calibr.io/company/dashboard
+          </div>
+        </div>
+      </div>
+      <div className="p-4 bg-background">
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          {[
+            { label: 'Active Jobs', value: '12', icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+            { label: 'Applicants', value: '1,847', icon: Users, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+            { label: 'Time to Hire', value: '18d', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+            { label: 'Hired / Mo', value: '7', icon: UserCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          ].map((s) => (
+            <div key={s.label} className="glass-card p-3 rounded-xl">
+              <div className={`w-6 h-6 rounded-lg ${s.bg} flex items-center justify-center mb-2`}>
+                <s.icon className={`w-3 h-3 ${s.color}`} />
+              </div>
+              <div className="text-base font-bold text-foreground leading-none mb-1">{s.value}</div>
+              <div className="text-[10px] text-muted-foreground">{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="glass-card rounded-xl p-3">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-foreground">Top AI-Matched Candidates</span>
+            <span className="text-[10px] text-primary cursor-pointer">View all →</span>
+          </div>
+          <div className="space-y-1.5">
+            {[
+              { name: 'Alex Chen', role: 'Frontend Engineer', score: 96, skills: ['React', 'TypeScript'], salary: '$210K', init: 'AC', grad: 'from-blue-500 to-indigo-600' },
+              { name: 'Sofia Reyes', role: 'Product Designer', score: 93, skills: ['Figma', 'Systems'], salary: '$185K', init: 'SR', grad: 'from-purple-500 to-pink-600' },
+              { name: 'Marcus Johnson', role: 'Staff Engineer', score: 88, skills: ['Go', 'K8s'], salary: '$270K', init: 'MJ', grad: 'from-cyan-500 to-blue-600' },
+            ].map((c) => (
+              <div key={c.name} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${c.grad} flex items-center justify-center text-[9px] font-bold text-white shrink-0`}>{c.init}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground leading-none mb-0.5">{c.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{c.role}</p>
+                </div>
+                <div className="hidden sm:flex gap-1">
+                  {c.skills.map((sk) => (
+                    <span key={sk} className="text-[9px] px-1.5 py-0.5 rounded bg-muted border border-border text-muted-foreground">{sk}</span>
+                  ))}
+                </div>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">{c.salary}</span>
+                <div className="w-8 h-8 relative shrink-0">
+                  <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
+                    <circle cx="16" cy="16" r="12" fill="none" stroke="hsl(var(--border))" strokeWidth="2.5" />
+                    <circle cx="16" cy="16" r="12" fill="none" stroke="hsl(160 84% 39%)"
+                      strokeWidth="2.5" strokeDasharray={`${(c.score / 100) * 75.4} 75.4`} strokeLinecap="round" />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-foreground">{c.score}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── ANIMATED HIRING FUNNEL ───────────────────────────────────────────────────
+
+function HiringFunnel() {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, margin: '-80px' })
+
+  const stages = [
+    { label: 'Applications Received', traditional: 1000, calibr: 1000, color: 'bg-blue-500', pct: 100 },
+    { label: 'Reviewed by Recruiter', traditional: 180, calibr: 1000, color: 'bg-indigo-500', pct: 85 },
+    { label: 'Qualified Candidates', traditional: 45, calibr: 940, color: 'bg-purple-500', pct: 70 },
+    { label: 'Interviews Scheduled', traditional: 20, calibr: 880, color: 'bg-violet-500', pct: 55 },
+    { label: 'Offers Extended', traditional: 5, calibr: 820, color: 'bg-emerald-500', pct: 40 },
+    { label: 'Hires Made', traditional: 2, calibr: 780, color: 'bg-green-500', pct: 28 },
+  ]
+
+  const lostTraditional = [0, 820, 955, 980, 995, 998]
+  const lostCalibr = [0, 0, 60, 120, 180, 220]
+
+  return (
+    <div ref={ref} className="glass-card p-6 rounded-2xl">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="font-bold text-foreground text-lg">Hiring Funnel Analysis</h3>
+          <p className="text-sm text-muted-foreground">Traditional ATS vs Calibr — out of 1,000 applicants</p>
+        </div>
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-red-400/60" /> <span className="text-muted-foreground">Traditional</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-emerald-500" /> <span className="text-muted-foreground">Calibr</span></div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {stages.map((stage, i) => (
+          <div key={stage.label}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-foreground">{stage.label}</span>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="text-red-500 font-semibold">{lostTraditional[i] > 0 ? `-${lostTraditional[i]}` : `${stage.traditional}`}</span>
+                <span className="text-emerald-500 font-semibold">{lostCalibr[i] > 0 ? `-${lostCalibr[i]}` : `${stage.calibr}`}</span>
+              </div>
+            </div>
+            <div className="relative h-7 rounded-lg bg-muted overflow-hidden">
+              {/* Traditional bar */}
+              <motion.div
+                className="absolute left-0 top-0 h-1/2 rounded-t-sm bg-red-400/60"
+                initial={{ width: 0 }}
+                animate={inView ? { width: `${(stage.traditional / 1000) * 100}%` } : { width: 0 }}
+                transition={{ duration: 1, delay: i * 0.15, ease: 'easeOut' }}
+              />
+              {/* Calibr bar */}
+              <motion.div
+                className={`absolute left-0 bottom-0 h-1/2 rounded-b-sm ${stage.color}`}
+                initial={{ width: 0 }}
+                animate={inView ? { width: `${(stage.calibr / 1000) * 100}%` } : { width: 0 }}
+                transition={{ duration: 1, delay: i * 0.15 + 0.1, ease: 'easeOut' }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary callout */}
+      <div className="mt-5 grid grid-cols-3 gap-3 pt-4 border-t border-border">
+        {[
+          { label: 'Candidates lost by ATS', value: '998/1000', color: 'text-red-500' },
+          { label: 'Candidates surfaced by Calibr', value: '780/1000', color: 'text-emerald-500' },
+          { label: 'Efficiency gain', value: '40×', color: 'text-primary' },
+        ].map((s) => (
+          <div key={s.label} className="text-center">
+            <motion.div
+              className={`text-xl font-bold ${s.color}`}
+              initial={{ opacity: 0 }}
+              animate={inView ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ delay: 1.2 }}
+            >
+              {s.value}
+            </motion.div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── ANIMATED METRICS ─────────────────────────────────────────────────────────
+
+function MetricsSection() {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, margin: '-60px' })
+  const daysCount = useCounter(26, inView)
+  const costCount = useCounter(38000, inView)
+  const diversityCount = useCounter(40, inView)
+  const accuracyCount = useCounter(94, inView)
+
+  const bars = [
+    { label: 'Jan', traditional: 52, calibr: 20 },
+    { label: 'Feb', traditional: 48, calibr: 19 },
+    { label: 'Mar', traditional: 55, calibr: 21 },
+    { label: 'Apr', traditional: 44, calibr: 17 },
+    { label: 'May', traditional: 51, calibr: 18 },
+    { label: 'Jun', traditional: 46, calibr: 16 },
+  ]
+
+  return (
+    <div ref={ref} className="grid lg:grid-cols-2 gap-8">
+      {/* KPI block */}
+      <div className="grid grid-cols-2 gap-4">
+        {[
+          { label: 'Days saved per hire', value: daysCount, suffix: 'd', desc: 'Average: 44 days → 18 days', color: 'text-blue-500', icon: Clock },
+          { label: 'Annual savings', value: costCount, prefix: '$', suffix: '', desc: 'vs. traditional recruiting cost', color: 'text-emerald-500', icon: DollarSign },
+          { label: 'More diverse hires', value: diversityCount, suffix: '%', desc: 'skills-based vs keyword ATS', color: 'text-purple-500', icon: Users },
+          { label: 'AI match accuracy', value: accuracyCount, suffix: '%', desc: 'vs final hiring decisions', color: 'text-amber-500', icon: Brain },
+        ].map((m) => (
+          <div key={m.label} className="glass-card p-5 rounded-2xl">
+            <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center mb-3">
+              <m.icon className={`w-4.5 h-4.5 ${m.color}`} />
+            </div>
+            <div className={`text-3xl font-bold ${m.color} mb-1`}>
+              {m.prefix ?? ''}{m.value.toLocaleString()}{m.suffix}
+            </div>
+            <div className="text-sm font-semibold text-foreground leading-tight mb-1">{m.label}</div>
+            <div className="text-xs text-muted-foreground">{m.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Time-to-hire bar chart */}
+      <div className="glass-card p-5 rounded-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h4 className="font-bold text-foreground">Time to Hire Comparison</h4>
+            <p className="text-xs text-muted-foreground">Days — Traditional ATS vs Calibr</p>
+          </div>
+          <div className="flex gap-3 text-xs">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-400/60 inline-block" /> Traditional</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block" /> Calibr</span>
+          </div>
+        </div>
+        <div className="flex items-end gap-3 h-36">
+          {bars.map((b, i) => (
+            <div key={b.label} className="flex-1 flex flex-col items-center gap-1">
+              <div className="w-full flex items-end gap-0.5 h-28">
+                <motion.div
+                  className="flex-1 rounded-t-md bg-red-400/60"
+                  initial={{ height: 0 }}
+                  animate={inView ? { height: `${(b.traditional / 60) * 100}%` } : { height: 0 }}
+                  transition={{ duration: 0.8, delay: i * 0.1, ease: 'easeOut' }}
+                />
+                <motion.div
+                  className="flex-1 rounded-t-md bg-blue-500"
+                  initial={{ height: 0 }}
+                  animate={inView ? { height: `${(b.calibr / 60) * 100}%` } : { height: 0 }}
+                  transition={{ duration: 0.8, delay: i * 0.1 + 0.08, ease: 'easeOut' }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground">{b.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+          <TrendingDown className="w-4 h-4 text-emerald-500" />
+          <span className="text-xs text-muted-foreground">
+            Companies on Calibr hire <strong className="text-emerald-600 dark:text-emerald-400">59% faster</strong> than the industry average
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── KANBAN MOCKUP ────────────────────────────────────────────────────────────
+
+function KanbanMockup() {
+  const columns = [
+    { label: 'Applied', color: 'bg-blue-500', cards: [{ name: 'Jordan Park', score: 89, role: 'Designer' }, { name: 'Tia Lee', score: 77, role: 'PM' }] },
+    { label: 'Screen', color: 'bg-violet-500', cards: [{ name: 'Priya Sharma', score: 91, role: 'Engineer' }] },
+    { label: 'Interview', color: 'bg-amber-500', cards: [{ name: 'Alex Chen', score: 96, role: 'Engineer' }] },
+    { label: 'Offer', color: 'bg-emerald-500', cards: [{ name: 'Marcus J.', score: 88, role: 'Staff Eng.' }] },
+  ]
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <span className="text-sm font-semibold text-foreground">Active Pipeline — 8 Open Roles</span>
+        <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">On track ↗</span>
+      </div>
+      <div className="p-3 grid grid-cols-4 gap-2 min-h-[180px]">
+        {columns.map((col) => (
+          <div key={col.label} className="space-y-2">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className={`w-1.5 h-1.5 rounded-full ${col.color}`} />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{col.label}</span>
+              <span className="text-[10px] text-muted-foreground ml-auto">{col.cards.length}</span>
+            </div>
+            {col.cards.map((card) => (
+              <div key={card.name} className="bg-background rounded-lg p-2 border border-border shadow-sm">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-[8px] font-bold text-white">{card.name[0]}</div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-foreground leading-none">{card.name}</p>
+                    <p className="text-[9px] text-muted-foreground">{card.role}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${card.score}%` }} />
+                  </div>
+                  <span className="text-[9px] text-muted-foreground font-semibold">{card.score}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── STATUS TRACKER MOCKUP ────────────────────────────────────────────────────
+
+function StatusTrackerMockup() {
+  const stages = [
+    { label: 'Applied', date: 'Apr 19', done: true },
+    { label: 'Reviewed', date: 'Apr 21', done: true },
+    { label: 'Phone Screen', date: 'Apr 24', done: true },
+    { label: 'Technical', date: 'Apr 28', done: true },
+    { label: 'Final Round', date: 'May 2', done: false, active: true },
+    { label: 'Decision', date: 'May 6', done: false },
+  ]
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Product Engineer · Vercel</p>
+          <p className="text-xs text-muted-foreground">Applied 2 weeks ago</p>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 font-semibold">In Progress</span>
+      </div>
+      <div className="p-4">
+        <div className="space-y-0">
+          {stages.map((stage, i) => (
+            <div key={stage.label} className="flex items-start gap-3">
+              <div className="flex flex-col items-center">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${stage.done ? 'bg-emerald-500' : stage.active ? 'bg-blue-500 ring-4 ring-blue-500/20' : 'bg-muted border border-border'}`}>
+                  {stage.done ? <Check className="w-3.5 h-3.5 text-white" /> : stage.active ? <span className="w-2 h-2 rounded-full bg-white" /> : <span className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
+                </div>
+                {i < stages.length - 1 && <div className={`w-px h-6 mt-0.5 ${stage.done ? 'bg-emerald-500/40' : 'bg-border'}`} />}
+              </div>
+              <div className="pb-3 pt-1">
+                <p className={`text-sm font-medium leading-none mb-0.5 ${stage.done || stage.active ? 'text-foreground' : 'text-muted-foreground'}`}>{stage.label}</p>
+                <p className="text-xs text-muted-foreground">{stage.date}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 p-3 rounded-xl bg-blue-500/8 border border-blue-500/15">
+          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">⚡ Next update guaranteed by May 3rd — or we follow up on your behalf.</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── WHAT COMPANIES MISS SECTION ─────────────────────────────────────────────
+
+function WhatYouAreMissing() {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, margin: '-60px' })
+
+  const gaps = [
+    { icon: Brain, title: '91% of your applicants are never reviewed', detail: 'Your ATS filters out qualified candidates before a recruiter sees them. You\'re evaluating keywords, not humans.', lostValue: '$247K', lostLabel: 'revenue opportunity lost per role from slow hiring' },
+    { icon: Clock, title: '26 extra days in your hiring process', detail: 'Every day a role sits empty costs you productivity. 44-day average × $180K salary = $19,700 in lost output per role.', lostValue: '44 days', lostLabel: 'average days to hire without Calibr' },
+    { icon: DollarSign, title: 'Candidates know your comp is below market', detail: 'Without salary intel baked into your job posts, top candidates self-reject before applying. You\'re losing the ones you can\'t afford to lose.', lostValue: '62%', lostLabel: 'of offers get rejected due to comp misalignment' },
+    { icon: BarChart2, title: 'No visibility into why great hires leave early', detail: 'You\'re hiring fast but retaining slow. Career path misalignment at the offer stage leads to 6-month turnover.', lostValue: '6 months', lostLabel: 'median tenure for mismatched hires' },
+  ]
+
+  return (
+    <div ref={ref} className="grid sm:grid-cols-2 gap-4">
+      {gaps.map((g, i) => (
+        <motion.div
+          key={g.title}
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: i * 0.12, duration: 0.5 }}
+          className="glass-card p-6 rounded-2xl border-l-4 border-l-red-400/60 hover:border-l-primary transition-all duration-300 group"
+        >
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-red-400/10 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+              <g.icon className="w-4.5 h-4.5 text-red-500 group-hover:text-primary transition-colors" />
+            </div>
+            <h4 className="text-sm font-bold text-foreground leading-snug">{g.title}</h4>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed mb-4">{g.detail}</p>
+          <div className="flex items-baseline gap-2 pt-3 border-t border-border">
+            <span className="text-lg font-bold text-red-500">{g.lostValue}</span>
+            <span className="text-xs text-muted-foreground">{g.lostLabel}</span>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  )
+}
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
+const logoCompanies = ['Stripe', 'Notion', 'Vercel', 'Linear', 'Figma', 'Airtable', 'Loom', 'Retool']
+
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'company' | 'talent'>('company')
+  const [isAnnual, setIsAnnual] = useState(false)
 
   return (
     <div className="bg-background overflow-x-hidden">
       <Navbar />
 
+      <main id="main-content" tabIndex={-1}>
       {/* ═══ HERO ════════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden pt-20 pb-16">
-        {/* Subtle grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-          style={{
-            backgroundImage: 'linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
+      <section className="relative min-h-[95vh] flex items-center pt-20 pb-16 overflow-hidden" aria-label="Hero">
+        <HeroBackground />
 
-        {/* Ambient glows */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[500px] rounded-full opacity-10 dark:opacity-15 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(217 91% 60%), transparent 70%)', filter: 'blur(80px)' }} />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[400px] rounded-full opacity-8 dark:opacity-12 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(270 70% 60%), transparent 70%)', filter: 'blur(80px)' }} />
+        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* Left: Copy */}
+            <div>
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6"
+              >
+                <Zap className="w-3 h-3" />
+                AI Hiring Platform · Trusted by 14,200+ companies
+              </motion.div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
-          {/* Eyebrow */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-500 dark:text-blue-400 text-sm font-medium mb-8"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            AI-Powered Hiring · Trusted by 14,200+ companies
-          </motion.div>
+              <motion.h1
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.06] tracking-tight text-foreground mb-6"
+              >
+                The recruiting platform your team will{' '}
+                <span className="gradient-text">actually use.</span>
+              </motion.h1>
 
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.04] tracking-tight mb-6"
-          >
-            Hire smarter.
-            <br />
-            <span className="gradient-text">Get hired faster.</span>
-          </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.2 }}
+                className="text-lg text-muted-foreground leading-relaxed mb-8"
+              >
+                Calibr unifies your ATS, CRM, assessments, and analytics into one intelligent platform. Built for agencies, in-house teams, and staffing firms.
+              </motion.p>
 
-          {/* Sub */}
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4 leading-relaxed"
-          >
-            Calibr is an AI hiring platform that helps{' '}
-            <strong className="text-foreground font-semibold">companies find qualified candidates in 18 days</strong>
-            {' '}and helps{' '}
-            <strong className="text-foreground font-semibold">job seekers land roles that actually fit</strong> — with zero ghosting.
-          </motion.p>
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex flex-col sm:flex-row gap-3 mb-8"
+              >
+                <Button size="lg" asChild className="h-12 px-7 text-base bg-foreground text-background hover:bg-foreground/90 border-0">
+                  <Link href="/register">Start Free — No Card <ArrowRight className="w-4 h-4 ml-1" /></Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild className="h-12 px-6 text-base gap-2.5">
+                  <Link href="/contact">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-full border border-border shrink-0">
+                      <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
+                    </span>
+                    Watch 2-min demo
+                  </Link>
+                </Button>
+              </motion.div>
 
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.35 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8"
-          >
-            <Button
-              size="lg"
-              asChild
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 shadow-lg shadow-blue-600/30 px-8 h-12 text-base"
-            >
-              <Link href="/register">
-                Start Hiring Free
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base">
-              <Link href="/talent/jobs">
-                Find Jobs
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Link>
-            </Button>
-          </motion.div>
-
-          {/* Trust row */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="flex flex-wrap items-center justify-center gap-5 mb-14 text-sm text-muted-foreground"
-          >
-            {['No credit card required', '14-day free trial', 'Cancel anytime', 'SOC2 Type II'].map((t) => (
-              <div key={t} className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                {t}
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Product preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 48 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="relative max-w-5xl mx-auto"
-          >
-            {/* Glow behind mockup */}
-            <div className="absolute -inset-6 rounded-3xl opacity-30 dark:opacity-50 pointer-events-none"
-              style={{ background: 'linear-gradient(135deg, hsl(217 91% 60% / 0.4), hsl(270 70% 60% / 0.3))', filter: 'blur(40px)' }} />
-
-            {/* Browser chrome */}
-            <div className="relative rounded-2xl overflow-hidden border border-border shadow-2xl bg-card">
-              {/* Browser bar */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/50">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400/70" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400/70" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400/70" />
-                </div>
-                <div className="flex-1 mx-4">
-                  <div className="bg-background rounded-md px-3 py-1 text-xs text-muted-foreground flex items-center gap-1.5 max-w-xs mx-auto">
-                    <Lock className="w-3 h-3 text-emerald-500" />
-                    app.calibr.io/company/dashboard
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.45 }}
+                className="flex flex-wrap gap-x-6 gap-y-2"
+              >
+                {[
+                  { value: '18 days', label: 'avg time-to-hire' },
+                  { value: '94%', label: 'match accuracy' },
+                  { value: '$38K', label: 'avg savings / year' },
+                ].map((s, i) => (
+                  <div key={s.label} className="flex items-center gap-2 text-sm">
+                    {i > 0 && <span className="hidden sm:block w-px h-4 bg-border" />}
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <strong className="text-foreground font-semibold">{s.value}</strong>
+                    <span className="text-muted-foreground">{s.label}</span>
                   </div>
-                </div>
-              </div>
-
-              {/* Dashboard mockup content */}
-              <div className="p-5 bg-background">
-                {/* Top stats */}
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                  {[
-                    { label: 'Active Jobs', value: '12', icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                    { label: 'Applicants', value: '1,847', icon: Users, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                    { label: 'Time to Hire', value: '18d', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                    { label: 'Hired / Month', value: '7', icon: UserCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                  ].map((s) => (
-                    <div key={s.label} className="glass-card p-3">
-                      <div className={`w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center mb-2`}>
-                        <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
-                      </div>
-                      <div className="text-lg font-bold text-foreground">{s.value}</div>
-                      <div className="text-[10px] text-muted-foreground">{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Candidates table */}
-                <div className="glass-card p-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold text-foreground">Top Matched Candidates</span>
-                    <span className="text-[10px] text-primary">View all →</span>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { name: 'Alex Chen', role: 'Sr. Frontend Engineer', score: 96, skills: ['React', 'TypeScript'], salary: '$210K', color: 'from-blue-500 to-blue-600' },
-                      { name: 'Sofia Reyes', role: 'Product Designer', score: 93, skills: ['Figma', 'Systems'], salary: '$185K', color: 'from-purple-500 to-purple-600' },
-                      { name: 'Marcus Johnson', role: 'Staff Engineer', score: 88, skills: ['Go', 'Kubernetes'], salary: '$270K', color: 'from-cyan-500 to-cyan-600' },
-                    ].map((c) => (
-                      <div key={c.name} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 transition-colors">
-                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${c.color} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>
-                          {c.name.split(' ').map((n: string) => n[0]).join('')}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground">{c.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{c.role}</p>
-                        </div>
-                        <div className="hidden sm:flex gap-1">
-                          {c.skills.map((s: string) => (
-                            <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">{s}</span>
-                          ))}
-                        </div>
-                        <span className="text-[10px] text-emerald-500 font-semibold shrink-0">{c.salary}</span>
-                        <div className="w-8 h-8 relative shrink-0">
-                          <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-                            <circle cx="16" cy="16" r="13" fill="none" stroke="hsl(var(--border))" strokeWidth="2.5" />
-                            <circle cx="16" cy="16" r="13" fill="none" stroke="#10b981"
-                              strokeWidth="2.5"
-                              strokeDasharray={`${(c.score / 100) * 81.7} 81.7`}
-                              strokeLinecap="round" />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-foreground">{c.score}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                ))}
+              </motion.div>
             </div>
 
-            {/* Floating badges */}
+            {/* Right: Animated dashboard */}
             <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -top-4 -left-4 glass-card px-3 py-2 text-xs font-semibold text-emerald-500 shadow-lg hidden md:flex items-center gap-1.5"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.85, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="relative hidden lg:block"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              96% Match Found
+              {/* Glow behind */}
+              <div className="absolute -inset-4 rounded-3xl pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse, hsl(217 91% 60% / 0.15), transparent 70%)', filter: 'blur(30px)' }} />
+              <DashboardMockup />
             </motion.div>
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
-              className="absolute -bottom-4 -right-4 glass-card px-3 py-2 text-xs font-semibold text-blue-500 shadow-lg hidden md:flex items-center gap-1.5"
-            >
-              <Zap className="w-3 h-3" />
-              Hired in 18 days
-            </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* ═══ LOGOS STRIP ═════════════════════════════════════════════════════════ */}
-      <section className="border-y border-border py-8 bg-muted/30">
+      {/* ═══ LOGO BAR ════════════════════════════════════════════════════════════ */}
+      <section className="border-y border-border py-8 bg-muted/20">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-6">
-            Trusted by engineering teams at
+          <p className="text-center text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-[0.15em] mb-5">
+            Trusted by recruiting teams at
           </p>
-          <div className="flex items-center justify-center flex-wrap gap-8 md:gap-12">
-            {companies.map((name) => (
-              <span key={name} className="text-sm font-bold text-muted-foreground/50 hover:text-muted-foreground transition-colors uppercase tracking-widest">
-                {name}
-              </span>
+          <div className="flex items-center justify-center flex-wrap gap-8 md:gap-14">
+            {logoCompanies.map((name) => (
+              <span key={name} className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors duration-200">{name}</span>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ WHAT IS TALENTBRIDGE ════════════════════════════════════════════════ */}
+      {/* ═══ WHAT YOU'RE MISSING ═════════════════════════════════════════════════ */}
       <section className="py-24 max-w-7xl mx-auto px-6">
-        <Reveal className="text-center mb-16">
-          <div className="section-eyebrow mb-4">The Platform</div>
-          <h2 className="section-title mb-4">
-            One platform. <span className="gradient-text">Both sides win.</span>
+        <Reveal className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-400/10 border border-red-400/20 text-red-500 text-xs font-semibold mb-5">
+            The Problem
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground leading-tight mb-4">
+            Here's what your hiring process
+            <br />
+            <span className="gradient-text">is costing you right now.</span>
           </h2>
-          <p className="section-subtitle">
-            Calibr is the first hiring platform built equally for companies AND candidates — with AI that serves both sides fairly.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Every day you use a traditional ATS, you're losing qualified candidates, wasting recruiter time, and leaving revenue on the table.
           </p>
         </Reveal>
+        <WhatYouAreMissing />
+      </section>
 
-        {/* Tab selector */}
-        <Reveal delay={0.1}>
-          <div className="flex justify-center mb-10">
-            <div className="flex gap-1 p-1 rounded-2xl bg-muted border border-border">
-              {(['company', 'talent'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    activeTab === tab
-                      ? 'bg-card text-foreground shadow-sm border border-border'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {tab === 'company' ? <Building2 className="w-4 h-4" /> : <Users className="w-4 h-4" />}
-                  {tab === 'company' ? 'For Companies' : 'For Job Seekers'}
+      {/* ═══ HIRING FUNNEL + METRICS ══════════════════════════════════════════════ */}
+      <section className="py-24 bg-muted/20 border-y border-border">
+        <div className="max-w-7xl mx-auto px-6">
+          <Reveal className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-5">
+              The Data
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground leading-tight mb-4">
+              See the numbers that move
+              <span className="gradient-text"> the needle.</span>
+            </h2>
+          </Reveal>
+
+          <Reveal className="mb-8">
+            <HiringFunnel />
+          </Reveal>
+          <Reveal>
+            <MetricsSection />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ═══ FEATURE 1 — AI Matching ═════════════════════════════════════════════ */}
+      <section className="py-24 max-w-7xl mx-auto px-6">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <Reveal>
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground">Matched Candidates</span>
+                <div className="flex items-center gap-1.5">
+                  <motion.span className="w-2 h-2 rounded-full bg-emerald-500"
+                    animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+                  <span className="text-xs text-muted-foreground">94% accuracy</span>
+                </div>
+              </div>
+              <div className="divide-y divide-border">
+                {[
+                  { name: 'Alex Chen', role: 'Frontend Engineer', score: 96, skills: ['React', 'TypeScript', 'Next.js'], salary: '$210K', avail: 'Open now', grad: 'from-blue-500 to-indigo-600', init: 'AC' },
+                  { name: 'Priya Sharma', role: 'Product Manager', score: 91, skills: ['Strategy', 'SQL', 'A/B'], salary: '$175K', avail: '4 weeks', grad: 'from-violet-500 to-purple-600', init: 'PS' },
+                  { name: 'Marcus Johnson', role: 'Staff Engineer', score: 88, skills: ['Go', 'K8s', 'Systems'], salary: '$270K', avail: 'Open now', grad: 'from-cyan-500 to-blue-600', init: 'MJ' },
+                  { name: 'Sofia Reyes', role: 'Product Designer', score: 85, skills: ['Figma', 'Systems', 'Research'], salary: '$190K', avail: 'Passive', grad: 'from-pink-500 to-rose-600', init: 'SR' },
+                ].map((c, i) => (
+                  <motion.div key={c.name} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+                    initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}>
+                    <span className="text-xs text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${c.grad} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>{c.init}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-none mb-0.5">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">{c.role}</p>
+                    </div>
+                    <div className="hidden md:flex gap-1.5">
+                      {c.skills.slice(0, 2).map((sk) => (
+                        <span key={sk} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{sk}</span>
+                      ))}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{c.salary}</div>
+                      <div className="text-[10px] text-muted-foreground">{c.avail}</div>
+                    </div>
+                    <div className="w-10 text-right shrink-0">
+                      <span className={`text-sm font-bold ${c.score >= 90 ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-500'}`}>{c.score}</span>
+                      <div className="text-[9px] text-muted-foreground">match</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.12} className="lg:pl-4">
+            <div className="text-xs font-semibold text-primary uppercase tracking-widest mb-4">AI Matching Engine</div>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-5">
+              Stop reading 250 resumes<br />to find 5 good ones.
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-8">
+              Every applicant is scored the moment they apply — ranked by verified skills, role fit, salary alignment, and growth trajectory. Your recruiters open Calibr and see the best candidates, in order. No noise, no gut-feel guessing.
+            </p>
+            <ul className="space-y-4">
+              {[
+                { stat: '40× faster', desc: 'candidate screening vs. manual review' },
+                { stat: '94% accuracy', desc: 'on AI match scores vs. final hiring decisions' },
+                { stat: 'Top 10%', desc: 'of applicants surface automatically — the rest are still accessible' },
+              ].map((item) => (
+                <li key={item.stat} className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground"><strong className="font-semibold">{item.stat}</strong>{' '}<span className="text-muted-foreground">{item.desc}</span></span>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ═══ FEATURE 2 — Pipeline ════════════════════════════════════════════════ */}
+      <section className="py-24 bg-muted/20 border-y border-border">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <Reveal className="lg:pr-4">
+              <div className="text-xs font-semibold text-primary uppercase tracking-widest mb-4">Pipeline Management</div>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-5">
+                From applied to offer<br />in 18 days.
+              </h2>
+              <p className="text-muted-foreground leading-relaxed mb-8">
+                The average company takes 44 days to hire. Calibr keeps every stakeholder aligned — hiring managers, recruiters, and executives all see the same view. Decisions happen in the platform, not in Slack and email threads.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  { stat: '65% less', desc: 'time on coordination and admin across hiring teams' },
+                  { stat: 'Automated', desc: 'interview scheduling, reminders, and follow-ups' },
+                  { stat: 'Scorecard-driven', desc: 'team alignment — no more conflicting interviewer feedback' },
+                ].map((item) => (
+                  <li key={item.stat} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <span className="text-sm text-foreground"><strong className="font-semibold">{item.stat}</strong>{' '}<span className="text-muted-foreground">{item.desc}</span></span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+            <Reveal delay={0.12}>
+              <KanbanMockup />
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ FEATURE 3 — Zero Ghosting ═══════════════════════════════════════════ */}
+      <section className="py-24 max-w-7xl mx-auto px-6">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <Reveal>
+            <StatusTrackerMockup />
+          </Reveal>
+          <Reveal delay={0.12} className="lg:pl-4">
+            <div className="text-xs font-semibold text-primary uppercase tracking-widest mb-4">Candidate Experience</div>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-5">
+              Zero ghosting —<br />or we refund.
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-8">
+              96% of job applicants report being ghosted. Calibr contractually requires companies to update candidates within 5 business days at every stage. Candidates always know where they stand — which means your employer brand stays intact.
+            </p>
+            <ul className="space-y-4">
+              {[
+                { stat: '89%', desc: 'candidate satisfaction rate on Calibr applications' },
+                { stat: 'Contractual', desc: 'update SLA — companies face restrictions if they ghost' },
+                { stat: '3×', desc: 'higher offer acceptance from candidates who feel respected' },
+              ].map((item) => (
+                <li key={item.stat} className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground"><strong className="font-semibold">{item.stat}</strong>{' '}<span className="text-muted-foreground">{item.desc}</span></span>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ═══ PRICING ═════════════════════════════════════════════════════════════ */}
+      <section className="py-24 bg-muted/20 border-y border-border">
+        <div className="max-w-6xl mx-auto px-6">
+          <Reveal className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Simple, transparent pricing</h2>
+            <p className="text-lg text-muted-foreground mb-6">Start free. Scale as you hire.</p>
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-muted border border-border">
+              {(['Monthly', 'Annual'] as const).map((tab) => (
+                <button key={tab} onClick={() => setIsAnnual(tab === 'Annual')}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${(tab === 'Annual') === isAnnual ? 'bg-card text-foreground shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {tab}{tab === 'Annual' && <span className="ml-1.5 text-[10px] text-emerald-500 font-bold">SAVE 20%</span>}
                 </button>
               ))}
             </div>
-          </div>
-        </Reveal>
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
-            {(activeTab === 'company' ? companyFeatures : talentFeatures).map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07, duration: 0.4 }}
-                className="glass-card p-6 group hover:border-primary/30 transition-all duration-300"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
-                  <f.icon className="w-5 h-5 text-primary" />
-                </div>
-                <h3 className="text-sm font-bold text-foreground mb-2">{f.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-4">{f.desc}</p>
-                <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{f.metric}</div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-
-        <Reveal delay={0.2} className="mt-8 text-center">
-          <Button asChild variant="outline" className="gap-2">
-            <Link href={activeTab === 'company' ? '/company/dashboard' : '/talent/dashboard'}>
-              See the full {activeTab === 'company' ? 'company' : 'talent'} dashboard
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </Button>
-        </Reveal>
-      </section>
-
-      {/* ═══ HOW IT WORKS ════════════════════════════════════════════════════════ */}
-      <section className="py-24 bg-muted/30 border-y border-border">
-        <div className="max-w-7xl mx-auto px-6">
-          <Reveal className="text-center mb-16">
-            <div className="section-eyebrow mb-4">How It Works</div>
-            <h2 className="section-title mb-4">
-              Up and running <span className="gradient-text">in minutes</span>
-            </h2>
           </Reveal>
 
-          <div className="grid lg:grid-cols-2 gap-16">
-            {/* Company steps */}
-            <Reveal delay={0.1}>
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <Building2 className="w-4 h-4 text-blue-500" />
-                </div>
-                <h3 className="font-bold text-foreground">For Companies</h3>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { n: '01', title: 'Post Your Role', desc: 'Rich job posting with salary ranges, culture signals, and team insights. AI auto-generates the description from your requirements. Takes 5 minutes.', tag: '5 min setup' },
-                  { n: '02', title: 'AI Ranks Applicants', desc: 'Every applicant scored on skills, culture fit, and growth potential — not keywords. Only the top candidates surface. No resume-reading needed.', tag: '94% accuracy' },
-                  { n: '03', title: 'Hire in 18 Days', desc: 'Kanban pipeline, collaborative scorecards, and automated scheduling built in. Team alignment happens in the platform, not in email threads.', tag: '65% faster' },
-                ].map((step, i) => (
-                  <div key={step.n} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">
-                      {step.n}
+          <div className="grid md:grid-cols-3 gap-6">
+            {pricingPlans.map((plan, i) => {
+              const price = isAnnual ? plan.annualPrice : plan.monthlyPrice
+              const savings = plan.monthlyPrice - plan.annualPrice
+              return (
+                <Reveal key={plan.id} delay={i * 0.1}
+                  className={`glass-card p-7 flex flex-col relative ${plan.highlighted ? 'border-primary/50 ring-1 ring-primary/20' : ''}`}>
+                  {plan.highlighted && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-xs font-bold text-white shadow-lg">
+                      Most Popular
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-bold text-foreground">{step.title}</h4>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-semibold border border-blue-500/20">{step.tag}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                  )}
+                  <div className="mb-6">
+                    <h3 className="font-bold text-foreground text-lg mb-2">{plan.name}</h3>
+                    <div className="flex items-baseline gap-1 mb-1">
+                      <AnimatePresence mode="wait">
+                        <motion.span key={price} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                          transition={{ duration: 0.2 }} className="text-4xl font-bold text-foreground">
+                          ${price.toLocaleString()}
+                        </motion.span>
+                      </AnimatePresence>
+                      <span className="text-sm text-muted-foreground">/mo</span>
                     </div>
+                    {isAnnual && savings > 0 && (
+                      <p className="text-xs text-emerald-500 font-semibold">Save ${savings}/mo billed annually</p>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                   </div>
-                ))}
-              </div>
-              <div className="mt-8">
-                <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0">
-                  <Link href="/register">Start Hiring Free <ArrowRight className="w-4 h-4 ml-1" /></Link>
-                </Button>
-              </div>
-            </Reveal>
-
-            {/* Talent steps */}
-            <Reveal delay={0.2}>
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                  <Users className="w-4 h-4 text-purple-500" />
-                </div>
-                <h3 className="font-bold text-foreground">For Job Seekers</h3>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { n: '01', title: 'Build Your Profile', desc: 'Skills, experience, salary expectations. Complete in 10 minutes. Verify your skills to get 3x more matches. No cover letters needed.', tag: '10 min setup' },
-                  { n: '02', title: 'See Your Match Score', desc: 'Daily feed of roles where you\'re genuinely competitive — with a % match score and salary intel for every role. Stop applying blindly.', tag: 'Know your odds' },
-                  { n: '03', title: 'Track with Full Visibility', desc: 'Every application has a real-time status. You\'ll always know where you stand. Zero ghosting — companies must update you within 5 business days.', tag: 'Zero ghosting' },
-                ].map((step, i) => (
-                  <div key={step.n} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">
-                      {step.n}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-bold text-foreground">{step.title}</h4>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 font-semibold border border-purple-500/20">{step.tag}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8">
-                <Button asChild variant="outline">
-                  <Link href="/talent/jobs">Browse Jobs <ChevronRight className="w-4 h-4 ml-1" /></Link>
-                </Button>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ METRICS ═════════════════════════════════════════════════════════════ */}
-      <section className="py-20 max-w-7xl mx-auto px-6">
-        <Reveal className="text-center mb-12">
-          <div className="section-eyebrow mb-4">By the Numbers</div>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Results that speak for themselves
-          </h2>
-        </Reveal>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {metrics.map((m, i) => (
-            <Reveal key={m.label} delay={i * 0.1} className="glass-card p-8 text-center group hover:border-primary/30 transition-all duration-300">
-              <div className="text-4xl md:text-5xl font-bold text-foreground mb-2">
-                <AnimatedCounter target={m.value} suffix={m.suffix} prefix={m.prefix} />
-              </div>
-              <p className="text-sm text-muted-foreground">{m.label}</p>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ PROBLEM → SOLUTION ══════════════════════════════════════════════════ */}
-      <section className="py-24 bg-muted/30 border-y border-border">
-        <div className="max-w-7xl mx-auto px-6">
-          <Reveal className="text-center mb-16">
-            <div className="section-eyebrow mb-4">The Problem</div>
-            <h2 className="section-title mb-4">
-              Hiring is broken <span className="gradient-text">for everyone.</span>
-            </h2>
-            <p className="section-subtitle">
-              Traditional job boards created a lose-lose: companies drown in unqualified resumes, candidates disappear into black holes.
-            </p>
-          </Reveal>
-
-          <div className="grid lg:grid-cols-2 gap-8 mb-16">
-            {/* Company pains */}
-            <Reveal delay={0.1} className="glass-card p-8">
-              <div className="flex items-center gap-2 mb-6">
-                <Building2 className="w-5 h-5 text-muted-foreground" />
-                <h3 className="font-bold text-foreground">Companies struggle with:</h3>
-              </div>
-              <div className="space-y-4">
-                {[
-                  { pain: '250 applicants. 22 qualified.', stat: '91% wasted effort' },
-                  { pain: '44-day average time-to-hire', stat: '$4,700 per empty seat/day' },
-                  { pain: 'Offer rejections after weeks of interviews', stat: '62% offer drop-off' },
-                  { pain: 'No visibility into sourcing ROI', stat: 'Budget wasted blindly' },
-                ].map((item) => (
-                  <div key={item.pain} className="flex items-start justify-between gap-4 py-3 border-b border-border last:border-0">
-                    <span className="text-sm text-foreground">{item.pain}</span>
-                    <span className="text-xs font-semibold text-red-500 shrink-0 bg-red-500/10 px-2 py-0.5 rounded-full">{item.stat}</span>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
-
-            {/* Candidate pains */}
-            <Reveal delay={0.15} className="glass-card p-8">
-              <div className="flex items-center gap-2 mb-6">
-                <Users className="w-5 h-5 text-muted-foreground" />
-                <h3 className="font-bold text-foreground">Candidates struggle with:</h3>
-              </div>
-              <div className="space-y-4">
-                {[
-                  { pain: '"Applied to 80 jobs, heard from 3"', stat: '96% ghosting rate' },
-                  { pain: 'ATS rejected before a human saw the resume', stat: '75% filtered out' },
-                  { pain: 'No idea what salary to expect', stat: 'Avg. $18K left on table' },
-                  { pain: 'Ghosted after making the final round', stat: 'Months of silence' },
-                ].map((item) => (
-                  <div key={item.pain} className="flex items-start justify-between gap-4 py-3 border-b border-border last:border-0">
-                    <span className="text-sm text-foreground">{item.pain}</span>
-                    <span className="text-xs font-semibold text-red-500 shrink-0 bg-red-500/10 px-2 py-0.5 rounded-full">{item.stat}</span>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
+                  <ul className="space-y-2.5 flex-1 mb-6">
+                    {plan.features.slice(0, 5).map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm text-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button asChild
+                    className={plan.highlighted ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0' : ''}
+                    variant={plan.highlighted ? 'default' : 'outline'}>
+                    <Link href={plan.id === 'enterprise' ? '/contact' : '/register'}>
+                      {plan.id === 'enterprise' ? 'Talk to Sales' : 'Start Free Trial'}
+                    </Link>
+                  </Button>
+                </Reveal>
+              )
+            })}
           </div>
 
-          {/* Solution arrow */}
-          <Reveal className="text-center">
-            <div className="inline-flex flex-col items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground">Calibr fixes both sides simultaneously</h3>
-              <div className="flex flex-wrap justify-center gap-3 max-w-2xl">
-                {[
-                  { icon: Brain, text: 'AI ranks applicants — only top 10% surface' },
-                  { icon: Clock, text: '18-day average time to hire' },
-                  { icon: Eye, text: 'Contractual candidate updates at every stage' },
-                  { icon: DollarSign, text: 'Salary intel aligns both sides before call 1' },
-                  { icon: Target, text: 'Skills verification replaces credential theater' },
-                ].map((s) => (
-                  <div key={s.text} className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border text-sm text-foreground">
-                    <s.icon className="w-3.5 h-3.5 text-primary shrink-0" />
-                    {s.text}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ═══ TESTIMONIALS ════════════════════════════════════════════════════════ */}
-      <section className="py-24 max-w-7xl mx-auto px-6">
-        <Reveal className="text-center mb-14">
-          <div className="section-eyebrow mb-4">Testimonials</div>
-          <h2 className="section-title mb-4">
-            Don&apos;t take our word for it
-          </h2>
-          <div className="flex items-center justify-center gap-1 mb-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
-            ))}
-            <span className="ml-2 text-sm font-semibold text-foreground">4.9/5</span>
-            <span className="text-sm text-muted-foreground ml-1">from 6,200+ reviews</span>
-          </div>
-        </Reveal>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testimonials.slice(0, 3).map((t, i) => (
-            <Reveal key={t.id} delay={i * 0.1} className="glass-card p-6 flex flex-col gap-4">
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <blockquote className="text-sm text-foreground leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</blockquote>
-              <div className="flex items-center gap-3 pt-2 border-t border-border">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                  {t.name.split(' ').map((n) => n[0]).join('')}
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-foreground">{t.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.role} · {t.company}</p>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ PRICING PREVIEW ═════════════════════════════════════════════════════ */}
-      <section className="py-24 bg-muted/30 border-y border-border">
-        <div className="max-w-7xl mx-auto px-6">
-          <Reveal className="text-center mb-14">
-            <div className="section-eyebrow mb-4">Pricing</div>
-            <h2 className="section-title mb-4">
-              Simple, transparent <span className="gradient-text">pricing</span>
-            </h2>
-            <p className="section-subtitle">Start free. Scale as you hire.</p>
-          </Reveal>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {pricingPlans.map((plan, i) => (
-              <Reveal key={plan.id} delay={i * 0.1} className={`glass-card p-7 flex flex-col ${plan.highlighted ? 'border-primary/50 ring-1 ring-primary/20 relative' : ''}`}>
-                {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-xs font-bold text-white">
-                    Most Popular
-                  </div>
-                )}
-                <div className="mb-6">
-                  <h3 className="font-bold text-foreground text-lg mb-1">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-3xl font-bold text-foreground">${plan.monthlyPrice.toLocaleString()}</span>
-                    <span className="text-sm text-muted-foreground">/mo</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{plan.description}</p>
-                </div>
-                <ul className="space-y-2.5 flex-1 mb-6">
-                  {plan.features.slice(0, 5).map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-foreground">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  asChild
-                  className={plan.highlighted
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0'
-                    : ''}
-                  variant={plan.highlighted ? 'default' : 'outline'}
-                >
-                  <Link href="/register">{plan.highlighted ? 'Start Free Trial' : 'Get Started'}</Link>
-                </Button>
-              </Reveal>
-            ))}
-          </div>
-
-          <Reveal className="text-center mt-8">
+          <Reveal className="text-center mt-6">
             <Link href="/pricing" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
               Compare all features <ChevronRight className="w-3.5 h-3.5" />
             </Link>
@@ -701,56 +850,37 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ TRUST BADGES ════════════════════════════════════════════════════════ */}
-      <section className="py-16 max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {trustBadges.map((b, i) => (
-            <Reveal key={b.label} delay={i * 0.08} className="glass-card p-5 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <b.icon className="w-4.5 h-4.5 text-primary" />
-              </div>
-              <span className="text-sm font-semibold text-foreground">{b.label}</span>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
       {/* ═══ FINAL CTA ═══════════════════════════════════════════════════════════ */}
       <section className="py-28 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5 dark:opacity-10 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, hsl(217 91% 60%), transparent)' }} />
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]"
+            style={{ backgroundImage: `linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
+          <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full"
+            style={{ background: 'radial-gradient(ellipse, hsl(217 91% 60% / 0.08), transparent 70%)', filter: 'blur(40px)' }}
+            animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} />
+        </div>
         <div className="relative max-w-3xl mx-auto px-6 text-center">
           <Reveal>
-            <div className="section-eyebrow mb-6">Get Started Today</div>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6 leading-tight">
-              Ready to hire smarter
+            <h2 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
+              Ready to close roles
               <br />
-              <span className="gradient-text">and get hired faster?</span>
+              <span className="gradient-text">faster than ever?</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-10">
-              Join 14,200+ companies and 87,000+ professionals already on Calibr. Free to start, no credit card required.
+              Join 14,200+ companies. Free 14-day trial. No credit card needed.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                size="lg"
-                asChild
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 shadow-lg shadow-blue-600/30 px-8 h-12 text-base"
-              >
-                <Link href="/register">
-                  Start Free — No Card Needed
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
+              <Button size="lg" asChild className="h-12 px-8 text-base bg-foreground text-background hover:bg-foreground/90 border-0">
+                <Link href="/register">Start Free — No Card <ArrowRight className="w-4 h-4 ml-1" /></Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base">
-                <Link href="/contact">
-                  Talk to Sales
-                  <MessageSquare className="w-4 h-4 ml-1" />
-                </Link>
+                <Link href="/contact">Talk to Sales</Link>
               </Button>
             </div>
           </Reveal>
         </div>
       </section>
+      </main>
 
       <Footer />
     </div>

@@ -83,6 +83,9 @@ function MobileNav({ items, label }: { items: typeof companyNavItems; label: str
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 32 }}
               className="fixed inset-y-0 left-0 z-50 w-72 flex flex-col md:hidden bg-card/95 backdrop-blur-xl border-r border-border shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${label} navigation`}
             >
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -127,8 +130,9 @@ function MobileNav({ items, label }: { items: typeof companyNavItems; label: str
                         href={item.href}
                         className={cn('sidebar-link', active && 'active')}
                         onClick={() => setOpen(false)}
+                        aria-current={active ? 'page' : undefined}
                       >
-                        <item.icon className="w-4 h-4 shrink-0" />
+                        <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
                         <span className="flex-1">{item.label}</span>
                         {'badge' in item && item.badge && (
                           <Badge variant="ghost" className="text-[10px] h-5 px-1.5">

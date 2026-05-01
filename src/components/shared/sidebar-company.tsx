@@ -40,7 +40,7 @@ export function SidebarCompany() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 z-40 hidden md:flex flex-col">
+    <aside className="fixed left-0 top-0 h-full w-64 z-40 hidden md:flex flex-col" aria-label="Company sidebar navigation">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
@@ -79,8 +79,9 @@ export function SidebarCompany() {
               key={item.label}
               href={item.href}
               className={cn('sidebar-link', active && 'active')}
+              aria-current={active ? 'page' : undefined}
             >
-              <item.icon className="w-4 h-4 shrink-0" />
+              <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span className="flex-1">{item.label}</span>
               {item.badge && (
                 <Badge variant="ghost" className="text-[10px] h-5 px-1.5">
