@@ -1,11 +1,11 @@
-'use client'
+﻿'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { jobs, applications, pipelineColumns } from '@/lib/data'
+import { getJobs, getApplications } from '@/lib/api'
 import { STAGE_LABELS, STAGE_COLORS, PIPELINE_STAGES } from '@/lib/constants'
-import type { PipelineStage, Application } from '@/lib/types'
+import type { Job, PipelineStage, Application } from '@/lib/types'
 import { cn, timeAgo } from '@/lib/utils'
 import {
   Plus,
@@ -21,7 +21,7 @@ import {
   Clock,
 } from 'lucide-react'
 
-// ─── Stage dot colors (TalentLoop palette) ────────────────────────────────────
+// ─── Stage dot colors (TalentBridge palette) ────────────────────────────────────
 
 const STAGE_DOT: Record<PipelineStage, string> = {
   new: 'bg-tl-blue',
@@ -260,14 +260,27 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PipelinePage() {
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedJob, setSelectedJob] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Build all apps list from pipelineColumns (with data from all applications)
+  useEffect(() => {
+    async function load() {
+      const [jobsRes, appsRes] = await Promise.all([getJobs(), getApplications()])
+      if (jobsRes.data) setJobs(jobsRes.data)
+      if (appsRes.data) setApplications(appsRes.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  // Build all apps list (exclude rejected)
   const allApps = useMemo(() => {
     return applications.filter((a) => a.stage !== 'rejected')
-  }, [])
+  }, [applications])
 
   // Filter by job + search
   const filteredApps = useMemo(() => {
@@ -299,6 +312,12 @@ export default function PipelinePage() {
       cards: filteredApps.filter((a) => a.stage === stage),
     }))
   }, [filteredApps])
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="flex flex-col h-full min-h-screen">

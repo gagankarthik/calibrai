@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { applications } from '@/lib/data'
+import { getApplications } from '@/lib/api'
+import type { Application } from '@/lib/types'
 import {
   TrendingUp,
   Users,
@@ -168,6 +169,17 @@ function HiringFunnel() {
 
 export default function AnalyticsPage() {
   const [activeRange, setActiveRange] = useState<'7d' | '30d' | '90d'>('30d')
+  const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const res = await getApplications()
+      if (res.data) setApplications(res.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const totalApplications = applications.length
 
@@ -209,6 +221,12 @@ export default function AnalyticsPage() {
       trendDesc: 'vs last quarter',
     },
   ]
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="p-6 max-w-screen">

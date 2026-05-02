@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { candidates } from '@/lib/data'
+import { useState, useEffect } from 'react'
+import { getTalentProfile } from '@/lib/api'
 import { Skill } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
@@ -41,8 +41,6 @@ import {
   GitBranch,
   FlaskConical,
 } from 'lucide-react'
-
-const alex = candidates[0]
 
 type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert'
 
@@ -274,10 +272,28 @@ export default function SkillsPage() {
   const [certForm, setCertForm] = useState<CertForm>(emptyCertForm)
   const [assessmentList, setAssessmentList] = useState<Assessment[]>(assessments)
   const [startingId, setStartingId] = useState<string | null>(null)
+  const [verifiedSkills, setVerifiedSkills] = useState<Skill[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const verifiedSkills = alex.skills.filter(s => s.verified)
+  useEffect(() => {
+    async function load() {
+      const res = await getTalentProfile()
+      if (res.data) {
+        setVerifiedSkills(res.data.skills.filter(s => s.verified))
+      }
+      setLoading(false)
+    }
+    load()
+  }, [])
+
   const totalAssessmentsPassed = assessmentList.filter(a => a.taken).length
   const profileBoost = 34
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   function handleSaveCert() {
     if (!certForm.name || !certForm.issuer) return

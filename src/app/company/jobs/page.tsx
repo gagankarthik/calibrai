@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { jobs as allJobs } from '@/lib/data'
+import { getJobs } from '@/lib/api'
 import type { Job } from '@/lib/types'
 import { formatSalary, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -79,11 +79,22 @@ function daysActive(postedAt: string): number {
 }
 
 export default function JobsPage() {
+  const [allJobs, setAllJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [workModeFilter, setWorkModeFilter] = useState<string>('all')
   const [levelFilter, setLevelFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    async function load() {
+      const res = await getJobs()
+      if (res.data) setAllJobs(res.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   // Track paused jobs locally
   const [pausedJobs, setPausedJobs] = useState<Set<string>>(new Set())
@@ -129,6 +140,12 @@ export default function JobsPage() {
   }
 
   const hasFilters = search || statusFilter !== 'all' || workModeFilter !== 'all' || levelFilter !== 'all'
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl">

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { jobs } from '@/lib/data'
+import { getJobs } from '@/lib/api'
+import type { Job } from '@/lib/types'
 import { formatSalary, timeAgo, cn } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
@@ -97,7 +98,7 @@ type SortBy = 'match' | 'newest' | 'salary'
 const ITEMS = 10
 
 // ─── Job Card ─────────────────────────────────────────────────────────────────
-function JobCard({ job, saved, onSave }: { job: typeof jobs[0] & { score: number }; saved: boolean; onSave: () => void }) {
+function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: boolean; onSave: () => void }) {
   const isNew = (Date.now() - new Date(job.postedAt).getTime()) < 1000 * 60 * 60 * 48
 
   return (
@@ -223,6 +224,18 @@ export default function JobsPage() {
   const [sortBy, setSortBy]         = useState<SortBy>('match')
   const [page, setPage]             = useState(1)
   const [savedIds, setSavedIds]     = useState<Set<string>>(new Set())
+  const [allJobs, setAllJobs]       = useState<Job[]>([])
+  const [loading, setLoading]       = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const res = await getJobs()
+      if (res.data) setAllJobs(res.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const toggleSave = (id: string) => {
     setSavedIds(prev => {
@@ -233,8 +246,8 @@ export default function JobsPage() {
   }
 
   const jobsWithScore = useMemo(
-    () => jobs.map(j => ({ ...j, score: getMatchScore(j.id) })),
-    []
+    () => allJobs.map(j => ({ ...j, score: getMatchScore(j.id) })),
+    [allJobs]
   )
 
   const filtered = useMemo(() => {
@@ -274,6 +287,12 @@ export default function JobsPage() {
     setExperienceLevels([]); setMinMatch(false); setPage(1)
   }
 
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
   const listVariants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.05 } },
@@ -295,7 +314,7 @@ export default function JobsPage() {
       >
         <h1 className="text-2xl font-display font-bold text-tl-text-primary">Find Your Next Role</h1>
         <p className="text-tl-text-secondary mt-1 text-sm">
-          {jobs.length} jobs available &middot;{' '}
+          {allJobs.length} jobs available &middot;{' '}
           <span className="text-tl-teal font-semibold font-mono">{highMatchCount} match 80%+</span>
         </p>
       </motion.div>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -45,7 +45,7 @@ export function SidebarTalent() {
         </div>
         <div>
           <span className="font-display text-sm font-bold text-tl-text-primary">
-            TalentLoop
+            TalentBridge
           </span>
         </div>
       </div>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, KeyboardEvent } from 'react'
+import { useState, useEffect, KeyboardEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { candidates } from '@/lib/data'
+import { getTalentProfile, updateTalentProfile } from '@/lib/api'
+import type { Candidate } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,8 +45,6 @@ import {
   Eye,
   Bookmark,
 } from 'lucide-react'
-
-const alex = candidates[0]
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
 const TABS = ['About', 'Experience', 'Education', 'Skills', 'Preferences'] as const
@@ -121,55 +120,86 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 export default function ProfilePage() {
   const [activeTab, setActiveTab]   = useState<Tab>('About')
   const [isAvailable, setIsAvailable] = useState(true)
-  const [editMode]                  = useState(false)
+  const [profile, setProfile]       = useState<Candidate | null>(null)
+  const [loading, setLoading]       = useState(true)
 
   // About
   const [headline, setHeadline]   = useState('Senior Frontend Engineer')
-  const [bio, setBio]             = useState(alex.bio)
-  const [location, setLocation]   = useState(alex.location)
-  const [languages, setLanguages] = useState<string[]>(alex.languages)
+  const [bio, setBio]             = useState('')
+  const [location, setLocation]   = useState('')
+  const [languages, setLanguages] = useState<string[]>([])
   const [langInput, setLangInput] = useState('')
   const [savedAbout, setSavedAbout] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [salaryMin, setSalaryMin] = useState('145000')
   const [salaryMax, setSalaryMax] = useState('165000')
 
   // Experience
-  const [experiences, setExperiences] = useState(alex.experience)
+  const [experiences, setExperiences] = useState<Candidate['experience']>([])
   const [showExpForm, setShowExpForm] = useState(false)
   const [editExpId, setEditExpId]     = useState<string | null>(null)
   const [expForm, setExpForm]         = useState<ExpForm>(EMPTY_EXP)
 
   // Education
-  const [educations, setEducations] = useState(alex.education)
+  const [educations, setEducations] = useState<Candidate['education']>([])
   const [showEduForm, setShowEduForm] = useState(false)
   const [editEduId, setEditEduId]     = useState<string | null>(null)
   const [eduForm, setEduForm]         = useState<EduForm>(EMPTY_EDU)
 
   // Skills
-  const [skills, setSkills]               = useState(alex.skills)
+  const [skills, setSkills]               = useState<Candidate['skills']>([])
   const [showSkillInput, setShowSkillInput] = useState(false)
   const [newSkillName, setNewSkillName]   = useState('')
   const [newSkillLevel, setNewSkillLevel] = useState<SkillLevel>('intermediate')
 
   // Preferences
-  const [workPref, setWorkPref]           = useState<string[]>(alex.workPreference)
+  const [workPref, setWorkPref]           = useState<string[]>([])
   const [jobTypePref, setJobTypePref]     = useState<string[]>(['full-time', 'contract'])
   const [industryPref, setIndustryPref]   = useState<string[]>(['FinTech', 'Developer Tools', 'SaaS'])
   const [openRelocation, setOpenRelocation] = useState(false)
   const [noticePeriod, setNoticePeriod]   = useState('2 weeks')
 
   // Social
-  const [github, setGithub]       = useState(alex.github ?? '')
-  const [linkedin, setLinkedin]   = useState(alex.linkedin ?? '')
-  const [portfolio, setPortfolio] = useState(alex.portfolio ?? '')
+  const [github, setGithub]       = useState('')
+  const [linkedin, setLinkedin]   = useState('')
+  const [portfolio, setPortfolio] = useState('')
 
   // Checklist
   const [checklist, setChecklist] = useState(INITIAL_CHECKLIST)
+
+  // Load profile from API
+  useEffect(() => {
+    async function load() {
+      const res = await getTalentProfile()
+      if (res.data) {
+        const p = res.data
+        setProfile(p)
+        setBio(p.bio ?? '')
+        setLocation(p.location ?? '')
+        setLanguages(p.languages ?? [])
+        setExperiences(p.experience ?? [])
+        setEducations(p.education ?? [])
+        setSkills(p.skills ?? [])
+        setWorkPref(p.workPreference ?? [])
+        setGithub(p.github ?? '')
+        setLinkedin(p.linkedin ?? '')
+        setPortfolio(p.portfolio ?? '')
+      }
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const profileScore  = 82
   const doneCount     = checklist.filter(c => c.done).length
   const verifiedSkills = skills.filter(s => s.verified)
   const selfSkills     = skills.filter(s => !s.verified)
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function handleLangKeydown(e: KeyboardEvent<HTMLInputElement>) {
@@ -268,7 +298,7 @@ export default function ProfilePage() {
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-display font-bold text-tl-text-primary">{alex.name}</h1>
+            <h1 className="text-2xl font-display font-bold text-tl-text-primary">{profile?.name ?? 'Your Profile'}</h1>
             <p className="text-tl-text-secondary mt-0.5">{headline}</p>
             <div className="flex items-center gap-1.5 mt-1 text-sm text-tl-text-secondary">
               <MapPin className="w-3.5 h-3.5" />{location}
@@ -541,11 +571,11 @@ export default function ProfilePage() {
                   <div className="tl-card p-5 grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-tl-text-secondary text-xs">Email</Label>
-                      <Input id="email" value={alex.email} readOnly className="opacity-70 bg-tl-bg-elevated border-tl-border-default text-tl-text-secondary" />
+                      <Input id="email" value={profile?.email ?? ''} readOnly className="opacity-70 bg-tl-bg-elevated border-tl-border-default text-tl-text-secondary" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-tl-text-secondary text-xs">Phone</Label>
-                      <Input id="phone" value={alex.phone} readOnly className="opacity-70 bg-tl-bg-elevated border-tl-border-default text-tl-text-secondary" />
+                      <Input id="phone" value={profile?.phone ?? ''} readOnly className="opacity-70 bg-tl-bg-elevated border-tl-border-default text-tl-text-secondary" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-tl-text-secondary text-xs">Location</Label>
@@ -582,9 +612,19 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-2">
+                  <div className="flex justify-end pt-2 flex-col items-end gap-2">
+                    {saveError && <p className="text-xs text-tl-rose">{saveError}</p>}
                     <button
-                      onClick={() => { setSavedAbout(true); setTimeout(() => setSavedAbout(false), 2500) }}
+                      onClick={async () => {
+                        setSaveError(null)
+                        const res = await updateTalentProfile({ bio, location, languages, github, linkedin, portfolio })
+                        if (res.error) {
+                          setSaveError(res.error)
+                        } else {
+                          setSavedAbout(true)
+                          setTimeout(() => setSavedAbout(false), 2500)
+                        }
+                      }}
                       className="btn-gold gap-2 flex items-center"
                     >
                       {savedAbout

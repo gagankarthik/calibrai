@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useState } from 'react'
@@ -108,7 +108,7 @@ export default function RegisterPage() {
 
         <Link href="/" className="relative flex items-center gap-2.5 z-10">
           <span className="w-2.5 h-2.5 rounded-full bg-tl-gold shadow-gold block flex-shrink-0" aria-hidden="true" />
-          <span className="font-display font-bold text-xl gradient-text">TalentLoop</span>
+          <span className="font-display font-bold text-xl gradient-text">TalentBridge</span>
         </Link>
 
         <div className="relative z-10 space-y-8">
@@ -163,7 +163,7 @@ export default function RegisterPage() {
           {/* Mobile logo */}
           <Link href="/" className="flex lg:hidden items-center gap-2.5 mb-8">
             <span className="w-2.5 h-2.5 rounded-full bg-tl-gold shadow-gold block flex-shrink-0" aria-hidden="true" />
-            <span className="font-display font-bold text-xl gradient-text">TalentLoop</span>
+            <span className="font-display font-bold text-xl gradient-text">TalentBridge</span>
           </Link>
 
           {/* Step dots */}
@@ -412,7 +412,7 @@ export default function RegisterPage() {
                       htmlFor="terms"
                       className="text-xs text-tl-text-secondary leading-relaxed cursor-pointer"
                     >
-                      I agree to TalentLoop&apos;s{' '}
+                      I agree to TalentBridge&apos;s{' '}
                       <Link href="#" className="text-tl-gold hover:underline">
                         Terms of Service
                       </Link>{' '}

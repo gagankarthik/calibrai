@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-react'
+﻿import { Zap } from 'lucide-react'
 
 export default function Loading() {
   return (
@@ -12,7 +12,7 @@ export default function Loading() {
         </div>
       </div>
       <div className="flex flex-col items-center gap-1">
-        <span className="font-display text-sm font-bold gradient-text">TalentLoop</span>
+        <span className="font-display text-sm font-bold gradient-text">TalentBridge</span>
         <span className="text-xs text-tl-text-secondary animate-pulse">Loading...</span>
       </div>
     </div>

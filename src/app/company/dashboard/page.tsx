@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { jobs, applications } from '@/lib/data'
+import { getJobs, getApplications } from '@/lib/api'
+import type { Job, Application } from '@/lib/types'
 import {
   Briefcase,
   Users,
@@ -156,6 +157,19 @@ function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
 
 export default function CompanyDashboard() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d')
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [jobsRes, appsRes] = await Promise.all([getJobs(), getApplications()])
+      if (jobsRes.data) setJobs(jobsRes.data)
+      if (appsRes.data) setApplications(appsRes.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   // Real data
   const activeJobs = jobs.filter((j) => j.status === 'active')
@@ -267,6 +281,12 @@ export default function CompanyDashboard() {
       iconCls: 'text-tl-teal',
     },
   ]
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="p-6 max-w-screen">

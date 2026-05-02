@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { jobs } from '@/lib/data'
+import { getJob, getJobs, applyToJob } from '@/lib/api'
+import type { Job } from '@/lib/types'
 import { formatSalary, timeAgo, cn } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
@@ -112,23 +114,63 @@ const fadeUp = (delay = 0) => ({
 })
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function JobDetailPage({ params }: { params: { id: string } }) {
-  const job     = jobs.find(j => j.id === params.id) ?? jobs[0]
-  const score   = getMatchScore(job.id)
+export default function JobDetailPage() {
+  const params = useParams()
+  const jobId  = params.id as string
+
+  const [job, setJob]         = useState<Job | null>(null)
+  const [allJobs, setAllJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState<string | null>(null)
   const [saved, setSaved]     = useState(false)
   const [applied, setApplied] = useState(false)
   const [alertOn, setAlertOn] = useState(false)
 
-  const matchedSkills  = useMemo(() => job.skills.filter(s => hasSkill(s)), [job.skills])
-  const missingSkills  = useMemo(() => job.skills.filter(s => !hasSkill(s)), [job.skills])
+  useEffect(() => {
+    async function load() {
+      const [jobRes, allRes] = await Promise.all([getJob(jobId), getJobs()])
+      if (jobRes.data) {
+        setJob(jobRes.data)
+      } else {
+        setError(jobRes.error ?? 'Job not found')
+      }
+      if (allRes.data) setAllJobs(allRes.data)
+      setLoading(false)
+    }
+    load()
+  }, [jobId])
+
+  const handleApply = async () => {
+    if (!job) return
+    const res = await applyToJob(job.id)
+    if (res.data || res.status === 201) setApplied(true)
+  }
+
+  const score          = job ? getMatchScore(job.id) : 0
+  const matchedSkills  = useMemo(() => job ? job.skills.filter(s => hasSkill(s)) : [], [job])
+  const missingSkills  = useMemo(() => job ? job.skills.filter(s => !hasSkill(s)) : [], [job])
   const topThree       = matchedSkills.slice(0, 3)
 
   const similarJobs = useMemo(() =>
-    jobs
-      .filter(j => j.id !== job.id && j.company.industry === job.company.industry)
-      .slice(0, 3)
-      .map(j => ({ ...j, score: getMatchScore(j.id) })),
-    [job]
+    job
+      ? allJobs
+          .filter(j => j.id !== job.id && j.company.industry === job.company.industry)
+          .slice(0, 3)
+          .map(j => ({ ...j, score: getMatchScore(j.id) }))
+      : [],
+    [job, allJobs]
+  )
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (error || !job) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-tl-text-secondary">{error ?? 'Job not found'}</p>
+    </div>
   )
 
   const daysPosted = Math.floor((Date.now() - new Date(job.postedAt).getTime()) / 86400000)
@@ -204,7 +246,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
             <p className="text-sm font-semibold font-mono text-tl-gold text-center">{score}% match</p>
             <button
               className="btn-gold h-12 w-48 text-base font-semibold"
-              onClick={() => setApplied(true)}
+              onClick={handleApply}
             >
               {applied ? '✓ Applied!' : 'Apply Now →'}
             </button>

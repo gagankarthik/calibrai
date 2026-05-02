@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { jobs, applications } from '@/lib/data'
+import { getJobs, getApplications } from '@/lib/api'
+import type { Job, Application } from '@/lib/types'
 import { formatSalary, timeAgo, cn } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
@@ -108,15 +109,34 @@ function DemandBar({ skill, index }: { skill: typeof DEMAND_SKILLS[0]; index: nu
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function TalentDashboardPage() {
   const [jobAlerts, setJobAlerts] = useState(true)
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [jobsRes, appsRes] = await Promise.all([getJobs(), getApplications()])
+      if (jobsRes.data) setJobs(jobsRes.data)
+      if (appsRes.data) setApplications(appsRes.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const topMatches = useMemo(
     () => jobs.slice(0, 4).map(j => ({ ...j, score: getMatchScore(j.id) })),
-    []
+    [jobs]
   )
   const recentApps = applications.slice(0, 5)
 
   const strongMatchCount = topMatches.filter(j => j.score >= 85).length
   const interviewCount   = recentApps.filter(a => a.status === 'interview').length
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

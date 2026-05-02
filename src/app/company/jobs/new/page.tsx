@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { createJob } from '@/lib/api'
+import { toast } from 'sonner'
 import {
   ChevronLeft,
   ChevronRight,
@@ -100,6 +102,7 @@ function formatSalaryDisplay(val: number): string {
 export default function PostNewJobPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [isPublishing, setIsPublishing] = useState(false)
 
   // Step 1
   const step1Form = useForm<Step1Values>({
@@ -856,7 +859,7 @@ export default function PostNewJobPage() {
         {currentStep < 3 ? (
           <button
             onClick={goNext}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-blue-500/20"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-indigo-500/20"
           >
             Next
             <ChevronRight className="w-4 h-4" />
@@ -864,17 +867,81 @@ export default function PostNewJobPage() {
         ) : (
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/company/jobs')}
-              className="px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-all"
+              onClick={async () => {
+                const s1 = step1Form.getValues()
+                const s2 = step2Form.getValues()
+                setIsPublishing(true)
+                try {
+                  const result = await createJob({
+                    title: s1.title,
+                    department: s1.department,
+                    type: s1.jobType as Parameters<typeof createJob>[0]['type'],
+                    workMode: s1.workMode as Parameters<typeof createJob>[0]['workMode'],
+                    level: s1.level as Parameters<typeof createJob>[0]['level'],
+                    location: s1.location,
+                    salaryMin: s1.salaryMin,
+                    salaryMax: s1.salaryMax,
+                    currency: s1.currency,
+                    description: s2.description,
+                    requirements: requirements.filter(Boolean),
+                    niceToHave: niceToHave.filter(Boolean),
+                    skills,
+                    benefits: selectedBenefits,
+                  })
+                  if (result.error) throw new Error(result.error)
+                  toast.success('Job saved as draft')
+                  router.push('/company/jobs')
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Failed to save draft')
+                } finally {
+                  setIsPublishing(false)
+                }
+              }}
+              disabled={isPublishing}
+              className="px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all disabled:opacity-50"
             >
               Save as Draft
             </button>
             <button
-              onClick={() => router.push('/company/jobs')}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 transition-all"
+              disabled={isPublishing}
+              onClick={async () => {
+                const s1 = step1Form.getValues()
+                const s2 = step2Form.getValues()
+                setIsPublishing(true)
+                try {
+                  const result = await createJob({
+                    title: s1.title,
+                    department: s1.department,
+                    type: s1.jobType as Parameters<typeof createJob>[0]['type'],
+                    workMode: s1.workMode as Parameters<typeof createJob>[0]['workMode'],
+                    level: s1.level as Parameters<typeof createJob>[0]['level'],
+                    location: s1.location,
+                    salaryMin: s1.salaryMin,
+                    salaryMax: s1.salaryMax,
+                    currency: s1.currency,
+                    description: s2.description,
+                    requirements: requirements.filter(Boolean),
+                    niceToHave: niceToHave.filter(Boolean),
+                    skills,
+                    benefits: selectedBenefits,
+                  })
+                  if (result.error) throw new Error(result.error)
+                  toast.success('Job published! AI candidate discovery started in background.')
+                  router.push('/company/jobs')
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Failed to publish job')
+                } finally {
+                  setIsPublishing(false)
+                }
+              }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
             >
-              <Zap className="w-4 h-4" />
-              Publish Job
+              {isPublishing ? (
+                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4" />
+              )}
+              {isPublishing ? 'Publishing…' : 'Publish Job'}
             </button>
           </div>
         )}

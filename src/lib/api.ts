@@ -27,7 +27,7 @@ import type {
 // Configuration
 // ---------------------------------------------------------------------------
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== 'false'
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 // ---------------------------------------------------------------------------

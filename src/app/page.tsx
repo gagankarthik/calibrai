@@ -1,1411 +1,730 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useState, useEffect, useRef } from 'react'
+import { motion, useInView } from 'framer-motion'
 import {
-  motion,
-  useInView,
-  AnimatePresence,
-} from 'framer-motion'
-import {
-  CheckCircle2,
-  ArrowRight,
-  Brain,
-  Zap,
-  Shield,
-  ChevronRight,
-  Star,
-  BarChart3,
-  Clock,
-  Users,
-  TrendingUp,
+  ArrowRight, Sparkles, BarChart3, Users, Zap, Shield,
+  Search, Menu, X, Clock, Brain, MessageSquare,
+  Lock, CheckCircle2, Star, TrendingUp,
 } from 'lucide-react'
-import { Navbar } from '@/components/shared/navbar'
-import { Footer } from '@/components/shared/footer'
-import { pricingPlans } from '@/lib/data'
+import { cn } from '@/lib/utils'
 
-// ─── useCounter ───────────────────────────────────────────────────────────────
+// ─── Scroll-triggered fade-in wrapper ────────────────────────────────────────
 
-function useCounter(target: number, active: boolean, duration = 1800): number {
-  const [count, setCount] = useState(0)
-  const started = useRef(false)
-  useEffect(() => {
-    if (!active || started.current) return
-    started.current = true
-    const steps = 60
-    const inc = target / steps
-    let cur = 0
-    const t = setInterval(() => {
-      cur += inc
-      if (cur >= target) {
-        setCount(target)
-        clearInterval(t)
-      } else {
-        setCount(Math.floor(cur))
-      }
-    }, duration / steps)
-    return () => clearInterval(t)
-  }, [active, target, duration])
-  return count
-}
-
-// ─── HeroSection ─────────────────────────────────────────────────────────────
-
-function HeroSection() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const heroRef = useRef<HTMLElement>(null)
-  const inView = useInView(heroRef, { once: true })
-
-  // Canvas particle field — 50 gold dots floating with subtle drift
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const prefersReduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (prefersReduced) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let raf: number
-    let W = 0
-    let H = 0
-
-    const PARTICLE_COUNT = 50
-    type Particle = {
-      x: number
-      y: number
-      vx: number
-      vy: number
-      r: number
-      opacity: number
-    }
-
-    // Deterministic pseudo-random seeded by index
-    function seed(n: number): number {
-      const x = Math.sin(n + 1) * 10000
-      return x - Math.floor(x)
-    }
-
-    const particles: Particle[] = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-      x: seed(i * 3) * 1920,
-      y: seed(i * 3 + 1) * 1080,
-      vx: (seed(i * 3 + 2) - 0.5) * 0.35,
-      vy: (seed(i * 3 + 4) - 0.5) * 0.35,
-      r: seed(i * 5) * 1.5 + 0.5,
-      opacity: seed(i * 7) * 0.25 + 0.15,
-    }))
-
-    function resize() {
-      if (!canvas) return
-      W = canvas.offsetWidth
-      H = canvas.offsetHeight
-      canvas.width = W * window.devicePixelRatio
-      canvas.height = H * window.devicePixelRatio
-      if (ctx) ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
-      // Clamp particle positions after resize
-      for (const p of particles) {
-        p.x = seed(particles.indexOf(p) * 3) * W
-        p.y = seed(particles.indexOf(p) * 3 + 1) * H
-      }
-    }
-
-    resize()
-    window.addEventListener('resize', resize)
-
-    function draw() {
-      if (!ctx || !canvas) return
-      ctx.clearRect(0, 0, W, H)
-      for (const p of particles) {
-        p.x += p.vx
-        p.y += p.vy
-        if (p.x < 0) p.x = W
-        if (p.x > W) p.x = 0
-        if (p.y < 0) p.y = H
-        if (p.y > H) p.y = 0
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(201,168,76,${p.opacity})`
-        ctx.fill()
-      }
-      raf = requestAnimationFrame(draw)
-    }
-
-    draw()
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
-
-  const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1]
-
+function FadeIn({
+  children,
+  delay = 0,
+  className,
+  up = true,
+}: {
+  children: React.ReactNode
+  delay?: number
+  className?: string
+  up?: boolean
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-60px' })
   return (
-    <section
-      ref={heroRef}
-      className="relative min-h-[100vh] flex flex-col items-center justify-center pt-24 pb-16 overflow-hidden"
-      style={{ background: '#0A0B0F' }}
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: up ? 20 : 0 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.55, delay, ease: [0.21, 0.47, 0.32, 0.98] }}
+      className={className}
     >
-      {/* Canvas particle field — z-index 0, behind everything */}
-      <canvas
-        ref={canvasRef}
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        style={{ zIndex: 0 }}
-      />
-
-      {/* Radial gold glow at top center */}
-      <div
-        aria-hidden="true"
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[480px] pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.13) 0%, transparent 65%)',
-          zIndex: 1,
-        }}
-      />
-
-      {/* Content */}
-      <div
-        className="relative w-full max-w-5xl mx-auto px-6 flex flex-col items-center text-center"
-        style={{ zIndex: 2 }}
-      >
-        {/* Eyebrow pill */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, ease: EASE_OUT }}
-        >
-          <span className="section-eyebrow mb-10 inline-flex items-center gap-2">
-            <Zap className="w-3 h-3" />
-            AI-Powered Hiring Platform
-          </span>
-        </motion.div>
-
-        {/* H1 */}
-        <motion.h1
-          initial={{ opacity: 0, y: 36 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: 0.1, ease: EASE_OUT }}
-          className="font-display text-5xl md:text-7xl leading-[1.05] tracking-[-0.03em] mb-6"
-        >
-          Where talent meets
-          <br />
-          <span className="gradient-text">opportunity.</span>
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.22 }}
-          className="text-lg md:text-xl max-w-2xl leading-relaxed mb-10"
-          style={{ color: 'var(--tl-text-secondary)' }}
-        >
-          AI-powered matching that closes roles 3× faster.
-          Zero ghosting. Real salary data.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.34 }}
-          className="flex flex-col sm:flex-row gap-4 mb-10"
-        >
-          <Link
-            href="/auth/register?role=company"
-            className="btn-gold inline-flex items-center gap-2 px-7 py-3.5 text-base font-semibold"
-          >
-            Start Hiring
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/auth/register?role=talent"
-            className="btn-ghost inline-flex items-center gap-2 px-7 py-3.5 text-base font-semibold"
-          >
-            Find Jobs
-          </Link>
-        </motion.div>
-
-        {/* Trust pill badges */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.5, delay: 0.48 }}
-          className="flex flex-wrap items-center justify-center gap-3 mb-16"
-        >
-          {[
-            '94% match accuracy',
-            '12-day avg. time-to-hire',
-            'Zero ghosting policy',
-          ].map((label) => (
-            <span
-              key={label}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium"
-              style={{
-                background: 'rgba(201,168,76,0.06)',
-                border: '1px solid rgba(201,168,76,0.20)',
-                color: 'var(--tl-text-secondary)',
-              }}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" style={{ color: 'var(--tl-gold)' }} />
-              {label}
-            </span>
-          ))}
-        </motion.div>
-
-        {/* HeroSVG — candidate nodes → AI brain → job cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, delay: 0.4, ease: EASE_OUT }}
-          className="w-full max-w-3xl mx-auto relative"
-        >
-          <HeroSVG />
-
-          {/* Floating proof card — bottom right */}
-          <motion.div
-            initial={{ opacity: 0, x: 24, y: 16 }}
-            animate={inView ? { opacity: 1, x: 0, y: 0 } : {}}
-            transition={{ duration: 0.75, delay: 0.9, ease: EASE_OUT }}
-            className="tl-card absolute -bottom-4 -right-4 md:right-0 p-4 text-left w-52"
-            style={{ zIndex: 10 }}
-          >
-            <motion.div
-              animate={{ y: [-4, 4, -4] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
-                  style={{ background: 'rgba(74,159,255,0.2)', color: 'var(--tl-blue)' }}
-                >
-                  ER
-                </div>
-                <div>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--tl-text-primary)' }}>
-                    Emma — Senior Eng
-                  </p>
-                  <p className="text-[10px] font-mono" style={{ color: 'var(--tl-teal)' }}>
-                    97% match ✓
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px]" style={{ color: 'var(--tl-text-secondary)' }}>
-                  AI Match Score
-                </span>
-                <span
-                  className="font-mono text-sm font-bold"
-                  style={{ color: 'var(--tl-gold)' }}
-                >
-                  97
-                </span>
-              </div>
-              <div className="mt-1.5 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--tl-bg-overlay)' }}>
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: '97%',
-                    background: 'linear-gradient(90deg, var(--tl-gold), var(--tl-gold-light))',
-                  }}
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
+      {children}
+    </motion.div>
   )
 }
 
-// ─── HeroSVG ─────────────────────────────────────────────────────────────────
+// ─── Logo mark ────────────────────────────────────────────────────────────────
 
-function HeroSVG() {
-  const ref = useRef<SVGSVGElement>(null)
-  const inView = useInView(ref, { once: true })
-
-  const candidates = [
-    { init: 'ER', y: 50,  color: '#4A9FFF', match: '97%' },
-    { init: 'MJ', y: 115, color: '#1ECDB3', match: '91%' },
-    { init: 'SK', y: 180, color: '#C9A84C', match: '88%' },
-    { init: 'AL', y: 245, color: '#FF5C7A', match: null  },
-    { init: 'PR', y: 310, color: '#9B9890', match: null  },
-  ]
-
-  const jobs = [
-    { label: 'Stripe',      role: 'Sr. Engineer',     y: 70,  color: '#4A9FFF' },
-    { label: 'Notion',      role: 'Product Lead',     y: 180, color: '#1ECDB3' },
-    { label: 'Anthropic',   role: 'ML Engineer',      y: 290, color: '#C9A84C' },
-  ]
-
-  // Hexagon points for AI brain
-  const hexR = 38
-  const hexCX = 300
-  const hexCY = 180
-  const hexPts = Array.from({ length: 6 }, (_, i) => {
-    const a = (Math.PI / 3) * i - Math.PI / 6
-    return `${hexCX + hexR * Math.cos(a)},${hexCY + hexR * Math.sin(a)}`
-  }).join(' ')
-
+function TBMark({ size = 28 }: { size?: number }) {
   return (
-    <svg
-      ref={ref}
-      viewBox="0 0 560 360"
-      className="w-full"
-      style={{ height: 280 }}
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
       <defs>
-        <filter id="glow-gold">
-          <feGaussianBlur stdDeviation="4" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <radialGradient id="hex-fill" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#1A1D26" />
-          <stop offset="100%" stopColor="#111318" />
-        </radialGradient>
+        <linearGradient id="tbm-g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#4f46e5" />
+          <stop offset="1" stopColor="#7c3aed" />
+        </linearGradient>
       </defs>
-
-      {/* Candidate nodes (left column) */}
-      {candidates.map((c, i) => (
-        <motion.g
-          key={c.init}
-          initial={{ opacity: 0, x: -20 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ delay: 0.15 + i * 0.09, duration: 0.45 }}
-        >
-          <circle cx={68} cy={c.y} r={20} fill={`${c.color}1A`} stroke={c.color} strokeWidth="1.4" />
-          <text x={68} y={c.y + 5} textAnchor="middle" fontSize="9" fontWeight="800" fill={c.color}>
-            {c.init}
-          </text>
-          {c.match && (
-            <motion.g
-              initial={{ opacity: 0, scale: 0 }}
-              animate={inView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ delay: 0.7 + i * 0.1, duration: 0.3 }}
-              style={{ transformOrigin: `${68 + 14}px ${c.y - 22}px` }}
-            >
-              <rect x={84} y={c.y - 30} width={30} height={14} rx={7} fill={c.color} />
-              <text x={99} y={c.y - 20} textAnchor="middle" fontSize="7" fontWeight="700" fill="#0A0B0F">
-                {c.match}
-              </text>
-            </motion.g>
-          )}
-        </motion.g>
-      ))}
-
-      {/* Paths — candidates (top 3) → AI hex */}
-      {candidates.slice(0, 3).map((c, i) => {
-        const d = `M ${88},${c.y} Q ${190},${c.y} ${hexCX - hexR},${hexCY}`
-        return (
-          <g key={`in-${c.init}`}>
-            <motion.path
-              d={d}
-              stroke={c.color}
-              strokeWidth="2.5"
-              fill="none"
-              opacity={0.12}
-              strokeDasharray="6 7"
-              animate={{ strokeDashoffset: [90, 0] }}
-              transition={{ duration: 2 + i * 0.28, repeat: Infinity, ease: 'linear' }}
-            />
-            <motion.path
-              d={d}
-              stroke={c.color}
-              strokeWidth="1"
-              fill="none"
-              strokeDasharray="6 7"
-              animate={{ strokeDashoffset: [90, 0] }}
-              transition={{ duration: 2 + i * 0.28, repeat: Infinity, ease: 'linear' }}
-            />
-          </g>
-        )
-      })}
-
-      {/* AI Brain — hexagon */}
-      <motion.g
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={inView ? { opacity: 1, scale: 1 } : {}}
-        transition={{ duration: 0.65, delay: 0.38 }}
-        style={{ transformOrigin: `${hexCX}px ${hexCY}px` }}
-        filter="url(#glow-gold)"
-      >
-        {/* Outer pulse ring */}
-        <motion.polygon
-          points={Array.from({ length: 6 }, (_, i) => {
-            const a = (Math.PI / 3) * i - Math.PI / 6
-            const r2 = hexR + 10
-            return `${hexCX + r2 * Math.cos(a)},${hexCY + r2 * Math.sin(a)}`
-          }).join(' ')}
-          stroke="#C9A84C"
-          strokeWidth="1"
-          fill="none"
-          opacity={0.15}
-          animate={{ opacity: [0.15, 0, 0.15] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <polygon
-          points={hexPts}
-          fill="url(#hex-fill)"
-          stroke="#C9A84C"
-          strokeWidth="1.5"
-        />
-        <text x={hexCX} y={hexCY - 7} textAnchor="middle" fontSize="15" fill="#C9A84C">
-          ◆
-        </text>
-        <text x={hexCX} y={hexCY + 10} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#C9A84C" letterSpacing="0.08em">
-          TalentLoop AI
-        </text>
-      </motion.g>
-
-      {/* Paths — AI hex → job cards */}
-      {jobs.map((job, i) => {
-        const d = `M ${hexCX + hexR},${hexCY} Q ${410},${hexCY} ${432},${job.y}`
-        return (
-          <g key={`out-${job.label}`}>
-            <motion.path
-              d={d}
-              stroke={job.color}
-              strokeWidth="2.5"
-              fill="none"
-              opacity={0.12}
-              strokeDasharray="6 7"
-              animate={{ strokeDashoffset: [90, 0] }}
-              transition={{ duration: 2.2 + i * 0.32, repeat: Infinity, ease: 'linear', delay: 0.4 }}
-            />
-            <motion.path
-              d={d}
-              stroke={job.color}
-              strokeWidth="1"
-              fill="none"
-              strokeDasharray="6 7"
-              animate={{ strokeDashoffset: [90, 0] }}
-              transition={{ duration: 2.2 + i * 0.32, repeat: Infinity, ease: 'linear', delay: 0.4 }}
-            />
-          </g>
-        )
-      })}
-
-      {/* Job cards (right column) */}
-      {jobs.map((job, i) => (
-        <motion.g
-          key={job.label}
-          initial={{ opacity: 0, x: 24 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ delay: 0.5 + i * 0.12, duration: 0.5 }}
-        >
-          <rect x={432} y={job.y - 24} width={116} height={48} rx={10}
-            fill="#111318" stroke={job.color} strokeWidth="1.2" />
-          <text x={448} y={job.y - 5} fontSize="9" fontWeight="700" fill={job.color}>
-            {job.role}
-          </text>
-          <text x={448} y={job.y + 11} fontSize="8" fill="#9B9890">
-            {job.label}
-          </text>
-        </motion.g>
-      ))}
+      <rect width="32" height="32" rx="7" fill="url(#tbm-g)" />
+      <circle cx="16" cy="16" r="2.5" fill="white" />
+      <circle cx="8.5"  cy="16" r="1.5" fill="white" fillOpacity="0.7" />
+      <circle cx="23.5" cy="16" r="1.5" fill="white" fillOpacity="0.7" />
+      <circle cx="16"   cy="8.5" r="1.5" fill="white" fillOpacity="0.7" />
+      <circle cx="16"   cy="23.5" r="1.5" fill="white" fillOpacity="0.7" />
+      <line x1="10" y1="16" x2="13.5" y2="16" stroke="white" strokeWidth="1.2" strokeOpacity="0.5" />
+      <line x1="18.5" y1="16" x2="22" y2="16" stroke="white" strokeWidth="1.2" strokeOpacity="0.5" />
+      <line x1="16" y1="10" x2="16" y2="13.5" stroke="white" strokeWidth="1.2" strokeOpacity="0.5" />
+      <line x1="16" y1="18.5" x2="16" y2="22" stroke="white" strokeWidth="1.2" strokeOpacity="0.5" />
+      <line x1="10.5" y1="13" x2="13.5" y2="10" stroke="white" strokeWidth="0.8" strokeOpacity="0.3" />
+      <line x1="21.5" y1="13" x2="18.5" y2="10" stroke="white" strokeWidth="0.8" strokeOpacity="0.3" />
+      <line x1="10.5" y1="19" x2="13.5" y2="22" stroke="white" strokeWidth="0.8" strokeOpacity="0.3" />
+      <line x1="21.5" y1="19" x2="18.5" y2="22" stroke="white" strokeWidth="0.8" strokeOpacity="0.3" />
     </svg>
   )
 }
 
-// ─── LogoTicker ───────────────────────────────────────────────────────────────
+// ─── Navigation ──────────────────────────────────────────────────────────────
 
-const COMPANIES_ROW1 = ['Google', 'Stripe', 'Notion', 'Figma', 'Linear', 'Vercel']
-const COMPANIES_ROW2 = ['OpenAI', 'Anthropic', 'Ramp', 'Brex', 'Arc', 'Cursor']
-
-function LogoTicker() {
-  const doubled1 = [...COMPANIES_ROW1, ...COMPANIES_ROW1]
-  const doubled2 = [...COMPANIES_ROW2, ...COMPANIES_ROW2]
-
-  return (
-    <section
-      className="py-14 overflow-hidden border-y"
-      style={{
-        borderColor: 'var(--tl-border-subtle)',
-        background: 'var(--tl-bg-surface)',
-      }}
-    >
-      <p
-        className="text-center text-[10px] font-semibold uppercase tracking-[0.22em] mb-8"
-        style={{ color: 'var(--tl-text-tertiary)' }}
-      >
-        Trusted by teams at
-      </p>
-      <div className="space-y-3">
-        {/* Row 1 — scrolls left */}
-        <div className="overflow-hidden">
-          <div
-            className="flex gap-3 w-max"
-            style={{ animation: 'marquee 28s linear infinite' }}
-          >
-            {doubled1.map((name, i) => (
-              <span
-                key={`r1-${name}-${i}`}
-                className="tl-card px-5 py-2 text-sm font-medium whitespace-nowrap"
-                style={{ color: 'var(--tl-text-secondary)', borderRadius: '999px' }}
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-        {/* Row 2 — scrolls right */}
-        <div className="overflow-hidden">
-          <div
-            className="flex gap-3 w-max"
-            style={{ animation: 'marquee-reverse 34s linear infinite' }}
-          >
-            {doubled2.map((name, i) => (
-              <span
-                key={`r2-${name}-${i}`}
-                className="tl-card px-5 py-2 text-sm font-medium whitespace-nowrap"
-                style={{ color: 'var(--tl-text-secondary)', borderRadius: '999px' }}
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ─── DualPromise ──────────────────────────────────────────────────────────────
-
-const COMPANY_BENEFITS = [
-  'AI ranks every applicant with explainable scores',
-  'Kanban pipeline from applied to hired, in one view',
-  'Automatic candidate comms — zero ghosting guaranteed',
-  'Real salary benchmarks pre-filled on every posting',
+const NAV_ITEMS = [
+  { label: 'Product',      href: '#features' },
+  { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Pricing',      href: '/pricing' },
+  { label: 'For Talent',   href: '/auth/register?role=talent' },
 ]
 
-const SEEKER_BENEFITS = [
-  'AI matches you to roles by skills, culture, and salary',
-  'Real-time status on every application you submit',
-  'Feedback on every rejection — no more silence',
-  'Salary transparency before you apply, not after',
-]
+function Nav() {
+  const [open, setOpen]       = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
-function DualPromise() {
-  const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
-  const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1]
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   return (
-    <section
-      ref={ref}
-      id="companies"
-      className="py-28 max-w-7xl mx-auto px-6"
+    <header
+      className={cn(
+        'fixed top-0 inset-x-0 z-50 transition-all duration-200',
+        scrolled
+          ? 'bg-white/[0.97] backdrop-blur-md border-b border-slate-200 shadow-[0_1px_4px_rgba(0,0,0,0.04)]'
+          : 'bg-white/80 backdrop-blur-sm',
+      )}
     >
-      {/* Seekers anchor */}
-      <div id="seekers" />
+      <nav className="mx-auto max-w-6xl px-4 sm:px-6 h-[60px] flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <TBMark size={26} />
+          <span className="text-[14.5px] font-semibold text-slate-900 tracking-tight">
+            TalentBridge
+          </span>
+        </Link>
 
-      <div className="text-center mb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
-        >
-          <span className="section-eyebrow mb-5 inline-block">Built for both sides</span>
-        </motion.div>
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.65, delay: 0.08 }}
-          className="font-display text-4xl md:text-5xl mb-4"
-        >
-          One platform. Two promises.
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.18 }}
-          className="text-lg max-w-2xl mx-auto"
-          style={{ color: 'var(--tl-text-secondary)' }}
-        >
-          Great hiring is a two-way conversation. TalentLoop is the only
-          platform that actually serves both sides.
-        </motion.p>
-      </div>
+        {/* Desktop links */}
+        <div className="hidden md:flex items-center gap-0.5">
+          {NAV_ITEMS.map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              className="px-3.5 py-2 text-[13.5px] font-medium text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-50 transition-colors duration-150"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
 
-      <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-        {/* For Hiring Teams */}
-        <motion.div
-          initial={{ opacity: 0, x: -40 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.7, delay: 0.18, ease: EASE_OUT }}
-          className="tl-card-elevated p-10 flex flex-col"
-          style={{ borderLeft: '3px solid var(--tl-teal)' }}
-        >
-          <span className="tl-tag-teal tl-tag mb-5 self-start">For Hiring Teams</span>
-          <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--tl-text-primary)' }}>
-            Find signal in the noise.
-          </h3>
-          <p className="mb-8" style={{ color: 'var(--tl-text-secondary)', lineHeight: 1.7 }}>
-            Stop manually reviewing hundreds of résumés. Our AI ranks, explains,
-            and surfaces only the candidates that matter — then handles all
-            the follow-up communication.
-          </p>
-          <ul className="space-y-3 mb-10 flex-1">
-            {COMPANY_BENEFITS.map((b) => (
-              <li key={b} className="flex items-start gap-3 text-sm" style={{ color: 'var(--tl-text-secondary)' }}>
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--tl-teal)' }} />
-                {b}
-              </li>
-            ))}
-          </ul>
+        {/* CTA group */}
+        <div className="hidden md:flex items-center gap-2">
+          <Link
+            href="/auth/login"
+            className="px-4 py-2 text-[13.5px] font-medium text-slate-500 hover:text-slate-900 transition-colors duration-150"
+          >
+            Sign in
+          </Link>
           <Link
             href="/auth/register?role=company"
-            className="btn-gold inline-flex items-center gap-2 self-start px-6 py-3 text-sm font-semibold"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-[13.5px] font-semibold hover:bg-slate-700 transition-colors duration-150"
           >
-            Start hiring smarter <ChevronRight className="w-4 h-4" />
+            Get started
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
-        </motion.div>
+        </div>
 
-        {/* For Job Seekers */}
-        <motion.div
-          initial={{ opacity: 0, x: 40 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.7, delay: 0.28, ease: EASE_OUT }}
-          className="tl-card-elevated p-10 flex flex-col"
-          style={{ borderLeft: '3px solid var(--tl-gold)' }}
+        {/* Mobile toggle */}
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+          aria-label="Toggle menu"
         >
-          <span className="tl-tag-gold tl-tag mb-5 self-start">For Job Seekers</span>
-          <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--tl-text-primary)' }}>
-            No more black holes.
-          </h3>
-          <p className="mb-8" style={{ color: 'var(--tl-text-secondary)', lineHeight: 1.7 }}>
-            Apply once, get matched to roles that fit your actual experience.
-            See exactly where you stand in every process. Never get ghosted
-            without an explanation again.
-          </p>
-          <ul className="space-y-3 mb-10 flex-1">
-            {SEEKER_BENEFITS.map((b) => (
-              <li key={b} className="flex items-start gap-3 text-sm" style={{ color: 'var(--tl-text-secondary)' }}>
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--tl-gold)' }} />
-                {b}
-              </li>
-            ))}
-          </ul>
+          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </nav>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div className="md:hidden border-t border-slate-100 bg-white px-4 py-4 space-y-1">
+          {[...NAV_ITEMS, { label: 'Sign in', href: '/auth/login' }].map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              onClick={() => setOpen(false)}
+              className="block px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              {label}
+            </Link>
+          ))}
           <Link
-            href="/auth/register?role=talent"
-            className="btn-ghost inline-flex items-center gap-2 self-start px-6 py-3 text-sm font-semibold"
+            href="/auth/register?role=company"
+            onClick={() => setOpen(false)}
+            className="block mt-2 px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold text-center"
           >
-            Find your next role <ChevronRight className="w-4 h-4" />
+            Get started free
           </Link>
-        </motion.div>
-      </div>
-    </section>
+        </div>
+      )}
+    </header>
   )
 }
 
-// ─── BentoStats ───────────────────────────────────────────────────────────────
+// ─── Product mockup ───────────────────────────────────────────────────────────
 
-function BentoStats() {
-  const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
-  const countA = useCounter(847, inView)
-  const countB = useCounter(94, inView)
-  const countC = useCounter(48, inView)
-  const countD = useCounter(11, inView)
-
-  return (
-    <section
-      ref={ref}
-      className="py-28 border-y"
-      style={{
-        borderColor: 'var(--tl-border-subtle)',
-        background: 'var(--tl-bg-surface)',
-      }}
-    >
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-14">
-          <motion.span
-            initial={{ opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.45 }}
-            className="section-eyebrow mb-5 inline-block"
-          >
-            By The Numbers
-          </motion.span>
-          <motion.h2
-            initial={{ opacity: 0, y: 24 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.08 }}
-            className="font-display text-4xl md:text-5xl mb-4"
-          >
-            The math speaks for itself.
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.18 }}
-            className="text-lg"
-            style={{ color: 'var(--tl-text-secondary)' }}
-          >
-            Real outcomes from real teams using TalentLoop in production.
-          </motion.p>
-        </div>
-
-        {/* 2+3 bento grid */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          {/* Large card A */}
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0, duration: 0.55 }}
-            className="tl-card md:col-span-3 p-8 flex flex-col cursor-default"
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--tl-text-tertiary)' }}>
-              Applicants → Interviews
-            </p>
-            <div
-              className="font-mono text-6xl font-bold leading-none mb-3 gradient-text"
-            >
-              {countA === 847 ? '847→12' : countA}
-            </div>
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--tl-text-primary)' }}>
-              Candidates AI-shortlisted, ready to interview
-            </p>
-            <p className="text-xs mb-6" style={{ color: 'var(--tl-text-secondary)' }}>
-              Traditional ATS: review all 847. TalentLoop: we review them all,
-              hand you the 12 that matter.
-            </p>
-            <div className="mt-auto space-y-3">
-              {[
-                { label: 'Traditional: 847 to review', pct: '100%', w: '100%', color: 'var(--tl-rose)' },
-                { label: 'TalentLoop: 12 to review', pct: '1.4%', w: '1.4%', color: 'var(--tl-teal)' },
-              ].map((row) => (
-                <div key={row.label}>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span style={{ color: 'var(--tl-text-secondary)' }}>{row.label}</span>
-                    <span className="font-semibold" style={{ color: row.color }}>{row.pct}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--tl-bg-overlay)' }}>
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ background: row.color }}
-                      initial={{ width: 0 }}
-                      animate={inView ? { width: row.w } : { width: 0 }}
-                      transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Large card B */}
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.1, duration: 0.55 }}
-            className="tl-card md:col-span-3 p-8 flex flex-col cursor-default"
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--tl-text-tertiary)' }}>
-              Match Accuracy
-            </p>
-            <div className="font-mono text-6xl font-bold leading-none mb-3" style={{ color: 'var(--tl-teal)' }}>
-              {countB}%
-            </div>
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--tl-text-primary)' }}>
-              Candidate recommendations result in interviews
-            </p>
-            <p className="text-xs mb-6" style={{ color: 'var(--tl-text-secondary)' }}>
-              94% vs. 23% industry average. Our AI reads career trajectory,
-              skill depth, and cultural signals that keywords miss.
-            </p>
-            <div className="mt-auto space-y-3">
-              {[
-                { label: 'TalentLoop', pct: '94%', w: '94%', color: 'var(--tl-teal)' },
-                { label: 'Industry average', pct: '23%', w: '23%', color: 'var(--tl-text-tertiary)' },
-              ].map((row) => (
-                <div key={row.label}>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span style={{ color: 'var(--tl-text-secondary)' }}>{row.label}</span>
-                    <span className="font-semibold" style={{ color: row.color }}>{row.pct}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--tl-bg-overlay)' }}>
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ background: row.color }}
-                      initial={{ width: 0 }}
-                      animate={inView ? { width: row.w } : { width: 0 }}
-                      transition={{ duration: 1.2, delay: 0.5, ease: 'easeOut' }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Small card C */}
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.2, duration: 0.55 }}
-            className="tl-card md:col-span-2 p-7 flex flex-col cursor-default"
-          >
-            <Clock className="w-6 h-6 mb-4" style={{ color: 'var(--tl-gold)' }} />
-            <div className="font-mono text-5xl font-bold leading-none mb-2" style={{ color: 'var(--tl-gold)' }}>
-              {countD} <span className="text-2xl">days</span>
-            </div>
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--tl-text-primary)' }}>
-              Avg. time to hire
-            </p>
-            <p className="text-xs" style={{ color: 'var(--tl-text-secondary)' }}>
-              vs. 40-day industry avg.
-            </p>
-          </motion.div>
-
-          {/* Small card D */}
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.3, duration: 0.55 }}
-            className="tl-card md:col-span-2 p-7 flex flex-col cursor-default"
-          >
-            <BarChart3 className="w-6 h-6 mb-4" style={{ color: 'var(--tl-blue)' }} />
-            <div className="font-mono text-5xl font-bold leading-none mb-2" style={{ color: 'var(--tl-blue)' }}>
-              ${countC}K
-            </div>
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--tl-text-primary)' }}>
-              Avg. salary increase
-            </p>
-            <p className="text-xs" style={{ color: 'var(--tl-text-secondary)' }}>
-              For candidates placed through TalentLoop.
-            </p>
-          </motion.div>
-
-          {/* Small card E */}
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.4, duration: 0.55 }}
-            className="tl-card md:col-span-2 p-7 flex flex-col cursor-default"
-          >
-            <Shield className="w-6 h-6 mb-4" style={{ color: 'var(--tl-teal)' }} />
-            <div className="font-mono text-5xl font-bold leading-none mb-2 gradient-text">
-              0
-            </div>
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--tl-text-primary)' }}>
-              Zero candidates ghosted
-            </p>
-            <p className="text-xs" style={{ color: 'var(--tl-text-secondary)' }}>
-              Every rejection includes an AI-written, specific reason.
-            </p>
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ─── HowItWorks ───────────────────────────────────────────────────────────────
-
-type HowStep = {
-  num: string
-  title: string
-  description: string
-  tags: string[]
-  svg: React.ReactNode
-  flip: boolean
-}
-
-const HOW_STEPS: HowStep[] = [
-  {
-    num: '01',
-    title: 'Post & Attract',
-    description:
-      'Describe the role in plain English. AI structures it, adds salary benchmarks, and auto-distributes to 20+ job boards. Your ideal candidate profile is predicted before the first application arrives.',
-    tags: ['AI-enhanced JDs', 'Salary auto-fill', '20+ job boards'],
-    svg: (
-      <svg viewBox="0 0 260 160" className="w-full" style={{ height: 160 }} aria-hidden="true">
-        <rect x={12} y={12} width={236} height={136} rx={12} fill="#111318" stroke="rgba(242,240,232,0.08)" strokeWidth="1" />
-        <rect x={28} y={28} width={140} height={10} rx={5} fill="#1A1D26" />
-        <rect x={28} y={46} width={200} height={7} rx={3.5} fill="#1A1D26" />
-        <rect x={28} y={61} width={180} height={7} rx={3.5} fill="#1A1D26" />
-        <rect x={28} y={76} width={160} height={7} rx={3.5} fill="#1A1D26" />
-        <rect x={28} y={100} width={80} height={8} rx={4} fill="#C9A84C22" stroke="#C9A84C55" strokeWidth="1" />
-        <text x={68} y={109} textAnchor="middle" fontSize="7" fill="#C9A84C" fontWeight="700">AI Processing…</text>
-        <motion.rect x={28} y={100} width={80} height={8} rx={4}
-          fill="transparent"
-          stroke="#C9A84C"
-          strokeWidth="1"
-          strokeDasharray="4 4"
-          animate={{ strokeDashoffset: [40, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'linear' }}
-        />
-        <rect x={120} y={100} width={120} height={8} rx={4} fill="#1ECDB322" />
-        <text x={180} y={108.5} textAnchor="middle" fontSize="6.5" fill="#1ECDB3" fontWeight="600">✓ Salary: $160K–$220K</text>
-        <rect x={28} y={120} width={200} height={1} rx={0.5} fill="rgba(242,240,232,0.04)" />
-        <text x={28} y={135} fontSize="7" fill="#5C5A54">Go live on 20+ boards automatically</text>
-      </svg>
-    ),
-    flip: false,
-  },
-  {
-    num: '02',
-    title: 'Match & Shortlist',
-    description:
-      'Every application is scored across 47 dimensions: skills, experience depth, cultural signals, growth trajectory, and salary alignment. Your top 12 surface in seconds — ranked, explained, interview-ready.',
-    tags: ['47-dimension scoring', 'Explainable AI', 'Ranked by fit'],
-    svg: (
-      <svg viewBox="0 0 260 160" className="w-full" style={{ height: 160 }} aria-hidden="true">
-        <rect x={12} y={12} width={236} height={136} rx={12} fill="#111318" stroke="rgba(242,240,232,0.08)" strokeWidth="1" />
-        {[
-          { init: 'ER', score: 97, color: '#4A9FFF', y: 28 },
-          { init: 'MJ', score: 91, color: '#1ECDB3', y: 60 },
-          { init: 'SK', score: 84, color: '#C9A84C', y: 92 },
-        ].map((c) => (
-          <g key={c.init}>
-            <circle cx={40} cy={c.y + 8} r={10} fill={`${c.color}22`} stroke={c.color} strokeWidth="1.2" />
-            <text x={40} y={c.y + 12} textAnchor="middle" fontSize="7" fontWeight="800" fill={c.color}>{c.init}</text>
-            <rect x={56} y={c.y + 2} width={`${c.score * 1.5}px`} height={6} rx={3} fill={`${c.color}33`} />
-            <motion.rect x={56} y={c.y + 2} width={0} height={6} rx={3} fill={c.color}
-              animate={{ width: c.score * 1.5 }}
-              transition={{ duration: 1.1, delay: 0.4, ease: 'easeOut' }}
-            />
-            <text x={205} y={c.y + 10} fontSize="8" fontWeight="700" fill={c.color}>{c.score}%</text>
-          </g>
-        ))}
-        <text x={28} y={140} fontSize="7" fill="#5C5A54">835 others assessed · you see the top 12</text>
-      </svg>
-    ),
-    flip: true,
-  },
-  {
-    num: '03',
-    title: 'Hire & Track',
-    description:
-      'Schedule interviews in one click. Move candidates through your pipeline. Make offers. Every rejected candidate receives an AI-crafted, specific explanation — not silence. Post-hire outcomes tracked automatically.',
-    tags: ['1-click scheduling', 'Pipeline automation', 'Outcomes tracker'],
-    svg: (
-      <svg viewBox="0 0 260 160" className="w-full" style={{ height: 160 }} aria-hidden="true">
-        <rect x={12} y={12} width={236} height={136} rx={12} fill="#111318" stroke="rgba(242,240,232,0.08)" strokeWidth="1" />
-        {[
-          { label: 'Interview', color: '#C9A84C', x: 24,  inits: ['ER', 'MJ'] },
-          { label: 'Offer',     color: '#1ECDB3', x: 100, inits: ['SK'] },
-          { label: 'Hired',     color: '#4A9FFF', x: 176, inits: ['AL'] },
-        ].map((col) => (
-          <g key={col.label}>
-            <rect x={col.x} y={24} width={64} height={112} rx={8} fill={`${col.color}08`} stroke={`${col.color}30`} strokeWidth="1" />
-            <text x={col.x + 32} y={40} textAnchor="middle" fontSize="7" fontWeight="700" fill={col.color}>{col.label}</text>
-            {col.inits.map((init, ii) => (
-              <g key={init}>
-                <rect x={col.x + 8} y={50 + ii * 36} width={48} height={26} rx={6} fill="#1A1D26" stroke="rgba(242,240,232,0.06)" strokeWidth="1" />
-                <circle cx={col.x + 22} cy={50 + ii * 36 + 13} r={8} fill={`${col.color}22`} stroke={col.color} strokeWidth="1" />
-                <text x={col.x + 22} y={50 + ii * 36 + 17} textAnchor="middle" fontSize="6.5" fontWeight="700" fill={col.color}>{init}</text>
-              </g>
-            ))}
-          </g>
-        ))}
-      </svg>
-    ),
-    flip: false,
-  },
+const MOCK_CANDIDATES = [
+  { name: 'Sarah Chen',    role: 'Sr. Software Engineer', score: 97, stage: 'Interview', init: 'SC', clr: '#4f46e5' },
+  { name: 'Marcus Johnson', role: 'Full-Stack Developer', score: 94, stage: 'Screened',  init: 'MJ', clr: '#059669' },
+  { name: 'Priya Patel',   role: 'ML Engineer',           score: 91, stage: 'Offer',     init: 'PP', clr: '#dc2626' },
+  { name: 'Alex Rivera',   role: 'Backend Engineer',      score: 88, stage: 'Applied',   init: 'AR', clr: '#d97706' },
 ]
 
-function HowItWorks() {
-  const headerRef = useRef<HTMLDivElement>(null)
-  const headerInView = useInView(headerRef, { once: true, margin: '-60px' })
-  const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1]
-
+function ProductMockup() {
   return (
-    <section id="how-it-works" className="py-28 max-w-7xl mx-auto px-6">
-      <div ref={headerRef} className="text-center mb-20">
-        <motion.span
-          initial={{ opacity: 0, y: 12 }}
-          animate={headerInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.45 }}
-          className="section-eyebrow mb-5 inline-block"
-        >
-          How It Works
-        </motion.span>
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          animate={headerInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.65, delay: 0.08 }}
-          className="font-display text-4xl md:text-5xl mb-4"
-        >
-          From first click to signed offer.
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={headerInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.18 }}
-          className="text-lg max-w-2xl mx-auto"
-          style={{ color: 'var(--tl-text-secondary)' }}
-        >
-          Three steps. No bloat. No black holes.
-        </motion.p>
+    <div className="w-full rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-[0_24px_64px_rgba(0,0,0,0.10)] ring-1 ring-slate-900/5">
+      {/* Browser chrome */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-slate-50/80 border-b border-slate-200">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+        </div>
+        <div className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-[5px] text-[11px] text-slate-400 text-center truncate select-none">
+          app.talentbridge.ai / jobs / senior-engineer / pipeline
+        </div>
       </div>
 
-      <div className="space-y-28">
-        {HOW_STEPS.map((step) => (
-          <HowStep key={step.num} step={step} easeOut={EASE_OUT} />
+      {/* Job header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-slate-900">Senior Software Engineer</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+              Active
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">Acme Corp · Remote · 24 applicants</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-[11px] font-semibold cursor-default select-none">
+          <Sparkles className="w-3 h-3" />
+          AI Rank
+        </div>
+      </div>
+
+      {/* Stage counts */}
+      <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/40">
+        {[
+          { label: 'Applied', n: 24 },
+          { label: 'Screened', n: 11 },
+          { label: 'Interview', n: 6 },
+          { label: 'Offer', n: 2 },
+        ].map(s => (
+          <div key={s.label} className="py-2.5 text-center">
+            <div className="text-[12px] font-bold text-slate-900">{s.n}</div>
+            <div className="text-[9.5px] text-slate-400 mt-0.5">{s.label}</div>
+          </div>
         ))}
       </div>
-    </section>
-  )
-}
 
-function HowStep({
-  step,
-  easeOut,
-}: {
-  step: HowStep
-  easeOut: [number, number, number, number]
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
-
-  return (
-    <div
-      ref={ref}
-      className={`grid lg:grid-cols-2 gap-16 items-center ${
-        step.flip ? '' : ''
-      }`}
-    >
-      {/* Text side */}
-      <motion.div
-        initial={{ opacity: 0, x: step.flip ? 36 : -36 }}
-        animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.7, ease: easeOut }}
-        className={step.flip ? 'lg:order-2' : ''}
-      >
-        <span
-          className="font-mono text-7xl font-bold leading-none mb-4 block select-none"
-          style={{ color: 'rgba(201,168,76,0.10)' }}
-        >
-          {step.num}
+      {/* AI insight */}
+      <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
+        <Sparkles className="w-3 h-3 text-indigo-500 shrink-0" />
+        <span className="text-[10.5px] text-indigo-700 font-medium">
+          AI ranked 24 candidates · top 4 scored above 85% · 3 ready for interview
         </span>
-        <h3
-          className="text-3xl font-bold mb-4"
-          style={{ color: 'var(--tl-text-primary)' }}
-        >
-          {step.title}
-        </h3>
-        <p
-          className="leading-relaxed mb-6 text-base"
-          style={{ color: 'var(--tl-text-secondary)' }}
-        >
-          {step.description}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {step.tags.map((tag) => (
-            <span key={tag} className="tl-tag tl-tag-gold text-xs">
-              {tag}
-            </span>
-          ))}
-        </div>
-      </motion.div>
+      </div>
 
-      {/* SVG illustration side */}
-      <motion.div
-        initial={{ opacity: 0, x: step.flip ? -36 : 36 }}
-        animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.7, delay: 0.12, ease: easeOut }}
-        className={`tl-card p-6 ${step.flip ? 'lg:order-1' : ''}`}
-      >
-        {step.svg}
-      </motion.div>
+      {/* Candidates */}
+      <div className="p-4 space-y-2">
+        {MOCK_CANDIDATES.map(c => (
+          <div
+            key={c.name}
+            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50/40 transition-colors cursor-default"
+          >
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
+              style={{ background: c.clr + '18', color: c.clr, border: `1.5px solid ${c.clr}28` }}
+            >
+              {c.init}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[12px] font-semibold text-slate-900 truncate">{c.name}</div>
+              <div className="text-[10px] text-slate-400">{c.role}</div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[12px] font-bold text-emerald-600">{c.score}%</div>
+              <div className="text-[9px] text-slate-400">match</div>
+            </div>
+            <span className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 shrink-0">
+              {c.stage}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-// ─── FeatureDeepDives ─────────────────────────────────────────────────────────
+// ─── Hero ─────────────────────────────────────────────────────────────────────
 
-type Feature = {
-  icon: React.ReactNode
-  tag: string
-  title: string
-  description: string
-  mock: React.ReactNode
-}
+function HeroSection() {
+  return (
+    <section className="relative min-h-screen flex items-center pt-[60px] pb-16 overflow-hidden bg-white">
+      {/* Subtle radial tint */}
+      <div
+        className="absolute inset-0 -z-10 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 55% at 50% -5%, rgba(99,102,241,0.07) 0%, transparent 72%)',
+        }}
+      />
+      {/* Dot grid */}
+      <div
+        className="absolute inset-0 -z-10 pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.28) 1px, transparent 1px)',
+          backgroundSize: '26px 26px',
+          maskImage:
+            'radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%)',
+          WebkitMaskImage:
+            'radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%)',
+        }}
+      />
 
-const FEATURES: Feature[] = [
-  {
-    icon: <Brain className="w-5 h-5" style={{ color: 'var(--tl-gold)' }} />,
-    tag: 'AI Match Engine',
-    title: 'Your next great hire is already in your inbox.',
-    description:
-      'TalentLoop reads between the lines of every application — understanding career trajectory, skill depth, and cultural signals that keyword filters miss entirely. Then it explains, in plain language, exactly why it ranked each candidate.',
-    mock: (
-      <div className="space-y-3 p-4">
-        {[
-          { init: 'ER', name: 'Emma Rodriguez', title: 'Sr. Frontend', score: 97, color: '#4A9FFF', tags: ['React', 'TypeScript', 'Performance'] },
-          { init: 'MC', name: 'Marcus Chen',    title: 'Full Stack',  score: 89, color: '#1ECDB3', tags: ['Node.js', 'React', 'AWS'] },
-          { init: 'PS', name: 'Priya Sharma',   title: 'Frontend Dev', score: 84, color: '#C9A84C', tags: ['Vue', 'TypeScript'] },
-        ].map((c, i) => (
-          <div key={c.name}>
-            <div className="flex items-center gap-3 mb-2">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
-                style={{ background: `${c.color}22`, color: c.color, border: `1px solid ${c.color}55` }}
-              >
-                {c.init}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold leading-none mb-0.5" style={{ color: 'var(--tl-text-primary)' }}>
-                  {c.name}
-                </p>
-                <p className="text-[10px]" style={{ color: 'var(--tl-text-tertiary)' }}>{c.title}</p>
-              </div>
-              <span className="font-mono text-sm font-bold shrink-0" style={{ color: c.color }}>
-                {c.score}%
+      <div className="mx-auto max-w-6xl w-full px-4 sm:px-6">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+
+          {/* ── Left copy ── */}
+          <div>
+            {/* Eyebrow */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 mb-7"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-[12.5px] font-semibold text-indigo-700 tracking-tight">
+                AI-Native Hiring Platform
               </span>
-            </div>
-            <div className="h-1 rounded-full overflow-hidden mb-2" style={{ background: 'var(--tl-bg-overlay)' }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: c.color }}
-                initial={{ width: 0 }}
-                animate={{ width: `${c.score}%` }}
-                transition={{ delay: 0.3 + i * 0.15, duration: 1, ease: 'easeOut' }}
-              />
-            </div>
-            <div className="flex gap-1.5">
-              {c.tags.map((tag) => (
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.07 }}
+              className="text-[42px] sm:text-[54px] lg:text-[60px] font-semibold tracking-tight text-slate-900 leading-[1.08] mb-6"
+            >
+              Hire the right&nbsp;people,{' '}
+              <span className="text-indigo-600">10× faster.</span>
+            </motion.h1>
+
+            {/* Sub */}
+            <motion.p
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="text-[17px] text-slate-500 leading-[1.7] mb-8 max-w-[460px]"
+            >
+              TalentBridge sources, ranks, and matches top candidates to every
+              open role using AI — so your team spends time on interviews, not
+              spreadsheets.
+            </motion.p>
+
+            {/* CTAs */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.22 }}
+              className="flex flex-wrap items-center gap-3 mb-8"
+            >
+              <Link
+                href="/auth/register?role=company"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-[14px] font-semibold hover:bg-slate-700 transition-colors duration-150 shadow-sm"
+              >
+                Start hiring free
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="#how-it-works"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-700 text-[14px] font-semibold border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-150"
+              >
+                See how it works
+              </Link>
+            </motion.div>
+
+            {/* Trust line */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.45, delay: 0.32 }}
+              className="flex flex-wrap items-center gap-4"
+            >
+              {[
+                'No credit card required',
+                'Setup in 5 minutes',
+                'SOC2 Type II certified',
+              ].map(t => (
                 <span
-                  key={tag}
-                  className="text-[9px] px-2 py-0.5 rounded-full"
-                  style={{ background: 'var(--tl-bg-overlay)', color: 'var(--tl-text-tertiary)', border: '1px solid var(--tl-border-subtle)' }}
+                  key={t}
+                  className="flex items-center gap-1.5 text-[12px] text-slate-400"
                 >
-                  {tag}
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  {t}
                 </span>
               ))}
-            </div>
+            </motion.div>
           </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    icon: <Shield className="w-5 h-5" style={{ color: 'var(--tl-teal)' }} />,
-    tag: 'Zero-Ghosting Promise',
-    title: 'The platform that treats job seekers like human beings.',
-    description:
-      "When a company rejects a candidate, TalentLoop automatically sends them AI-crafted feedback. Not a template. Real, specific, actionable reasoning — within 24 hours of rejection. It's not just good ethics. Companies that use it see 40% higher offer acceptance.",
-    mock: (
-      <div className="p-4">
-        <div
-          className="rounded-xl p-4"
-          style={{ background: 'var(--tl-bg-base)', border: '1px solid var(--tl-border-subtle)' }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold" style={{ color: 'var(--tl-text-secondary)' }}>
-              Application Update
-            </p>
-            <span className="tl-tag tl-tag-teal text-[9px]">Sent automatically</span>
-          </div>
-          <p className="text-xs font-bold mb-2" style={{ color: 'var(--tl-text-primary)' }}>
-            Update on your Senior Engineer application at Notion
-          </p>
-          <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--tl-text-secondary)' }}>
-            Hi Marcus, thanks for applying. After review, we found your Node.js
-            experience (3 years) is below our minimum (5 years) for this role.
-            We'd recommend roles at the Mid level where your skills are a
-            genuine fit. Your systems architecture background is exceptional.
-          </p>
-          <p className="text-xs italic" style={{ color: 'var(--tl-text-tertiary)' }}>
-            — TalentLoop AI, on behalf of the Notion Team
-          </p>
-          <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--tl-border-subtle)' }}>
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--tl-teal)' }} />
-            <p className="text-[10px]" style={{ color: 'var(--tl-text-tertiary)' }}>
-              Marcus received this within 24 hours of rejection
-            </p>
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    icon: <TrendingUp className="w-5 h-5" style={{ color: 'var(--tl-blue)' }} />,
-    tag: 'Pipeline Intelligence',
-    title: 'Recruiters see the full picture. Every stage, every signal.',
-    description:
-      "Your hiring pipeline is a living intelligence layer. Every stage move triggers the right candidate communication. Recruiters see bottlenecks before they happen. Hiring managers stay aligned. Candidates always know where they stand.",
-    mock: (
-      <div className="p-4">
-        <div className="grid grid-cols-5 gap-2">
-          {[
-            { label: 'New',       color: '#4A9FFF', inits: ['AL', 'PR'] },
-            { label: 'Screen',    color: '#9B59B6', inits: ['SK', 'CW'] },
-            { label: 'Phone',     color: '#1ECDB3', inits: ['MJ']       },
-            { label: 'Interview', color: '#C9A84C', inits: ['ER']       },
-            { label: 'Offer',     color: '#2ECC71', inits: ['AC']       },
-          ].map((col, ci) => (
-            <div
-              key={col.label}
-              className="rounded-lg p-2"
-              style={{ background: 'var(--tl-bg-base)', border: '1px solid var(--tl-border-subtle)' }}
+
+          {/* ── Right mockup ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 28, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.18, ease: [0.21, 0.47, 0.32, 0.98] }}
+            className="relative lg:block"
+          >
+            <ProductMockup />
+
+            {/* Floating badge — left */}
+            <motion.div
+              initial={{ opacity: 0, x: -14 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.75, duration: 0.45 }}
+              className="absolute -left-5 top-[22%] hidden xl:flex items-center gap-2.5 bg-white border border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.08)] rounded-xl px-3.5 py-2.5"
             >
-              <div className="flex items-center gap-1 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: col.color }} />
-                <span className="text-[7px] font-semibold truncate" style={{ color: 'var(--tl-text-tertiary)' }}>
-                  {col.label}
-                </span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
               </div>
-              <div className="space-y-1.5">
-                {col.inits.map((init, ci2) => (
-                  <motion.div
-                    key={init}
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[8px] font-bold mx-auto"
-                    style={{ background: `${col.color}22`, color: col.color, border: `1px solid ${col.color}44` }}
-                    animate={{ y: [0, -2, 0] }}
-                    transition={{
-                      duration: 3.5 + ci2 * 0.5,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                      delay: ci * 0.3 + ci2 * 0.4,
-                    }}
-                  >
-                    {init}
-                  </motion.div>
-                ))}
+              <div>
+                <div className="text-[13px] font-bold text-slate-900">12 days</div>
+                <div className="text-[10px] text-slate-400">avg. time to hire</div>
               </div>
-            </div>
-          ))}
-        </div>
-        <div
-          className="mt-3 flex items-center gap-2 text-[10px]"
-          style={{ color: 'var(--tl-text-tertiary)' }}
-        >
-          <Users className="w-3 h-3" />
-          847 applicants · 12 active · 3 offers pending
-        </div>
-      </div>
-    ),
-  },
-]
+            </motion.div>
 
-function FeatureDeepDives() {
-  const headerRef = useRef<HTMLDivElement>(null)
-  const headerInView = useInView(headerRef, { once: true, margin: '-60px' })
-  const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1]
-
-  return (
-    <section
-      className="py-28 border-y"
-      style={{
-        borderColor: 'var(--tl-border-subtle)',
-        background: 'var(--tl-bg-surface)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-6">
-        <div ref={headerRef} className="text-center mb-20">
-          <motion.span
-            initial={{ opacity: 0, y: 12 }}
-            animate={headerInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.45 }}
-            className="section-eyebrow mb-5 inline-block"
-          >
-            Platform Features
-          </motion.span>
-          <motion.h2
-            initial={{ opacity: 0, y: 24 }}
-            animate={headerInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.65, delay: 0.08 }}
-            className="font-display text-4xl md:text-5xl mb-4"
-          >
-            Built different. By design.
-          </motion.h2>
-        </div>
-
-        <div className="space-y-20">
-          {FEATURES.map((feature, idx) => (
-            <FeatureCard key={feature.tag} feature={feature} idx={idx} easeOut={EASE_OUT} />
-          ))}
+            {/* Floating badge — right */}
+            <motion.div
+              initial={{ opacity: 0, x: 14 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.9, duration: 0.45 }}
+              className="absolute -right-5 bottom-[22%] hidden xl:flex items-center gap-2.5 bg-white border border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.08)] rounded-xl px-3.5 py-2.5"
+            >
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div>
+                <div className="text-[13px] font-bold text-slate-900">94%</div>
+                <div className="text-[10px] text-slate-400">match accuracy</div>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </section>
   )
 }
 
-function FeatureCard({
-  feature,
-  idx,
-  easeOut,
-}: {
-  feature: Feature
-  idx: number
-  easeOut: [number, number, number, number]
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
-  const flip = idx % 2 === 1
+// ─── Social proof (logos) ─────────────────────────────────────────────────────
 
+const LOGOS = [
+  'Acme Corp', 'Nexus Labs', 'Veritas AI', 'Archon Tech', 'Dropfleet', 'Meridian',
+]
+
+function LogosSection() {
   return (
-    <div ref={ref} className="grid lg:grid-cols-2 gap-16 items-center">
-      {/* Copy */}
-      <motion.div
-        initial={{ opacity: 0, x: flip ? 36 : -36 }}
-        animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.7, ease: easeOut }}
-        className={flip ? 'lg:order-2' : ''}
-      >
-        <div className="flex items-center gap-2 mb-5">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center"
-            style={{ background: 'var(--tl-bg-elevated)', border: '1px solid var(--tl-border-default)' }}
-          >
-            {feature.icon}
-          </div>
-          <span className="section-eyebrow">{feature.tag}</span>
-        </div>
-        <h2
-          className="font-display text-3xl md:text-4xl leading-[1.15] mb-5"
-          style={{ color: 'var(--tl-text-primary)' }}
-        >
-          {feature.title}
-        </h2>
-        <p
-          className="text-base leading-relaxed"
-          style={{ color: 'var(--tl-text-secondary)' }}
-        >
-          {feature.description}
+    <FadeIn up={false} className="py-14 border-y border-slate-100 bg-slate-50/60">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <p className="text-center text-[11.5px] font-semibold text-slate-400 uppercase tracking-[0.14em] mb-7">
+          Trusted by talent teams at
         </p>
-      </motion.div>
-
-      {/* Mock UI */}
-      <motion.div
-        initial={{ opacity: 0, x: flip ? -36 : 36 }}
-        animate={inView ? { opacity: 1, x: 0 } : {}}
-        transition={{ duration: 0.7, delay: 0.12, ease: easeOut }}
-        className={`tl-card overflow-hidden ${flip ? 'lg:order-1' : ''}`}
-      >
-        {/* Browser chrome */}
-        <div
-          className="flex items-center gap-1.5 px-4 py-2.5"
-          style={{ borderBottom: '1px solid var(--tl-border-subtle)', background: 'var(--tl-bg-elevated)' }}
-        >
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#FF5C7A55' }} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#C9A84C55' }} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#1ECDB355' }} />
-          <div className="flex-1 flex justify-center">
+        <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-5">
+          {LOGOS.map(name => (
             <span
-              className="text-[9px] px-3 py-0.5 rounded"
-              style={{
-                background: 'var(--tl-bg-base)',
-                color: 'var(--tl-text-tertiary)',
-                border: '1px solid var(--tl-border-subtle)',
-              }}
+              key={name}
+              className="text-[15px] font-semibold text-slate-300 select-none"
             >
-              app.talentloop.ai
+              {name}
             </span>
+          ))}
+        </div>
+      </div>
+    </FadeIn>
+  )
+}
+
+// ─── Features ─────────────────────────────────────────────────────────────────
+
+const FEATURES = [
+  {
+    icon: Brain,
+    title: 'AI Candidate Sourcing',
+    desc: 'Automatically find qualified candidates from GitHub, LinkedIn, and job boards. No manual searching, no wasted hours.',
+    accent: 'indigo',
+  },
+  {
+    icon: BarChart3,
+    title: '94% Match Accuracy',
+    desc: 'Our ML model scores candidate fit against your requirements — validated across 50,000+ successful hires.',
+    accent: 'emerald',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Automated Outreach',
+    desc: 'Personalized multi-step sequences sent on your behalf. Candidates respond to relevance, not volume.',
+    accent: 'violet',
+  },
+  {
+    icon: Zap,
+    title: 'Pipeline Intelligence',
+    desc: 'Full funnel visibility in one view. Bottlenecks, conversion rates, time-per-stage. Always know what to fix.',
+    accent: 'amber',
+  },
+  {
+    icon: Users,
+    title: 'Zero Ghosting',
+    desc: 'Smart nudges keep candidates engaged throughout. Every applicant gets a response. No offer goes unanswered.',
+    accent: 'rose',
+  },
+  {
+    icon: Shield,
+    title: 'Enterprise Security',
+    desc: 'SOC2 Type II certified. GDPR compliant. SSO/SAML supported. Your data, your control.',
+    accent: 'slate',
+  },
+] as const
+
+const ACCENT: Record<string, { bg: string; icon: string; ring: string }> = {
+  indigo: { bg: 'bg-indigo-50',  icon: 'text-indigo-600',  ring: 'ring-indigo-100' },
+  emerald:{ bg: 'bg-emerald-50', icon: 'text-emerald-600', ring: 'ring-emerald-100' },
+  violet: { bg: 'bg-violet-50',  icon: 'text-violet-600',  ring: 'ring-violet-100' },
+  amber:  { bg: 'bg-amber-50',   icon: 'text-amber-600',   ring: 'ring-amber-100' },
+  rose:   { bg: 'bg-rose-50',    icon: 'text-rose-600',    ring: 'ring-rose-100' },
+  slate:  { bg: 'bg-slate-100',  icon: 'text-slate-600',   ring: 'ring-slate-200' },
+}
+
+function FeaturesSection() {
+  return (
+    <section id="features" className="py-24 sm:py-32 bg-white">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+
+        <FadeIn className="mb-14">
+          <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-indigo-600 mb-3">
+            Built for modern teams
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-4 max-w-xl leading-tight">
+            Everything you need to hire. Nothing you don&rsquo;t.
+          </h2>
+          <p className="text-[16px] text-slate-500 max-w-lg leading-relaxed">
+            A complete AI hiring stack designed for speed, quality, and team clarity.
+          </p>
+        </FadeIn>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {FEATURES.map((f, i) => {
+            const c = ACCENT[f.accent]
+            const Icon = f.icon
+            return (
+              <FadeIn key={f.title} delay={i * 0.06}>
+                <div className="p-6 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all duration-200 h-full flex flex-col gap-4">
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center ring-1', c.bg, c.ring)}>
+                    <Icon className={cn('w-5 h-5', c.icon)} />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-slate-900 mb-1.5">{f.title}</h3>
+                    <p className="text-[13.5px] text-slate-500 leading-relaxed">{f.desc}</p>
+                  </div>
+                </div>
+              </FadeIn>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Showcase (how it works + match breakdown mockup) ─────────────────────────
+
+const STEPS = [
+  {
+    icon: Search,
+    title: 'Post a role',
+    desc: 'Describe the position in plain language. AI extracts required skills and builds a match profile instantly.',
+  },
+  {
+    icon: Brain,
+    title: 'AI sources & ranks',
+    desc: 'We surface the top 10 candidates from across the internet. You review signal, not noise.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Engage automatically',
+    desc: 'Personalized outreach sequences go out on your behalf. Interested candidates land in your pipeline.',
+  },
+  {
+    icon: CheckCircle2,
+    title: 'Hire with confidence',
+    desc: 'Data-backed decisions. Transparent scores. No gut feelings, no spreadsheets, no guesswork.',
+  },
+]
+
+const SKILL_BARS = [
+  { label: 'React',         pct: 98 },
+  { label: 'TypeScript',    pct: 95 },
+  { label: 'Node.js',       pct: 89 },
+  { label: 'System Design', pct: 82 },
+  { label: 'AWS',           pct: 76 },
+]
+
+function MatchMockup() {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-[0_16px_48px_rgba(0,0,0,0.08)] overflow-hidden ring-1 ring-slate-900/5">
+      {/* Candidate header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] font-bold text-indigo-600 ring-2 ring-indigo-100">
+            SC
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold text-slate-900">Sarah Chen</div>
+            <div className="text-[11px] text-slate-400">Sr. Software Engineer · 6 yrs exp.</div>
           </div>
         </div>
-        {feature.mock}
-      </motion.div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-emerald-600 tabular-nums">97%</div>
+          <div className="text-[10px] text-slate-400">AI match score</div>
+        </div>
+      </div>
+
+      {/* Skills breakdown */}
+      <div className="p-5">
+        <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-[0.1em] mb-3.5">
+          Skill match breakdown
+        </div>
+        <div className="space-y-2.5">
+          {SKILL_BARS.map((s, idx) => (
+            <div key={s.label}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[12px] font-medium text-slate-700">{s.label}</span>
+                <span className="text-[11px] font-semibold text-slate-500 tabular-nums">{s.pct}%</span>
+              </div>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${s.pct}%` }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.65, delay: 0.05 + idx * 0.07, ease: 'easeOut' }}
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* AI insight */}
+        <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+          <div className="flex items-start gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
+            <p className="text-[11.5px] text-slate-600 leading-relaxed">
+              Strong match on all core requirements. Shipped at scale. Recommend fast-track to technical interview.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
+  )
+}
+
+function ShowcaseSection() {
+  return (
+    <section id="how-it-works" className="py-24 sm:py-32 bg-slate-50/60 border-y border-slate-100">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+          {/* Left */}
+          <div>
+            <FadeIn>
+              <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-indigo-600 mb-3">
+                How it works
+              </p>
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-5 leading-tight">
+                From open role to hired — in&nbsp;days, not months.
+              </h2>
+              <p className="text-[15.5px] text-slate-500 mb-10 leading-relaxed">
+                TalentBridge handles the entire top of funnel so your team can focus on meaningful conversations with the right candidates.
+              </p>
+            </FadeIn>
+
+            <div className="space-y-6">
+              {STEPS.map((step, i) => {
+                const Icon = step.icon
+                return (
+                  <FadeIn key={step.title} delay={i * 0.08}>
+                    <div className="flex gap-4">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-slate-500" />
+                      </div>
+                      <div className="pt-0.5">
+                        <div className="text-[14px] font-semibold text-slate-900 mb-0.5">{step.title}</div>
+                        <div className="text-[13.5px] text-slate-500 leading-relaxed">{step.desc}</div>
+                      </div>
+                    </div>
+                  </FadeIn>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Right — match mockup */}
+          <FadeIn delay={0.12}>
+            <MatchMockup />
+          </FadeIn>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+const STATS = [
+  { value: '12',  unit: ' days', label: 'Average time to hire',        Icon: Clock },
+  { value: '94',  unit: '%',     label: 'Candidate match accuracy',    Icon: BarChart3 },
+  { value: '3×',  unit: '',      label: 'More qualified interviews',   Icon: TrendingUp },
+  { value: '0',   unit: '',      label: 'Candidates lost to ghosting', Icon: Users },
+]
+
+function StatsSection() {
+  return (
+    <section className="py-24 sm:py-28 bg-white">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <FadeIn className="text-center mb-14">
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-4 leading-tight">
+            Results that speak for themselves.
+          </h2>
+          <p className="text-[15.5px] text-slate-500 max-w-md mx-auto">
+            Consistent outcomes across every company using TalentBridge.
+          </p>
+        </FadeIn>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {STATS.map(({ value, unit, label, Icon }, i) => (
+            <FadeIn key={label} delay={i * 0.07}>
+              <div className="p-6 sm:p-8 rounded-2xl border border-slate-200 bg-white text-center hover:border-slate-300 hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all duration-200">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 mb-4">
+                  <Icon className="w-5 h-5 text-slate-500" />
+                </div>
+                <div className="text-[32px] sm:text-[38px] font-bold text-slate-900 tracking-tight leading-none mb-2">
+                  {value}
+                  <span className="text-indigo-600">{unit}</span>
+                </div>
+                <div className="text-[12.5px] text-slate-400 leading-snug">{label}</div>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -1414,413 +733,200 @@ function FeatureCard({
 const TESTIMONIALS = [
   {
     quote:
-      'We went from 6 weeks to 18 days for senior roles. The AI scoring is eerily accurate — it keeps surfacing people we\'d have missed completely.',
-    name: 'Sarah Mitchell',
-    role: 'Recruiter',
-    company: 'Stripe',
-    init: 'SM',
-    color: '#4A9FFF',
-    tag: 'Hiring Team',
-    tagClass: 'tl-tag-blue',
+      'We cut time-to-hire from 6 weeks to 12 days. The AI ranking is genuinely better than our manual process — and the team is spending half the time in screens.',
+    name: 'Sarah Kim',
+    title: 'Head of Talent',
+    company: 'Dropfleet',
+    init: 'SK',
+    clr: '#4f46e5',
   },
   {
     quote:
-      'Best hiring tooling I\'ve seen in 12 years of VP-level roles. The pipeline intelligence keeps my entire team aligned without a single Slack thread.',
-    name: 'David Park',
-    role: 'VP Engineering',
-    company: 'Notion',
-    init: 'DP',
-    color: '#1ECDB3',
-    tag: 'Hiring Team',
-    tagClass: 'tl-tag-teal',
+      "The match quality is remarkable. We're interviewing fewer candidates but consistently hiring better ones. Our 90-day retention is up 40% since we switched.",
+    name: 'James Park',
+    title: 'VP Engineering',
+    company: 'Archon Labs',
+    init: 'JP',
+    clr: '#059669',
   },
   {
     quote:
-      'I applied to 8 companies through TalentLoop. Got 6 interviews and landed a 40% salary increase. And I actually got feedback on the two I didn\'t get.',
-    name: 'Aisha Thompson',
-    role: 'Software Engineer',
-    company: 'Hired via TalentLoop',
-    init: 'AT',
-    color: '#C9A84C',
-    tag: 'Job Seeker',
-    tagClass: 'tl-tag-gold',
+      'Setup took under 20 minutes. Within a week we had 3 strong candidates in final rounds. The zero-ghosting feature alone is worth it — people actually show up.',
+    name: 'Priya Mehta',
+    title: 'Recruiting Lead',
+    company: 'Nexus Health',
+    init: 'PM',
+    clr: '#dc2626',
   },
 ]
 
-function Testimonials() {
-  const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
-
+function TestimonialsSection() {
   return (
-    <section ref={ref} className="py-28 max-w-7xl mx-auto px-6">
-      <div className="text-center mb-14">
-        <motion.span
-          initial={{ opacity: 0, y: 12 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.45 }}
-          className="section-eyebrow mb-5 inline-block"
-        >
-          Social Proof
-        </motion.span>
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.65, delay: 0.08 }}
-          className="font-display text-4xl md:text-5xl mb-4"
-        >
-          Loved on both sides of the table.
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.18 }}
-          className="text-lg"
-          style={{ color: 'var(--tl-text-secondary)' }}
-        >
-          The only platform with 5-star reviews from recruiters and job seekers alike.
-        </motion.p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
-        {TESTIMONIALS.map((t, i) => (
-          <motion.div
-            key={t.name}
-            initial={{ opacity: 0, y: 24 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: i * 0.12, duration: 0.55 }}
-            className="tl-card p-8 flex flex-col hover:shadow-gold transition-all duration-300"
-            style={{ borderLeft: `2px solid transparent` }}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget as HTMLDivElement
-              el.style.borderLeftColor = t.color
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget as HTMLDivElement
-              el.style.borderLeftColor = 'transparent'
-            }}
-          >
-            <div className="flex items-center gap-1 mb-5">
-              {Array.from({ length: 5 }).map((_, si) => (
-                <Star key={si} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--tl-gold)' }} />
-              ))}
-            </div>
-            <p
-              className="text-base italic leading-relaxed flex-1 mb-6"
-              style={{ color: 'var(--tl-text-secondary)' }}
-            >
-              &ldquo;{t.quote}&rdquo;
-            </p>
-            <div className="flex items-center gap-3 pt-5" style={{ borderTop: '1px solid var(--tl-border-subtle)' }}>
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                style={{ background: `${t.color}22`, color: t.color, border: `1px solid ${t.color}44` }}
-              >
-                {t.init}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold leading-none mb-0.5" style={{ color: 'var(--tl-text-primary)' }}>
-                  {t.name}
-                </p>
-                <p className="text-xs" style={{ color: 'var(--tl-text-tertiary)' }}>
-                  {t.role} · {t.company}
-                </p>
-              </div>
-              <span className={`tl-tag ${t.tagClass} text-[9px] shrink-0`}>{t.tag}</span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Trust badges */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        {['4.9/5 on G2', '4.8/5 on Capterra', 'SOC2 Type II', '#1 ATS on Product Hunt'].map((badge) => (
-          <span
-            key={badge}
-            className="tl-tag tl-tag-gold text-xs"
-          >
-            {badge}
-          </span>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-// ─── PricingSection ───────────────────────────────────────────────────────────
-
-function PricingSection() {
-  const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
-  const [isAnnual, setIsAnnual] = useState(false)
-
-  return (
-    <section
-      ref={ref}
-      className="py-28 border-y"
-      style={{
-        borderColor: 'var(--tl-border-subtle)',
-        background: 'var(--tl-bg-surface)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-14"
-        >
-          <span className="section-eyebrow mb-5 inline-block">Pricing</span>
-          <h2 className="font-display text-4xl md:text-5xl mb-4">
-            Start free. Scale as you grow.
-          </h2>
-          <p
-            className="text-lg max-w-xl mx-auto mb-10"
-            style={{ color: 'var(--tl-text-secondary)' }}
-          >
-            Every plan includes unlimited candidates, real-time pipeline, and AI matching.
-            No seat fees for hiring managers.
-          </p>
-
-          {/* Toggle */}
-          <div
-            className="inline-flex items-center p-1 rounded-xl"
-            style={{
-              background: 'var(--tl-bg-elevated)',
-              border: '1px solid var(--tl-border-default)',
-            }}
-          >
-            {(['Monthly', 'Annual'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setIsAnnual(tab === 'Annual')}
-                className="px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
-                style={
-                  (tab === 'Annual') === isAnnual
-                    ? {
-                        background: 'var(--tl-bg-surface)',
-                        color: 'var(--tl-text-primary)',
-                        border: '1px solid var(--tl-border-default)',
-                      }
-                    : {
-                        background: 'transparent',
-                        color: 'var(--tl-text-secondary)',
-                        border: '1px solid transparent',
-                      }
-                }
-              >
-                {tab}
-                {tab === 'Annual' && (
-                  <span
-                    className="ml-2 text-[10px] font-bold"
-                    style={{ color: 'var(--tl-teal)' }}
-                  >
-                    SAVE 20%
-                  </span>
-                )}
-              </button>
+    <section className="py-24 sm:py-28 bg-slate-50/60 border-y border-slate-100">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <FadeIn className="text-center mb-14">
+          <div className="flex justify-center gap-0.5 mb-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star key={i} className="w-4 h-4 text-amber-400" style={{ fill: '#f59e0b' }} />
             ))}
           </div>
-        </motion.div>
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-3 leading-tight">
+            Loved by talent teams everywhere.
+          </h2>
+          <p className="text-[15px] text-slate-500">Don&rsquo;t take our word for it.</p>
+        </FadeIn>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {pricingPlans.map((plan, i) => (
-            <motion.div
-              key={plan.id}
-              initial={{ opacity: 0, y: 28 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: i * 0.12, duration: 0.55 }}
-              className={`relative flex flex-col p-8 ${
-                plan.highlighted ? 'tl-card-gold' : 'tl-card'
-              } ${plan.highlighted ? 'scale-[1.02]' : ''}`}
-            >
-              {plan.badge && (
-                <span
-                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 section-eyebrow text-[10px] px-3 py-1 whitespace-nowrap"
-                  style={{
-                    background: plan.highlighted ? 'var(--tl-gold)' : 'var(--tl-bg-surface)',
-                    color: plan.highlighted ? 'var(--tl-text-inverse)' : 'var(--tl-gold)',
-                  }}
-                >
-                  {plan.badge}
-                </span>
-              )}
-
-              <h3
-                className="text-lg font-bold mb-1"
-                style={{ color: 'var(--tl-text-primary)' }}
-              >
-                {plan.name}
-              </h3>
-              <p className="text-sm mb-5" style={{ color: 'var(--tl-text-secondary)' }}>
-                {plan.description}
-              </p>
-
-              <div className="mb-6">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={isAnnual ? 'annual' : 'monthly'}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.22 }}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {TESTIMONIALS.map((t, i) => (
+            <FadeIn key={t.name} delay={i * 0.09}>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col h-full hover:border-slate-300 hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all duration-200">
+                <p className="text-[14px] text-slate-600 leading-relaxed flex-1 mb-6">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                    style={{ backgroundColor: t.clr }}
                   >
-                    <span
-                      className="font-mono text-5xl font-bold"
-                      style={{ color: plan.highlighted ? 'var(--tl-gold)' : 'var(--tl-text-primary)' }}
-                    >
-                      ${isAnnual ? plan.annualPrice : plan.monthlyPrice}
-                    </span>
-                    <span className="text-base ml-1" style={{ color: 'var(--tl-text-secondary)' }}>
-                      /mo
-                    </span>
-                  </motion.div>
-                </AnimatePresence>
+                    {t.init}
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-900">{t.name}</div>
+                    <div className="text-[11.5px] text-slate-400">{t.title} · {t.company}</div>
+                  </div>
+                </div>
               </div>
-
-              <ul className="space-y-3 flex-1 mb-8">
-                {plan.features.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-start gap-2.5 text-sm"
-                    style={{ color: 'var(--tl-text-secondary)' }}
-                  >
-                    <CheckCircle2
-                      className="w-4 h-4 shrink-0 mt-0.5"
-                      style={{ color: plan.highlighted ? 'var(--tl-gold)' : 'var(--tl-teal)' }}
-                    />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={plan.id === 'enterprise' ? '/contact' : '/auth/register?role=company'}
-                className={`w-full text-center py-3 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                  plan.highlighted ? 'btn-gold' : 'btn-ghost'
-                }`}
-              >
-                {plan.id === 'enterprise' ? 'Talk to Sales' : 'Start Free Trial'}
-              </Link>
-            </motion.div>
+            </FadeIn>
           ))}
-        </div>
-
-        <div className="text-center mt-10">
-          <Link
-            href="/contact"
-            className="inline-flex items-center gap-1.5 text-sm transition-colors"
-            style={{ color: 'var(--tl-gold)' }}
-          >
-            Not sure which plan? Talk to our team <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
       </div>
     </section>
   )
 }
 
-// ─── FinalCTA ─────────────────────────────────────────────────────────────────
+// ─── CTA ──────────────────────────────────────────────────────────────────────
 
-function FinalCTA() {
-  const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
-  const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1]
-
+function CTASection() {
   return (
-    <section
-      ref={ref}
-      className="py-32 relative overflow-hidden"
-      style={{ background: '#0A0B0F' }}
-    >
-      {/* Gold gradient overlay */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.12) 0%, transparent 65%)',
-        }}
-      />
-      {/* Animated gold pulse */}
-      <motion.div
-        aria-hidden="true"
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse, rgba(201,168,76,0.08) 0%, transparent 65%)',
-          filter: 'blur(48px)',
-        }}
-        animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-      />
-
-      <div className="relative max-w-3xl mx-auto px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 36 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: EASE_OUT }}
-        >
-          <span className="section-eyebrow mb-8 inline-block">Get Started Today</span>
-
-          <h2 className="font-display text-5xl md:text-7xl leading-[1.05] mb-7">
-            Ready to hire{' '}
-            <span className="gradient-text">smarter?</span>
+    <section className="py-24 sm:py-32 bg-white">
+      <FadeIn>
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 text-center">
+          <h2 className="text-3xl sm:text-[44px] font-semibold tracking-tight text-slate-900 leading-[1.1] mb-5">
+            Ready to transform your hiring?
           </h2>
-
-          <p
-            className="text-xl leading-relaxed mb-12"
-            style={{ color: 'var(--tl-text-secondary)' }}
-          >
-            Join 200+ companies and 50,000 job seekers who&apos;ve already
-            transformed how hiring works — for everyone.
+          <p className="text-[16px] sm:text-[17px] text-slate-500 mb-9 leading-relaxed">
+            Join hundreds of companies that have cut time-to-hire, improved candidate quality,
+            and stopped losing talent to slow processes.
           </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          <div className="flex flex-wrap justify-center gap-3 mb-5">
             <Link
               href="/auth/register?role=company"
-              className="btn-gold inline-flex items-center gap-2 px-8 py-4 text-base font-semibold shadow-gold"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 text-white text-[14.5px] font-semibold hover:bg-slate-700 transition-colors duration-150 shadow-sm"
             >
-              Start Hiring Smarter
+              Start hiring free
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              href="/auth/register?role=talent"
-              className="btn-ghost inline-flex items-center gap-2 px-8 py-4 text-base font-semibold"
+              href="/contact"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white text-slate-700 text-[14.5px] font-semibold border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-150"
             >
-              Find Your Next Role
+              Talk to sales
             </Link>
           </div>
-
-          <p
-            className="text-sm"
-            style={{ color: 'var(--tl-text-tertiary)' }}
-          >
-            No credit card required · 14-day free trial · Cancel anytime · SOC2 compliant
+          <p className="text-[12.5px] text-slate-400">
+            Free 14-day trial · No credit card required · Cancel anytime
           </p>
-        </motion.div>
-      </div>
+        </div>
+      </FadeIn>
     </section>
   )
 }
 
-// ─── HomePage (default export) ────────────────────────────────────────────────
+// ─── Footer ───────────────────────────────────────────────────────────────────
 
-export default function HomePage() {
+const FOOTER_COLS = {
+  Product:   ['AI Matching', 'Candidate Discovery', 'Pipeline View', 'Analytics', 'Integrations'],
+  Company:   ['About', 'Blog', 'Careers', 'Press'],
+  Resources: ['Documentation', 'Help Center', 'Security', 'Status'],
+  Legal:     ['Privacy', 'Terms', 'Cookies', 'GDPR'],
+}
+
+function FooterSection() {
   return (
-    <div style={{ background: 'var(--tl-bg-base)', overflowX: 'hidden' }}>
-      <Navbar />
-      <main id="main-content" tabIndex={-1}>
-        <HeroSection />
-        <LogoTicker />
-        <DualPromise />
-        <BentoStats />
-        <HowItWorks />
-        <FeatureDeepDives />
-        <Testimonials />
-        <PricingSection />
-        <FinalCTA />
-      </main>
-      <Footer />
-    </div>
+    <footer className="border-t border-slate-200 bg-slate-50/60">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
+        {/* Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+          {/* Brand */}
+          <div className="lg:col-span-1">
+            <Link href="/" className="inline-flex items-center gap-2.5 mb-4">
+              <TBMark size={24} />
+              <span className="text-[14px] font-semibold text-slate-900">TalentBridge</span>
+            </Link>
+            <p className="text-[13px] text-slate-400 leading-relaxed max-w-[180px]">
+              The AI hiring platform that fills your pipeline faster.
+            </p>
+          </div>
+
+          {/* Links */}
+          {Object.entries(FOOTER_COLS).map(([group, links]) => (
+            <div key={group}>
+              <div className="text-[11px] font-semibold text-slate-800 uppercase tracking-[0.12em] mb-4">
+                {group}
+              </div>
+              <ul className="space-y-2.5">
+                {links.map(l => (
+                  <li key={l}>
+                    <Link
+                      href="#"
+                      className="text-[13px] text-slate-400 hover:text-slate-700 transition-colors duration-150"
+                    >
+                      {l}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
+          <p className="text-[12.5px] text-slate-400">
+            © {new Date().getFullYear()} TalentBridge Inc. All rights reserved.
+          </p>
+          <div className="flex items-center gap-5">
+            {[
+              { icon: Shield,       label: 'SOC2 Type II' },
+              { icon: Lock,         label: 'GDPR Compliant' },
+              { icon: CheckCircle2, label: '99.9% Uptime SLA' },
+            ].map(({ icon: Icon, label }) => (
+              <span key={label} className="flex items-center gap-1.5 text-[12px] text-slate-400">
+                <Icon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function TalentBridgePage() {
+  return (
+    <main className="bg-white font-sans antialiased">
+      <Nav />
+      <HeroSection />
+      <LogosSection />
+      <FeaturesSection />
+      <ShowcaseSection />
+      <StatsSection />
+      <TestimonialsSection />
+      <CTASection />
+      <FooterSection />
+    </main>
   )
 }

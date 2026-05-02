@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -219,7 +219,7 @@ function VerifyContent() {
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2.5 mb-10 relative z-10">
         <span className="w-2.5 h-2.5 rounded-full bg-tl-gold shadow-gold block flex-shrink-0" aria-hidden="true" />
-        <span className="font-display font-bold text-xl gradient-text">TalentLoop</span>
+        <span className="font-display font-bold text-xl gradient-text">TalentBridge</span>
       </Link>
 
       {/* Progress steps above card */}

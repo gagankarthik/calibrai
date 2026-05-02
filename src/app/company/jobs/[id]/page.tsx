@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { jobs, applications } from '@/lib/data'
+import { useParams } from 'next/navigation'
+import { getJob, getApplications } from '@/lib/api'
 import { STAGE_LABELS, STAGE_COLORS, PIPELINE_STAGES } from '@/lib/constants'
-import type { PipelineStage } from '@/lib/types'
+import type { Job, Application, PipelineStage } from '@/lib/types'
 import { cn, timeAgo, formatDate } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -93,9 +94,23 @@ function SmallToggle({ value, onChange }: { value: boolean; onChange: () => void
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function JobDetailPage({ params }: { params: { id: string } }) {
-  const job = jobs.find((j) => j.id === params.id) ?? jobs[0]
-  const jobApplications = useMemo(() => applications.filter((a) => a.jobId === job.id), [job.id])
+export default function JobDetailPage() {
+  const params = useParams()
+  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : ''
+
+  const [job, setJob] = useState<Job | null>(null)
+  const [jobApplications, setJobApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [jobRes, appsRes] = await Promise.all([getJob(id), getApplications(id)])
+      if (jobRes.data) setJob(jobRes.data)
+      if (appsRes.data) setJobApplications(appsRes.data)
+      setLoading(false)
+    }
+    load()
+  }, [id])
 
   const [activeTab, setActiveTab] = useState<'overview' | 'applicants' | 'analytics' | 'settings'>('overview')
   const [isPaused, setIsPaused] = useState(false)
@@ -107,7 +122,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
   const [notifyHighMatch, setNotifyHighMatch] = useState(true)
 
   // Use all applications as demo data if jobApplications is sparse
-  const displayApps = jobApplications.length > 0 ? jobApplications : applications
+  const displayApps = jobApplications
 
   const filteredApps = useMemo(() => {
     return displayApps.filter((a) => {
@@ -131,6 +146,18 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
 
   const avgMatch = Math.round(
     displayApps.reduce((s, a) => s + a.matchScore, 0) / (displayApps.length || 1)
+  )
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (!job) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-tl-text-secondary">Job not found.</p>
+    </div>
   )
 
   const daysPosted = Math.floor((Date.now() - new Date(job.postedAt).getTime()) / 86_400_000)
@@ -158,7 +185,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
   const maxApps = Math.max(...weeklyData.map((d) => d.apps))
 
   const sourcesData = [
-    { name: 'TalentLoop', pct: 48, color: 'bg-tl-gold' },
+    { name: 'TalentBridge', pct: 48, color: 'bg-tl-gold' },
     { name: 'LinkedIn', pct: 28, color: 'bg-tl-teal' },
     { name: 'Referrals', pct: 14, color: 'bg-tl-blue' },
     { name: 'Direct', pct: 10, color: 'bg-tl-rose' },

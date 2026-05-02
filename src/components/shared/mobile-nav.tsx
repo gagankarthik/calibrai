@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -85,7 +85,7 @@ function MobileNav({ items, label }: { items: typeof companyNavItems; label: str
                   <div className="w-8 h-8 rounded-lg bg-tl-gold/10 border border-tl-gold/30 flex items-center justify-center">
                     <Zap className="w-4 h-4 text-tl-gold" />
                   </div>
-                  <span className="font-display text-sm font-bold gradient-text">TalentLoop</span>
+                  <span className="font-display text-sm font-bold gradient-text">TalentBridge</span>
                 </div>
                 <button
                   className="w-8 h-8 rounded-xl flex items-center justify-center text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated transition-all"

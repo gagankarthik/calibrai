@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
@@ -209,8 +209,8 @@ export default function ContactPage() {
                 <h3 className="text-base font-semibold text-tl-text-primary">Get in touch</h3>
 
                 {[
-                  { icon: Mail, label: 'Sales', href: 'mailto:sales@talentloop.io', text: 'sales@talentloop.io' },
-                  { icon: MessageSquare, label: 'Support', href: 'mailto:support@talentloop.io', text: 'support@talentloop.io' },
+                  { icon: Mail, label: 'Sales', href: 'mailto:sales@TalentBridge.io', text: 'sales@TalentBridge.io' },
+                  { icon: MessageSquare, label: 'Support', href: 'mailto:support@TalentBridge.io', text: 'support@TalentBridge.io' },
                   { icon: Calendar, label: 'Demo', href: '#', text: 'Schedule a 30-min demo →' },
                 ].map(({ icon: Icon, label, href, text }) => (
                   <div key={label} className="flex items-start gap-3">
@@ -252,7 +252,7 @@ export default function ContactPage() {
 
               {/* Quick stats */}
               <div className="tl-card p-6">
-                <h3 className="mb-4 text-base font-semibold text-tl-text-primary">Why teams choose TalentLoop</h3>
+                <h3 className="mb-4 text-base font-semibold text-tl-text-primary">Why teams choose TalentBridge</h3>
                 <ul className="space-y-3">
                   {[
                     { icon: Users, text: '500+ enterprise customers' },
@@ -296,7 +296,7 @@ export default function ContactPage() {
                   iconBg: 'bg-tl-blue/10',
                   iconColor: 'text-tl-blue',
                   title: 'Partnerships',
-                  desc: 'Become an integration partner and connect your ATS, HRIS, or workflow tool to TalentLoop\'s AI hiring engine.',
+                  desc: 'Become an integration partner and connect your ATS, HRIS, or workflow tool to TalentBridge\'s AI hiring engine.',
                   items: ['Integration & API access', 'Co-marketing opportunities', 'Revenue share program'],
                   checkColor: 'text-tl-blue',
                 },

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, KeyboardEvent } from 'react'
+import { useState, useMemo, useEffect, KeyboardEvent } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { candidates } from '@/lib/data'
+import { getCandidates } from '@/lib/api'
 import { EXPERIENCE_LABELS, WORK_MODE_LABELS } from '@/lib/constants'
 import type { Candidate, ExperienceLevel, WorkMode } from '@/lib/types'
 import { cn, formatSalary } from '@/lib/utils'
@@ -263,6 +263,8 @@ function CandidateListRow({ candidate, idx }: { candidate: Candidate; idx: numbe
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CandidatesPage() {
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [experienceFilter, setExperienceFilter] = useState<ExperienceLevel[]>([])
   const [workModeFilter, setWorkModeFilter] = useState<WorkMode[]>([])
@@ -276,6 +278,15 @@ export default function CandidatesPage() {
   const [availabilityFilter, setAvailabilityFilter] = useState('')
   const [skillTags, setSkillTags] = useState<string[]>([])
   const [skillInput, setSkillInput] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      const res = await getCandidates()
+      if (res.data) setAllCandidates(res.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const activeFilters =
     experienceFilter.length +
@@ -309,7 +320,7 @@ export default function CandidatesPage() {
   }
 
   const filtered = useMemo(() => {
-    let list = [...candidates]
+    let list = [...allCandidates]
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(
@@ -358,12 +369,18 @@ export default function CandidatesPage() {
     if (sortBy === 'match') list.sort((a, b) => b.matchScore - a.matchScore)
     else if (sortBy === 'salary') list.sort((a, b) => a.salaryExpectation - b.salaryExpectation)
     return list
-  }, [search, experienceFilter, workModeFilter, salaryMin, skillTags, verifiedOnly, premiumOnly, availabilityFilter, sortBy])
+  }, [allCandidates, search, experienceFilter, workModeFilter, salaryMin, skillTags, verifiedOnly, premiumOnly, availabilityFilter, sortBy])
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
   const salaryDisplay = salaryMin >= 1000 ? `$${(salaryMin / 1000).toFixed(0)}K` : salaryMin === 0 ? 'Any' : `$${salaryMin}`
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="flex h-full min-h-screen bg-tl-bg-base">

@@ -33,10 +33,10 @@ const footerLinks = {
 }
 
 const socialLinks = [
-  { Icon: Twitter, label: 'Follow TalentLoop on Twitter', href: '#' },
-  { Icon: Linkedin, label: 'Connect with TalentLoop on LinkedIn', href: '#' },
-  { Icon: Github, label: 'TalentLoop on GitHub', href: '#' },
-  { Icon: Mail, label: 'Email TalentLoop support', href: '/contact' },
+  { Icon: Twitter, label: 'Follow TalentBridge on Twitter', href: '#' },
+  { Icon: Linkedin, label: 'Connect with TalentBridge on LinkedIn', href: '#' },
+  { Icon: Github, label: 'TalentBridge on GitHub', href: '#' },
+  { Icon: Mail, label: 'Email TalentBridge support', href: '/contact' },
 ]
 
 export function Footer() {
@@ -46,7 +46,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
           {/* Brand */}
           <div className="col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-4" aria-label="TalentLoop — go to homepage">
+            <Link href="/" className="flex items-center gap-2.5 mb-4" aria-label="TalentBridge — go to homepage">
               <div
                 className="w-8 h-8 rounded-lg bg-tl-gold/10 border border-tl-gold/30 flex items-center justify-center"
                 aria-hidden="true"
@@ -54,7 +54,7 @@ export function Footer() {
                 <Zap className="w-4 h-4 text-tl-gold" aria-hidden="true" />
               </div>
               <span className="font-display text-lg font-bold gradient-text">
-                TalentLoop
+                TalentBridge
               </span>
             </Link>
             <p className="text-sm text-tl-text-secondary leading-relaxed mb-6 max-w-xs">
@@ -98,7 +98,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between mt-12 pt-8 border-t border-tl-border-subtle">
           <p className="text-sm text-tl-text-secondary">
-            © {new Date().getFullYear()} TalentLoop, Inc. All rights reserved.
+            © {new Date().getFullYear()} TalentBridge, Inc. All rights reserved.
           </p>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
             <div className="flex items-center gap-2" aria-live="polite" aria-label="System status">

@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { candidates, applications } from '@/lib/data'
+import { useParams } from 'next/navigation'
+import { getCandidate, getApplications } from '@/lib/api'
 import { STAGE_LABELS, STAGE_COLORS } from '@/lib/constants'
+import type { Candidate, Application } from '@/lib/types'
 import { cn, timeAgo } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -86,14 +88,40 @@ type Tab = 'overview' | 'experience' | 'skills' | 'assessments' | 'notes'
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function CandidateDetailPage({ params }: { params: { id: string } }) {
-  const candidate = candidates.find((c) => c.id === params.id) ?? candidates[0]
-  const candidateApplications = applications.filter((a) => a.candidateId === candidate.id)
+export default function CandidateDetailPage() {
+  const params = useParams()
+  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : ''
+
+  const [candidate, setCandidate] = useState<Candidate | null>(null)
+  const [candidateApplications, setCandidateApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [candRes, appsRes] = await Promise.all([getCandidate(id), getApplications()])
+      if (candRes.data) setCandidate(candRes.data)
+      if (appsRes.data) setCandidateApplications(appsRes.data.filter((a) => a.candidateId === id))
+      setLoading(false)
+    }
+    load()
+  }, [id])
 
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [noteInput, setNoteInput] = useState('')
   const [notes, setNotes] = useState<{ text: string; date: string }[]>([])
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (!candidate) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-tl-text-secondary">Candidate not found.</p>
+    </div>
+  )
 
   const matchScore = candidate.matchScore ?? getMatchScore(candidate.id)
   const verifiedSkills = candidate.skills.filter((s) => s.verified)
@@ -357,7 +385,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                     </div>
                     <div>
                       <h3 className="text-base font-semibold text-tl-text-primary">AI Match Analysis</h3>
-                      <p className="text-xs text-tl-text-secondary">TalentLoop intelligence score breakdown</p>
+                      <p className="text-xs text-tl-text-secondary">TalentBridge intelligence score breakdown</p>
                     </div>
                     <div className="ml-auto">
                       <MatchRing score={matchScore} size={64} />
@@ -605,7 +633,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
               >
                 <div className="px-6 py-4 border-b border-tl-border-subtle">
                   <h3 className="text-base font-semibold text-tl-text-primary">Assessment Scores</h3>
-                  <p className="text-xs text-tl-text-secondary mt-0.5">TalentLoop verified technical assessments</p>
+                  <p className="text-xs text-tl-text-secondary mt-0.5">TalentBridge verified technical assessments</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">

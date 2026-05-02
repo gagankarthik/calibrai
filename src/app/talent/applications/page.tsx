@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { applications } from '@/lib/data'
+import { getApplications } from '@/lib/api'
+import type { Application } from '@/lib/types'
 import { formatSalary, timeAgo, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -93,6 +94,17 @@ const FILTER_TABS: Array<{ value: FilterStatus; label: string }> = [
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
+  const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const res = await getApplications()
+      if (res.data) setApplications(res.data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const filtered = statusFilter === 'all'
     ? applications
@@ -111,6 +123,12 @@ export default function ApplicationsPage() {
     interview: applications.filter(a => a.status === 'interview').length,
     offers:    applications.filter(a => a.status === 'offer').length,
   }
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   const listVariants = {
     hidden: { opacity: 0 },

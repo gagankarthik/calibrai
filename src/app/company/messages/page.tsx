@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { conversations, candidates } from '@/lib/data'
-import { Conversation, Message } from '@/lib/types'
+import { getConversations, getCandidates } from '@/lib/api'
+import { Conversation, Message, Candidate } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   Search,
@@ -201,8 +201,8 @@ interface CandidatePanelProps {
   onClose: () => void
 }
 
-function CandidatePanel({ conv, onClose }: CandidatePanelProps) {
-  const candidate = candidates.find((c) => c.id === conv.participantId)
+function CandidatePanel({ conv, onClose, allCandidates }: CandidatePanelProps & { allCandidates: Candidate[] }) {
+  const candidate = allCandidates.find((c) => c.id === conv.participantId)
   const [note, setNote] = useState('')
   const [notes, setNotes] = useState<Array<{ text: string; date: string }>>([
     { text: 'Strong technical background. Great communication.', date: '2025-04-27' },
@@ -384,6 +384,9 @@ function CandidatePanel({ conv, onClose }: CandidatePanelProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MessagesPage() {
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([])
+  const [loadingData, setLoadingData] = useState(true)
   const [activeConvId, setActiveConvId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [search, setSearch] = useState('')
@@ -391,6 +394,16 @@ export default function MessagesPage() {
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    async function load() {
+      const [convsRes, candsRes] = await Promise.all([getConversations(), getCandidates()])
+      if (convsRes.data) setConversations(convsRes.data)
+      if (candsRes.data) setAllCandidates(candsRes.data)
+      setLoadingData(false)
+    }
+    load()
+  }, [])
 
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? null
 
@@ -434,6 +447,12 @@ export default function MessagesPage() {
       handleSend()
     }
   }
+
+  if (loadingData) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
@@ -633,6 +652,7 @@ export default function MessagesPage() {
             <CandidatePanel
               conv={activeConv}
               onClose={() => setShowCandidatePanel(false)}
+              allCandidates={allCandidates}
             />
           </motion.div>
         )}

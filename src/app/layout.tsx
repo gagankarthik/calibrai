@@ -26,26 +26,26 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://talentloop.io'),
+  metadataBase: new URL('https://talentbridge.io'),
   title: {
-    default: 'TalentLoop — AI-Powered Talent Acquisition Platform',
-    template: '%s | TalentLoop',
+    default: 'TalentBridge — AI-Powered Talent Acquisition Platform',
+    template: '%s | TalentBridge',
   },
   description:
     'Close roles 3× faster with AI matching, zero ghosting, and real salary intelligence. Where exceptional companies meet world-class talent.',
   keywords: ['recruiting', 'talent acquisition', 'AI matching', 'job search', 'hiring platform', 'ATS'],
-  authors: [{ name: 'TalentLoop' }],
-  creator: 'TalentLoop',
+  authors: [{ name: 'TalentBridge' }],
+  creator: 'TalentBridge',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    title: 'TalentLoop — AI-Powered Talent Acquisition',
+    title: 'TalentBridge — AI-Powered Talent Acquisition',
     description: 'Where exceptional companies meet world-class candidates.',
-    siteName: 'TalentLoop',
+    siteName: 'TalentBridge',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TalentLoop',
+    title: 'TalentBridge',
     description: 'AI-powered talent acquisition that actually works.',
   },
   robots: {
@@ -61,20 +61,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Skip to main content — WCAG 2.1 SC 2.4.1 */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-tl-gold focus:text-tl-bg-base focus:font-medium focus:shadow-lg focus:outline-none"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:font-medium focus:shadow-lg focus:outline-none"
         >
           Skip to main content
         </a>
         {children}
         <Toaster
           position="bottom-right"
-          theme="dark"
+          theme="light"
           richColors
           toastOptions={{
             style: {
-              background: '#1A1D26',
-              border: '1px solid rgba(201,168,76,0.2)',
-              color: '#F2F0E8',
+              background: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              color: '#111827',
             },
           }}
         />

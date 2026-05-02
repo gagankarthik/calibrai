@@ -21,7 +21,24 @@
       "Bash(grep -n \"hex\\\\|#[0-9a-fA-F]\\\\{3,6\\\\}\\\\|rgb\\(\" \"C:/Users/gagan/Desktop/talentbridge/src/app/page.tsx\")",
       "Bash(git push *)",
       "Bash(git filter-branch *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\" -Recurse -Depth 2)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "PowerShell(tree \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\" -L 3)",
+      "Bash(npm list *)",
+      "Bash(curl -s http://localhost:3000/api/health)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\api\" -Recurse)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\api\" -Recurse | Select-Object -Property FullName | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\company\" -Recurse | Select-Object -Property FullName | ForEach-Object { $_.FullName })",
+      "Bash(Select-String \"^src/\")",
+      "PowerShell(cd C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge; npx tsc --noEmit 2>&1 | Select-String \"src/\" | Select-Object -First 30 | ForEach-Object { $_.ToString\\(\\) })",
+      "PowerShell(Set-Location C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge; $result = npx tsc --noEmit 2>&1; $result | Where-Object { $_ -match \"^src/\" } | Select-Object -First 30)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "PowerShell(Set-Location C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge; $out = npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"src/\" }; if \\($out\\) { $out } else { \"No src/ errors\" })"
     ]
   }
 }
