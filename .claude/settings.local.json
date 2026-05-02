@@ -18,7 +18,10 @@
       "Bash(Select-Object FullName, Length)",
       "Bash(powershell -Command \"Select-String -Path 'src\\\\app\\\\company\\\\dashboard\\\\page.tsx' -Pattern 'LayoutKanban'\")",
       "Bash(dir C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge *)",
-      "Bash(grep -n \"hex\\\\|#[0-9a-fA-F]\\\\{3,6\\\\}\\\\|rgb\\(\" \"C:/Users/gagan/Desktop/talentbridge/src/app/page.tsx\")"
+      "Bash(grep -n \"hex\\\\|#[0-9a-fA-F]\\\\{3,6\\\\}\\\\|rgb\\(\" \"C:/Users/gagan/Desktop/talentbridge/src/app/page.tsx\")",
+      "Bash(git push *)",
+      "Bash(git filter-branch *)",
+      "Bash(git stash *)"
     ]
   }
 }
