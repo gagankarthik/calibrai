@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db, Tables, PutCommand, ScanCommand } from '@/lib/aws/dynamodb'
 import { discoverJobsForCrm } from '@/lib/playwright/job-discovery'
+
+const scrapeSchema = z.object({
+  keywords: z.array(z.string().max(50).trim()).min(1).max(10),
+  location: z.string().max(100).trim().optional(),
+})
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -34,11 +40,24 @@ export async function GET(req: NextRequest) {
 
 // POST — trigger scraping (RemoteOK + Remotive + HN + LinkedIn), persist to DynamoDB
 export async function POST(req: NextRequest) {
+  let rawBody: unknown
   try {
-    const body = (await req.json()) as { keywords?: string[]; location?: string }
-    const keywords = body.keywords?.filter(Boolean) ?? ['software engineer']
-    const location = body.location ?? undefined
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
 
+  const parsed = scrapeSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+
+  const { keywords, location } = parsed.data
+
+  try {
     const jobs = await discoverJobsForCrm(keywords, location)
 
     // Save each job with deduplication — skip if already exists (pk = jobId)
@@ -65,8 +84,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ scraped: jobs.length, jobs: allJobs })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Scraping failed'
     console.error('[CRM Jobs POST]', err)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

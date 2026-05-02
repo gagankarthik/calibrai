@@ -323,7 +323,7 @@ export default function PipelinePage() {
     <div className="flex flex-col h-full min-h-screen">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 py-5 border-b border-tl-border-subtle">
+      <div className="flex-shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-b border-tl-border-subtle">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           {/* Left: title + count */}
           <div className="flex items-center gap-3">
@@ -415,7 +415,7 @@ export default function PipelinePage() {
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-x-auto p-6 pb-4">
+      <div className="flex-1 overflow-x-auto p-4 sm:p-6 pb-4">
         <AnimatePresence mode="wait">
           {viewMode === 'kanban' ? (
             <motion.div
@@ -437,7 +437,7 @@ export default function PipelinePage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="tl-card overflow-hidden"
+              className="tl-card overflow-x-auto"
             >
               {filteredApps.length === 0 ? (
                 <div className="p-16 flex flex-col items-center justify-center text-center">
@@ -469,7 +469,7 @@ export default function PipelinePage() {
       </div>
 
       {/* ── Stage velocity strip ─────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 pb-6">
+      <div className="flex-shrink-0 px-4 sm:px-6 pb-4 sm:pb-6">
         <div className="tl-card p-4">
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4 text-tl-text-secondary" />

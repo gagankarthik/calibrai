@@ -15,10 +15,10 @@ import { Bell, Search, Zap, Settings, LogOut, User, CreditCard, ChevronDown } fr
 
 export default function CompanyLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-tl-bg-base flex">
+    <div className="h-screen bg-tl-bg-base flex overflow-hidden">
       <SidebarCompany />
 
-      <div className="flex-1 md:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-0">
         {/* Top Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-4 md:px-6 py-3 border-b border-tl-border-subtle bg-tl-bg-surface/80 backdrop-blur-xl">
           {/* Left */}
@@ -102,7 +102,7 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

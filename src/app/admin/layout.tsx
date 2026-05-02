@@ -119,7 +119,7 @@ function AdminLoginGate({ onSuccess }: { onSuccess: () => void }) {
               ) : (
                 <>
                   <Shield className="w-4 h-4" />
-                  Unlock Admin Panel
+                  Unlock Admin Panel -password: talentbridge-admin 
                 </>
               )}
             </button>

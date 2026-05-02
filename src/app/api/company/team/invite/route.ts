@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db, Tables, PutCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken, cognitoSignUp } from '@/lib/aws/cognito'
 import { v4 as uuidv4 } from 'uuid'
+
+const inviteSchema = z.object({
+  email: z.string().email().max(254),
+  role: z.enum(['admin', 'recruiter', 'interviewer', 'viewer']),
+})
 
 export async function POST(req: NextRequest) {
   const token = extractBearerToken(req.headers.get('Authorization'))
@@ -16,9 +22,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
   }
 
+  let rawBody: unknown
   try {
-    const { email, role } = (await req.json()) as { email: string; role: string }
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
 
+  const parsed = inviteSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+
+  const { email, role } = parsed.data
+
+  try {
     const tempPassword = `Temp${uuidv4().slice(0, 8)}!`
     await cognitoSignUp(email, tempPassword, 'company', {
       'custom:companyId': companyId,
@@ -40,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(member, { status: 201 })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to invite'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[company/team/invite POST]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

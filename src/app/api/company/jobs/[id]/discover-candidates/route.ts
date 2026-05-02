@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, Tables, PutCommand, ScanCommand, QueryCommand } from '@/lib/aws/dynamodb'
 import { discoverCandidatesForJob } from '@/lib/playwright/candidate-discovery'
+import { verifyCognitoToken, extractBearerToken } from '@/lib/aws/cognito'
 import type { Job } from '@/lib/types'
 
 export const runtime = 'nodejs'
@@ -8,11 +9,23 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const internalSecret = req.headers.get('x-internal-secret')
-  const authHeader = req.headers.get('Authorization')
 
-  const isInternal = internalSecret === process.env.INTERNAL_API_SECRET
-  const isAuthorized = !!authHeader
+  const isInternal =
+    req.headers.get('x-internal-secret') === (process.env.INTERNAL_API_SECRET ?? '')
+    && !!process.env.INTERNAL_API_SECRET // only if secret is non-empty
+
+  let isAuthorized = false
+  if (!isInternal) {
+    const token =
+      extractBearerToken(req.headers.get('Authorization'))
+      ?? req.cookies.get('tb-company-token')?.value
+    if (token) {
+      try {
+        await verifyCognitoToken(token, 'company')
+        isAuthorized = true
+      } catch { isAuthorized = false }
+    }
+  }
 
   if (!isInternal && !isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

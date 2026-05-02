@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db, Tables, ScanCommand, PutCommand, UpdateCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken } from '@/lib/aws/cognito'
 import { v4 as uuidv4 } from 'uuid'
+
+const applySchema = z.object({
+  coverLetter: z.string().max(5000).trim().optional(),
+})
+
+function sanitizeText(s: string): string {
+  return s.replace(/<[^>]*>/g, '').replace(/javascript:/gi, '').trim()
+}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: jobId } = await params
@@ -18,9 +27,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
   }
 
+  let rawBody: unknown
   try {
-    const { coverLetter } = (await req.json()) as { coverLetter?: string }
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
 
+  const parsed = applySchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+
+  const coverLetter = parsed.data.coverLetter ? sanitizeText(parsed.data.coverLetter) : ''
+
+  try {
     const jobScan = await db.send(
       new ScanCommand({
         TableName: Tables.Jobs,
@@ -43,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       appliedAt: now,
       updatedAt: now,
       matchScore: 0,
-      coverLetter: coverLetter ?? '',
+      coverLetter,
     }
 
     await db.send(new PutCommand({ TableName: Tables.Applications, Item: application }))
@@ -59,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json(application, { status: 201 })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to apply'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[jobs/[id]/apply POST]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

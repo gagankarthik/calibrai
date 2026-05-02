@@ -38,7 +38,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
-      "PowerShell(Set-Location C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge; $out = npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"src/\" }; if \\($out\\) { $out } else { \"No src/ errors\" })"
+      "PowerShell(Set-Location C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge; $out = npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"src/\" }; if \\($out\\) { $out } else { \"No src/ errors\" })",
+      "Bash(npx tsx *)"
     ]
   }
 }

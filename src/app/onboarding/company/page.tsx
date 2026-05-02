@@ -259,7 +259,7 @@ function Step1({
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Industry">
             <Select value={form.industry} onValueChange={(v) => update('industry', v)}>
               <SelectTrigger className={cn(inputCls, 'flex items-center justify-between')}>
@@ -388,7 +388,7 @@ function Step2({
         </Field>
 
         <Field label="Remote policy">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {remotePolicies.map((p) => (
               <button
                 key={p.value}
@@ -581,7 +581,7 @@ function Step3({
         <p className="text-xs font-semibold uppercase tracking-widest text-tl-text-secondary">
           Summary
         </p>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: 'Company', value: form.companyName || '—' },
             { label: 'Industry', value: form.industry || '—' },
@@ -621,7 +621,7 @@ function Step3({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.1 }}
-        className="grid grid-cols-3 gap-3"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-3"
       >
         {nextSteps.map((item) => {
           const Icon = item.icon

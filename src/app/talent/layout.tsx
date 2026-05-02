@@ -108,10 +108,10 @@ export default function TalentLayout({ children }: { children: React.ReactNode }
   const pageName = PAGE_NAMES[pathname] ?? 'Page'
 
   return (
-    <div className="min-h-screen bg-tl-bg-base flex">
+    <div className="h-screen bg-tl-bg-base flex overflow-hidden">
       <SidebarTalent />
 
-      <div className="flex-1 md:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-0">
         {/* Top Header Bar */}
         <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 md:px-6 border-b border-tl-border-subtle bg-tl-bg-surface/80 backdrop-blur-xl">
           {/* Mobile nav + Breadcrumb */}
@@ -210,7 +210,7 @@ export default function TalentLayout({ children }: { children: React.ReactNode }
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

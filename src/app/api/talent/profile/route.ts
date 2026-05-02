@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db, Tables, GetCommand, UpdateCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken } from '@/lib/aws/cognito'
+import { logAuditEvent } from '@/lib/audit'
+
+const updateProfileSchema = z.object({
+  headline: z.string().max(200).trim().optional(),
+  bio: z.string().max(2000).trim().optional(),
+  location: z.string().max(200).trim().optional(),
+  phone: z.string().max(20).regex(/^[\d\s+\-().]+$/).optional().or(z.literal('')),
+  salaryExpectation: z.number().min(0).max(10_000_000).optional(),
+  availability: z.string().max(50).optional(),
+  workPreference: z.array(z.enum(['remote', 'hybrid', 'onsite'])).max(3).optional(),
+  github: z.string().url().max(200).optional().or(z.literal('')),
+  linkedin: z.string().url().max(200).optional().or(z.literal('')),
+  portfolio: z.string().url().max(200).optional().or(z.literal('')),
+  languages: z.array(z.string().max(50)).max(20).optional(),
+}).strict()
 
 async function getCandidateId(req: NextRequest): Promise<string | null> {
   const token = extractBearerToken(req.headers.get('Authorization'))
@@ -33,11 +49,26 @@ export async function PATCH(req: NextRequest) {
   const candidateId = await getCandidateId(req)
   if (!candidateId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  let rawBody: unknown
   try {
-    const updates = (await req.json()) as Record<string, unknown>
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const parsed = updateProfileSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+
+  try {
+    const updates = parsed.data as Record<string, unknown>
 
     const updatable = ['headline', 'bio', 'location', 'phone', 'salaryExpectation', 'availability',
-      'workPreference', 'skills', 'github', 'linkedin', 'portfolio', 'languages', 'resumeKey']
+      'workPreference', 'github', 'linkedin', 'portfolio', 'languages']
 
     const expressions: string[] = ['updatedAt = :ts']
     const names: Record<string, string> = {}
@@ -62,8 +93,17 @@ export async function PATCH(req: NextRequest) {
       }),
     )
 
+    await logAuditEvent({
+      action: 'talent_profile.updated',
+      resource: 'talent_profile',
+      resourceId: candidateId,
+      userId: candidateId,
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
+    })
+
     return NextResponse.json(result.Attributes ?? {})
   } catch (err) {
-    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+    console.error('[talent/profile PATCH]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

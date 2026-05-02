@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db, Tables, PutCommand, UpdateCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken } from '@/lib/aws/cognito'
 import { v4 as uuidv4 } from 'uuid'
+
+const messageSchema = z.object({
+  body: z.string().min(1).max(5000).trim(),
+  type: z.enum(['text', 'interview_request']).default('text'),
+})
+
+function sanitizeText(s: string): string {
+  return s.replace(/<[^>]*>/g, '').replace(/javascript:/gi, '').trim()
+}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: conversationId } = await params
@@ -19,8 +29,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   if (!senderId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  let rawBody: unknown
   try {
-    const { body, type = 'text' } = (await req.json()) as { body: string; type?: string }
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const parsed = messageSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+
+  const { body: rawMessage, type } = parsed.data
+  const sanitizedBody = sanitizeText(rawMessage)
+
+  try {
 
     const messageId = `m-${uuidv4()}`
     const timestamp = new Date().toISOString()
@@ -29,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       conversationId,
       messageId,
       senderId,
-      content: body,
+      content: sanitizedBody,
       timestamp,
       read: false,
       type,
@@ -42,12 +69,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         TableName: Tables.Conversations,
         Key: { conversationId },
         UpdateExpression: 'SET lastMessage = :msg, lastMessageTime = :ts',
-        ExpressionAttributeValues: { ':msg': body, ':ts': timestamp },
+        ExpressionAttributeValues: { ':msg': sanitizedBody, ':ts': timestamp },
       }),
     ).catch(() => {})
 
     return NextResponse.json(message, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
+  } catch (err) {
+    console.error('[messages/conversations/[id]/messages POST]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

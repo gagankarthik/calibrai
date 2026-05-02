@@ -148,7 +148,7 @@ export default function JobsPage() {
   )
 
   return (
-    <div className="p-6 space-y-6 max-w-screen-xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-screen-xl">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

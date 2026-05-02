@@ -102,8 +102,8 @@ function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: 
   const isNew = (Date.now() - new Date(job.postedAt).getTime()) < 1000 * 60 * 60 * 48
 
   return (
-    <div className="tl-card p-5 hover:border-tl-gold/40 transition-all duration-300 cursor-pointer group">
-      <div className="flex items-start gap-4">
+    <div className="tl-card p-4 sm:p-5 hover:border-tl-gold/40 transition-all duration-300 cursor-pointer group">
+      <div className="flex items-start gap-3 sm:gap-4">
         {/* Left: avatar + featured badge */}
         <div className="relative shrink-0">
           <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl', avatarColor(job.company.name))}>
@@ -303,7 +303,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.div
@@ -327,7 +327,7 @@ export default function JobsPage() {
         className="tl-card p-4 mb-4"
       >
         {/* Row 1 */}
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 min-w-[200px] bg-tl-bg-surface border border-tl-border-default focus-within:border-tl-gold rounded-xl transition-colors">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tl-text-secondary" />
             <input
@@ -354,7 +354,7 @@ export default function JobsPage() {
             )}
           </Button>
           <Select value={sortBy} onValueChange={v => setSortBy(v as SortBy)}>
-            <SelectTrigger className="h-10 w-44 text-sm bg-tl-bg-surface border-tl-border-default text-tl-text-primary">
+            <SelectTrigger className="h-10 w-full sm:w-44 text-sm bg-tl-bg-surface border-tl-border-default text-tl-text-primary">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

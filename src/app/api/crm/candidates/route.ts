@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db, Tables, PutCommand, ScanCommand } from '@/lib/aws/dynamodb'
 import { discoverCandidatesByQuery } from '@/lib/playwright/candidate-discovery'
+
+const discoverSchema = z.object({
+  skills: z.array(z.string().max(50).trim()).min(1).max(10),
+  location: z.string().max(100).trim().optional(),
+})
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -36,11 +42,24 @@ export async function GET(req: NextRequest) {
 
 // POST — trigger GitHub / LinkedIn discovery, persist to DynamoDB, return full list
 export async function POST(req: NextRequest) {
+  let rawBody: unknown
   try {
-    const body = (await req.json()) as { skills?: string[]; location?: string }
-    const skills = body.skills?.filter(Boolean) ?? ['React', 'TypeScript']
-    const location = body.location ?? undefined
+    rawBody = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
 
+  const parsed = discoverSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+
+  const { skills, location } = parsed.data
+
+  try {
     const candidates = await discoverCandidatesByQuery(skills, location)
 
     // Save with deduplication — pk = profileId
@@ -69,8 +88,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ discovered: candidates.length, candidates: allCandidates })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Discovery failed'
     console.error('[CRM Candidates POST]', err)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

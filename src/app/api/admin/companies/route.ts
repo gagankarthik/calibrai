@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, Tables, ScanCommand } from '@/lib/aws/dynamodb'
 
 export async function GET(req: NextRequest) {
+  const adminSecret = req.headers.get('x-admin-secret') ?? req.cookies.get('tb-admin-verified')?.value
+  const expectedSecret = process.env.INTERNAL_API_SECRET ?? 'talentbridge-admin'
+  if (adminSecret !== expectedSecret && adminSecret !== 'true') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { searchParams } = new URL(req.url)
     const page = parseInt(searchParams.get('page') ?? '1', 10)

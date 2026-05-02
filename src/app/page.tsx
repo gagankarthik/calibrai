@@ -269,156 +269,66 @@ function ProductMockup() {
 
 function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center pt-[60px] pb-16 overflow-hidden bg-white">
-      {/* Subtle radial tint */}
-      <div
-        className="absolute inset-0 -z-10 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 55% at 50% -5%, rgba(99,102,241,0.07) 0%, transparent 72%)',
-        }}
-      />
-      {/* Dot grid */}
-      <div
-        className="absolute inset-0 -z-10 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.28) 1px, transparent 1px)',
-          backgroundSize: '26px 26px',
-          maskImage:
-            'radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%)',
-          WebkitMaskImage:
-            'radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%)',
-        }}
-      />
+    <section className="relative min-h-screen flex items-center pt-[60px] pb-16 overflow-hidden">
+      {/* Background video */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <video
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4"
+          autoPlay
+          playsInline
+          muted
+          loop
+          className="w-full h-full object-cover"
+        />
+      </div>
 
-      <div className="mx-auto max-w-6xl w-full px-4 sm:px-6">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      {/* Content — centered */}
+      <div className="relative z-10 mx-auto max-w-4xl w-full px-4 sm:px-6 text-center">
 
-          {/* ── Left copy ── */}
-          <div>
-            {/* Eyebrow */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 mb-7"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="text-[12.5px] font-semibold text-indigo-700 tracking-tight">
-                AI-Native Hiring Platform
-              </span>
-            </motion.div>
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.07 }}
+          className="text-[42px] sm:text-[58px] lg:text-[68px] font-semibold tracking-tight text-white leading-[1.06] mb-6"
+        >
+          Hire the right&nbsp;people,{' '}
+          <span className="text-indigo-400">10× faster.</span>
+        </motion.h1>
 
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.07 }}
-              className="text-[42px] sm:text-[54px] lg:text-[60px] font-semibold tracking-tight text-slate-900 leading-[1.08] mb-6"
-            >
-              Hire the right&nbsp;people,{' '}
-              <span className="text-indigo-600">10× faster.</span>
-            </motion.h1>
+        {/* Sub */}
+        <motion.p
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="text-[18px] text-white leading-[1.7] mb-10 max-w-2xl mx-auto"
+        >
+          TalentBridge sources, ranks, and matches top candidates to every
+          open role using AI — so your team spends time on interviews, not
+          spreadsheets.
+        </motion.p>
 
-            {/* Sub */}
-            <motion.p
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-              className="text-[17px] text-slate-500 leading-[1.7] mb-8 max-w-[460px]"
-            >
-              TalentBridge sources, ranks, and matches top candidates to every
-              open role using AI — so your team spends time on interviews, not
-              spreadsheets.
-            </motion.p>
-
-            {/* CTAs */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.22 }}
-              className="flex flex-wrap items-center gap-3 mb-8"
-            >
-              <Link
-                href="/auth/register?role=company"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-[14px] font-semibold hover:bg-slate-700 transition-colors duration-150 shadow-sm"
-              >
-                Start hiring free
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-700 text-[14px] font-semibold border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-150"
-              >
-                See how it works
-              </Link>
-            </motion.div>
-
-            {/* Trust line */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.45, delay: 0.32 }}
-              className="flex flex-wrap items-center gap-4"
-            >
-              {[
-                'No credit card required',
-                'Setup in 5 minutes',
-                'SOC2 Type II certified',
-              ].map(t => (
-                <span
-                  key={t}
-                  className="flex items-center gap-1.5 text-[12px] text-slate-400"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  {t}
-                </span>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* ── Right mockup ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 28, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.18, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="relative lg:block"
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.22 }}
+          className="flex flex-wrap justify-center items-center gap-3 mb-10"
+        >
+          <Link
+            href="/auth/register?role=company"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-indigo-500 text-white text-[15px] font-semibold hover:bg-indigo-400 transition-colors duration-150 shadow-lg shadow-indigo-500/25"
           >
-            <ProductMockup />
-
-            {/* Floating badge — left */}
-            <motion.div
-              initial={{ opacity: 0, x: -14 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.75, duration: 0.45 }}
-              className="absolute -left-5 top-[22%] hidden xl:flex items-center gap-2.5 bg-white border border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.08)] rounded-xl px-3.5 py-2.5"
-            >
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-4 h-4 text-emerald-600" />
-              </div>
-              <div>
-                <div className="text-[13px] font-bold text-slate-900">12 days</div>
-                <div className="text-[10px] text-slate-400">avg. time to hire</div>
-              </div>
-            </motion.div>
-
-            {/* Floating badge — right */}
-            <motion.div
-              initial={{ opacity: 0, x: 14 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.9, duration: 0.45 }}
-              className="absolute -right-5 bottom-[22%] hidden xl:flex items-center gap-2.5 bg-white border border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.08)] rounded-xl px-3.5 py-2.5"
-            >
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-4 h-4 text-indigo-600" />
-              </div>
-              <div>
-                <div className="text-[13px] font-bold text-slate-900">94%</div>
-                <div className="text-[10px] text-slate-400">match accuracy</div>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
+            Start hiring free
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            href="#how-it-works"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/10 text-white text-[15px] font-semibold border border-white/20 hover:bg-white/15 transition-colors duration-150 backdrop-blur-sm"
+          >
+            See how it works
+          </Link>
+        </motion.div>
       </div>
     </section>
   )

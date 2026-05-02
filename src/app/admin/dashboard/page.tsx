@@ -229,7 +229,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="p-6 max-w-screen">
+    <div className="p-4 sm:p-6 max-w-screen">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -365,7 +365,8 @@ export default function AdminDashboard() {
               View all <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-full">
             <thead>
               <tr className="border-b border-[var(--tl-border-subtle)] bg-[var(--tl-bg-elevated)]/50">
                 <th className="text-left text-[10px] font-semibold text-[var(--tl-text-secondary)] uppercase tracking-wide px-6 py-3">Company</th>
@@ -402,6 +403,7 @@ export default function AdminDashboard() {
               )}
             </tbody>
           </table>
+          </div>
         </motion.div>
 
         {/* Recent Talents */}
@@ -417,7 +419,8 @@ export default function AdminDashboard() {
               View all <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-full">
             <thead>
               <tr className="border-b border-[var(--tl-border-subtle)] bg-[var(--tl-bg-elevated)]/50">
                 <th className="text-left text-[10px] font-semibold text-[var(--tl-text-secondary)] uppercase tracking-wide px-6 py-3">Name</th>
@@ -451,6 +454,7 @@ export default function AdminDashboard() {
               )}
             </tbody>
           </table>
+          </div>
         </motion.div>
       </div>
     </div>

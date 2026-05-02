@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db, Tables, ScanCommand } from '@/lib/aws/dynamodb'
 
 const PLAN_PRICES: Record<string, number> = {
@@ -7,7 +7,13 @@ const PLAN_PRICES: Record<string, number> = {
   enterprise: 7999,
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const adminSecret = req.headers.get('x-admin-secret') ?? req.cookies.get('tb-admin-verified')?.value
+  const expectedSecret = process.env.INTERNAL_API_SECRET ?? 'talentbridge-admin'
+  if (adminSecret !== expectedSecret && adminSecret !== 'true') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const [companies, candidates, jobs, applications, crmJobs, discoveredCandidates] =
       await Promise.all([

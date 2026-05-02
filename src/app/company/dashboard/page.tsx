@@ -289,7 +289,7 @@ export default function CompanyDashboard() {
   )
 
   return (
-    <div className="p-6 max-w-screen">
+    <div className="p-4 sm:p-6 max-w-screen">
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

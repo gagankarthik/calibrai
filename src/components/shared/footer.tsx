@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { Zap, Twitter, Linkedin, Github, Mail } from 'lucide-react'
 
@@ -24,10 +26,9 @@ const footerLinks = {
     { label: 'Support', href: '/contact' },
   ],
   Legal: [
-    { label: 'Privacy Policy', href: '#' },
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Cookie Policy', href: '#' },
-    { label: 'GDPR', href: '#' },
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'GDPR', href: '/privacy#your-rights' },
     { label: 'Security', href: '#' },
   ],
 }
@@ -90,6 +91,17 @@ export function Footer() {
                     </Link>
                   </li>
                 ))}
+                {category === 'Legal' && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => window.dispatchEvent(new Event('open-cookie-settings'))}
+                      className="text-sm text-tl-text-secondary hover:text-tl-gold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tl-gold focus-visible:rounded cursor-pointer bg-transparent border-0 p-0 font-inherit text-left"
+                    >
+                      Cookie Settings
+                    </button>
+                  </li>
+                )}
               </ul>
             </nav>
           ))}
