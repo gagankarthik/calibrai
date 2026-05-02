@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { cognitoSignIn } from '@/lib/aws/cognito'
-import { db, Tables, GetCommand } from '@/lib/aws/dynamodb'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { logAuditEvent } from '@/lib/audit'
 
@@ -10,20 +9,27 @@ const signinSchema = z.object({
   password: z.string().min(1).max(128),
 })
 
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const payload = token.split('.')[1]
+    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+  } catch {
+    return {}
+  }
+}
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
-  const rl = rateLimit(`signin-company-${ip}`, 5, 60_000) // 5 attempts per minute
+  const rl = rateLimit(`signin-company-${ip}`, 5, 60_000)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Too many sign-in attempts. Please wait a minute.' },
-      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
     )
   }
 
   let body: unknown
-  try {
-    body = await req.json()
-  } catch {
+  try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
@@ -43,58 +49,61 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    // Get company record from DynamoDB using the user's email
-    const usersResult = await db.send(
-      new GetCommand({ TableName: Tables.Users, Key: { userId: email } }),
-    )
-    const userRecord = usersResult.Item
+    // Decode JWT claims — role and profile info are embedded in the token
+    const claims = decodeJwtPayload(authResult.IdToken)
+    const role = (claims['custom:role'] as string) ?? 'company'
 
-    let company = null
-    if (userRecord?.companyId) {
-      const companyResult = await db.send(
-        new GetCommand({ TableName: Tables.Companies, Key: { companyId: userRecord.companyId } }),
+    if (role !== 'company') {
+      return NextResponse.json(
+        { error: 'This is a talent account. Please sign in on the talent tab.' },
+        { status: 403 },
       )
-      company = companyResult.Item ?? null
+    }
+
+    const user = {
+      id: (claims.sub as string) ?? email,
+      email,
+      fullName: (claims.name as string) ?? '',
+      role,
+      companyName: (claims['custom:companyName'] as string) ?? undefined,
     }
 
     const response = NextResponse.json({
       token: authResult.IdToken,
       accessToken: authResult.AccessToken,
-      company,
-      user: {
-        id: userRecord?.userId ?? email,
-        email,
-        fullName: userRecord?.fullName ?? '',
-        role: userRecord?.role ?? 'admin',
-        companyId: userRecord?.companyId,
-      },
+      user,
+      company: null,
     })
 
-    // Set httpOnly cookie for server-side auth checks
     response.cookies.set('tb-company-token', authResult.IdToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24h
+      maxAge: 60 * 60 * 24,
       path: '/',
     })
 
     await logAuditEvent({
       action: 'auth.signin',
       resource: 'session',
-      userId: userRecord?.userId ?? undefined,
+      userId: user.id,
       userEmail: email,
-      companyId: userRecord?.companyId ?? undefined,
       ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
     })
 
     return response
   } catch (err) {
-    const message = err instanceof Error ? err.message : ''
-    if (message.includes('NotAuthorizedException') || message.includes('UserNotFoundException')) {
+    const errName = (err as { name?: string }).name ?? ''
+    if (errName === 'NotAuthorizedException' || errName === 'UserNotFoundException') {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
+    if (errName === 'UserNotConfirmedException') {
+      return NextResponse.json(
+        { error: 'Please verify your email first. Check your inbox for the confirmation code.' },
+        { status: 403 },
+      )
+    }
     console.error('[company/signin]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Sign in failed. Please try again.' }, { status: 500 })
   }
 }

@@ -80,9 +80,6 @@ const assessments: Assessment[] = [
     duration: '30 min',
     questions: 50,
     difficulty: 'Hard',
-    taken: true,
-    score: 94,
-    takenAt: '2025-03-15',
     matchBoost: '+18%',
     category: 'Frontend',
   },
@@ -93,9 +90,6 @@ const assessments: Assessment[] = [
     duration: '25 min',
     questions: 45,
     difficulty: 'Hard',
-    taken: true,
-    score: 92,
-    takenAt: '2025-03-18',
     matchBoost: '+16%',
     category: 'Frontend',
   },
@@ -106,9 +100,6 @@ const assessments: Assessment[] = [
     duration: '25 min',
     questions: 40,
     difficulty: 'Medium',
-    taken: true,
-    score: 96,
-    takenAt: '2025-03-10',
     matchBoost: '+14%',
     category: 'Frontend',
   },
@@ -287,7 +278,10 @@ export default function SkillsPage() {
   }, [])
 
   const totalAssessmentsPassed = assessmentList.filter(a => a.taken).length
-  const profileBoost = 34
+  // Profile boost: sum matchBoost percentages of passed assessments
+  const profileBoost = assessmentList
+    .filter(a => a.taken)
+    .reduce((sum, a) => sum + parseInt(a.matchBoost.replace(/\D/g, ''), 10), 0)
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -368,52 +362,70 @@ export default function SkillsPage() {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {verifiedSkills.map(skill => (
-            <div
-              key={skill.name}
-              className="glass-card p-5 hover:border-emerald-500/25 transition-all duration-200 space-y-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-bold text-foreground">{skill.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${levelColors[skill.level as SkillLevel]}`}>
-                      {levelLabel[skill.level as SkillLevel]}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Shield className="w-3 h-3 text-emerald-400" />
-                    <span className="text-[11px] text-emerald-400 font-medium">Verified by Calibr</span>
-                  </div>
-                </div>
-                {skill.score !== undefined && (
-                  <MatchRing score={skill.score} size={52} strokeWidth={4} />
-                )}
-              </div>
-
-              {skill.score !== undefined && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Assessment Score</span>
-                    <span className="font-bold text-emerald-400">{skill.score}/100</span>
-                  </div>
-                  <Progress value={skill.score} className="h-1.5" />
-                </div>
-              )}
-
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">
-                  Verified {formatDate('2025-03-15')}
-                </span>
-                <Button variant="outline" size="sm" className="text-xs h-7 px-2.5">
-                  <RotateCcw className="w-3 h-3 mr-1.5" />
-                  Retake to Improve
-                </Button>
-              </div>
+        {verifiedSkills.length === 0 ? (
+          <div className="glass-card p-8 flex flex-col items-center justify-center text-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Shield className="w-6 h-6 text-emerald-400 opacity-50" />
             </div>
-          ))}
-        </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">No verified skills yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Add skills to your{' '}
+                <a href="/talent/profile" className="text-blue-400 hover:underline">
+                  profile
+                </a>
+                , then take an assessment below to get them verified.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {verifiedSkills.map(skill => (
+              <div
+                key={skill.name}
+                className="glass-card p-5 hover:border-emerald-500/25 transition-all duration-200 space-y-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-bold text-foreground">{skill.name}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${levelColors[skill.level as SkillLevel]}`}>
+                        {levelLabel[skill.level as SkillLevel]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Shield className="w-3 h-3 text-emerald-400" />
+                      <span className="text-[11px] text-emerald-400 font-medium">Verified by Calibr</span>
+                    </div>
+                  </div>
+                  {skill.score !== undefined && (
+                    <MatchRing score={skill.score} size={52} strokeWidth={4} />
+                  )}
+                </div>
+
+                {skill.score !== undefined && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Assessment Score</span>
+                      <span className="font-bold text-emerald-400">{skill.score}/100</span>
+                    </div>
+                    <Progress value={skill.score} className="h-1.5" />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">
+                    Verified via assessment
+                  </span>
+                  <Button variant="outline" size="sm" className="text-xs h-7 px-2.5">
+                    <RotateCcw className="w-3 h-3 mr-1.5" />
+                    Retake to Improve
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Available Assessments Section */}

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { getApplications } from '@/lib/api'
 import type { Application } from '@/lib/types'
-import { formatSalary, timeAgo, cn } from '@/lib/utils'
+import { formatSalary, timeAgo, cn, companyAvatarUrl } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Download,
@@ -23,16 +23,6 @@ import {
 import type { ApplicationStatus, PipelineStage } from '@/lib/types'
 import { STAGE_LABELS } from '@/lib/constants'
 
-// ─── Avatar color hash ────────────────────────────────────────────────────────
-const AVATAR_COLORS = [
-  'bg-tl-blue', 'bg-tl-teal', 'bg-tl-rose', 'bg-tl-gold',
-  'bg-blue-700', 'bg-cyan-700', 'bg-fuchsia-700', 'bg-teal-700',
-]
-function avatarColor(name: string) {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
-}
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; badgeClass: string; dotClass: string; tabClass: string }> = {
@@ -140,14 +130,14 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4"
       >
         <div>
           <h1 className="text-2xl font-display font-bold text-tl-text-primary">My Applications</h1>
@@ -163,7 +153,7 @@ export default function ApplicationsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.06 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+        className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"
       >
         {[
           { label: 'Total Applied',  value: stats.total,     icon: FileText,    iconClass: 'text-tl-blue',   bgClass: 'bg-tl-blue/10 border-tl-blue/20' },
@@ -186,7 +176,7 @@ export default function ApplicationsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.12 }}
-        className="flex flex-wrap gap-2 mb-6 border-b border-tl-border-subtle pb-4"
+        className="flex flex-wrap gap-2 mb-4 border-b border-tl-border-subtle pb-3"
       >
         {FILTER_TABS.map(tab => {
           const count = tab.value === 'all' ? applications.length : (counts[tab.value as ApplicationStatus] ?? 0)
@@ -267,9 +257,7 @@ export default function ApplicationsPage() {
                   <div className="p-5 flex items-start gap-4">
                     {/* Avatar + status dot */}
                     <div className="relative shrink-0">
-                      <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-base', avatarColor(app.job.company.name))}>
-                        {app.job.company.name[0]}
-                      </div>
+                      <img src={companyAvatarUrl(app.job.company.name)} alt={app.job.company.name} className="w-12 h-12 rounded-xl object-cover" />
                       <div className={cn('absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-tl-bg-base', cfg.dotClass)} />
                     </div>
 

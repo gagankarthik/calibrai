@@ -57,3 +57,11 @@ export function slugify(str: string): string {
 export function truncate(str: string, len: number): string {
   return str.length > len ? str.slice(0, len) + '…' : str
 }
+
+export function companyAvatarUrl(name: string): string {
+  return `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(name)}&backgroundColor=1a2035,0f172a&shape1Color=e8c468,60d5d5,6394f8&shape2Color=e8c468,60d5d5,6394f8&shape3Color=e8c468,60d5d5,6394f8`
+}
+
+export function userAvatarUrl(name: string): string {
+  return `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(name || 'user')}&backgroundColor=1a2035`
+}

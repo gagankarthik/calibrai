@@ -6,7 +6,7 @@ export async function GET() {
 
   try {
     // Lightweight DynamoDB check — describe a single non-existent item (no data read)
-    await db.send(new GetCommand({ TableName: Tables.Companies, Key: { companyId: '__health__' } }))
+    await db.send(new GetCommand({ TableName: Tables.Companies, Key: { id: '__health__' } }))
     dbStatus = 'ok'
   } catch {
     dbStatus = 'error'

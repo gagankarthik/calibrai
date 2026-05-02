@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
       const result = await db.send(
         new QueryCommand({
           TableName: Tables.Applications,
+          IndexName: 'jobId-index',
           KeyConditionExpression: 'jobId = :jid',
           ExpressionAttributeValues: { ':jid': jobId },
         }),
@@ -51,10 +52,9 @@ export async function GET(req: NextRequest) {
       const result = await db.send(
         new QueryCommand({
           TableName: Tables.Applications,
-          IndexName: 'candidateId-appliedAt-index',
+          IndexName: 'candidateId-index',
           KeyConditionExpression: 'candidateId = :cid',
           ExpressionAttributeValues: { ':cid': candidateId },
-          ScanIndexForward: false,
         }),
       )
       return NextResponse.json(result.Items ?? [])

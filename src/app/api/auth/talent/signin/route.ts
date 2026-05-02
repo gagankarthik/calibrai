@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { cognitoSignIn } from '@/lib/aws/cognito'
-import { db, Tables, GetCommand } from '@/lib/aws/dynamodb'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const signinSchema = z.object({
@@ -9,20 +8,27 @@ const signinSchema = z.object({
   password: z.string().min(1).max(128),
 })
 
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const payload = token.split('.')[1]
+    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+  } catch {
+    return {}
+  }
+}
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
-  const rl = rateLimit(`signin-talent-${ip}`, 5, 60_000) // 5 attempts per minute
+  const rl = rateLimit(`signin-talent-${ip}`, 5, 60_000)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Too many sign-in attempts. Please wait a minute.' },
-      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
     )
   }
 
   let body: unknown
-  try {
-    body = await req.json()
-  } catch {
+  try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
@@ -42,16 +48,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    // Get talent profile from DynamoDB
-    const candidateResult = await db.send(
-      new GetCommand({ TableName: Tables.Candidates, Key: { candidateId: email } }),
-    )
-    const talent = candidateResult.Item ?? null
+    // Decode JWT claims — role is embedded in the token
+    const claims = decodeJwtPayload(authResult.IdToken)
+    const role = (claims['custom:role'] as string) ?? 'talent'
+
+    if (role !== 'talent') {
+      return NextResponse.json(
+        { error: 'This is a company account. Please sign in on the company tab.' },
+        { status: 403 },
+      )
+    }
 
     const response = NextResponse.json({
       token: authResult.IdToken,
       accessToken: authResult.AccessToken,
-      talent,
+      user: {
+        id: (claims.sub as string) ?? email,
+        email,
+        fullName: (claims.name as string) ?? '',
+        role,
+      },
+      talent: null,
     })
 
     response.cookies.set('tb-talent-token', authResult.IdToken, {
@@ -64,11 +81,17 @@ export async function POST(req: NextRequest) {
 
     return response
   } catch (err) {
-    const message = err instanceof Error ? err.message : ''
-    if (message.includes('NotAuthorizedException') || message.includes('UserNotFoundException')) {
+    const errName = (err as { name?: string }).name ?? ''
+    if (errName === 'NotAuthorizedException' || errName === 'UserNotFoundException') {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
+    if (errName === 'UserNotConfirmedException') {
+      return NextResponse.json(
+        { error: 'Please verify your email first. Check your inbox for the confirmation code.' },
+        { status: 403 },
+      )
+    }
     console.error('[talent/signin]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Sign in failed. Please try again.' }, { status: 500 })
   }
 }

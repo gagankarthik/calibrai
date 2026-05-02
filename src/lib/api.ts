@@ -98,10 +98,17 @@ export interface UpdateTalentProfileInput {
   availability?: string
   workPreference?: Candidate['workPreference']
   skills?: Candidate['skills']
+  experience?: Candidate['experience']
+  education?: Candidate['education']
   github?: string
   linkedin?: string
   portfolio?: string
   languages?: string[]
+  jobTypes?: string[]
+  industries?: string[]
+  noticePeriod?: string
+  resumeUrl?: string
+  avatarUrl?: string
 }
 
 export interface Subscription {

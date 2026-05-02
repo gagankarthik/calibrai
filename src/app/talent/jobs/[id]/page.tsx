@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { getJob, getJobs, applyToJob } from '@/lib/api'
+import { getJob, getJobs, getTalentProfile, applyToJob } from '@/lib/api'
 import type { Job } from '@/lib/types'
 import { formatSalary, timeAgo, cn } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
@@ -99,13 +99,6 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
   )
 }
 
-// ─── Alex's skills for match analysis ────────────────────────────────────────
-const ALEX_SKILLS = ['react', 'typescript', 'next.js', 'css', 'tailwind', 'graphql', 'node.js', 'javascript', 'performance']
-function hasSkill(skill: string): boolean {
-  const low = skill.toLowerCase()
-  return ALEX_SKILLS.some(s => low.includes(s) || s.includes(low.split(' ')[0]))
-}
-
 // ─── Fade-up animation helper ─────────────────────────────────────────────────
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -118,27 +111,53 @@ export default function JobDetailPage() {
   const params = useParams()
   const jobId  = params.id as string
 
-  const [job, setJob]         = useState<Job | null>(null)
-  const [allJobs, setAllJobs] = useState<Job[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState<string | null>(null)
-  const [saved, setSaved]     = useState(false)
-  const [applied, setApplied] = useState(false)
-  const [alertOn, setAlertOn] = useState(false)
+  const [job, setJob]                   = useState<Job | null>(null)
+  const [allJobs, setAllJobs]           = useState<Job[]>([])
+  const [userSkills, setUserSkills]     = useState<Set<string> | null>(null) // null = still loading
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState<string | null>(null)
+  const [saved, setSaved]               = useState(false)
+  const [applied, setApplied]           = useState(false)
+  const [alertOn, setAlertOn]           = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [jobRes, allRes] = await Promise.all([getJob(jobId), getJobs()])
+      const [jobRes, allRes, profileRes] = await Promise.all([
+        getJob(jobId),
+        getJobs(),
+        getTalentProfile(),
+      ])
+
       if (jobRes.data) {
         setJob(jobRes.data)
       } else {
         setError(jobRes.error ?? 'Job not found')
       }
+
       if (allRes.data) setAllJobs(allRes.data)
+
+      // Build the real user skill set (lowercase). Fall back to empty set on any error.
+      if (profileRes.data) {
+        const skills = new Set(
+          profileRes.data.skills.map(s => s.name.toLowerCase())
+        )
+        setUserSkills(skills)
+      } else {
+        setUserSkills(new Set())
+      }
+
       setLoading(false)
     }
     load()
   }, [jobId])
+
+  // hasSkill is only meaningful once userSkills is loaded (not null).
+  // Returns null while loading so callers can treat skills as "unknown".
+  function hasSkill(skill: string): boolean | null {
+    if (userSkills === null) return null
+    const low = skill.toLowerCase()
+    return userSkills.has(low) || [...userSkills].some(s => low.includes(s) || s.includes(low.split(' ')[0]))
+  }
 
   const handleApply = async () => {
     if (!job) return
@@ -146,10 +165,21 @@ export default function JobDetailPage() {
     if (res.data || res.status === 201) setApplied(true)
   }
 
-  const score          = job ? getMatchScore(job.id) : 0
-  const matchedSkills  = useMemo(() => job ? job.skills.filter(s => hasSkill(s)) : [], [job])
-  const missingSkills  = useMemo(() => job ? job.skills.filter(s => !hasSkill(s)) : [], [job])
-  const topThree       = matchedSkills.slice(0, 3)
+  const score = job ? getMatchScore(job.id) : 0
+
+  const matchedSkills = useMemo(() => {
+    if (!job || userSkills === null) return []
+    return job.skills.filter(s => hasSkill(s) === true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job, userSkills])
+
+  const missingSkills = useMemo(() => {
+    if (!job || userSkills === null) return []
+    return job.skills.filter(s => hasSkill(s) === false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job, userSkills])
+
+  const topThree = matchedSkills.slice(0, 3)
 
   const similarJobs = useMemo(() =>
     job
@@ -175,6 +205,9 @@ export default function JobDetailPage() {
 
   const daysPosted = Math.floor((Date.now() - new Date(job.postedAt).getTime()) / 86400000)
   const daysLeft   = Math.max(0, Math.ceil((new Date(job.expiresAt).getTime() - Date.now()) / 86400000))
+
+  // While profile is still loading, skills are "unknown" — show a neutral state
+  const skillsLoaded = userSkills !== null
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -402,7 +435,13 @@ export default function JobDetailPage() {
               <h4 className="text-sm font-semibold text-tl-text-primary">Why You&apos;re a Strong Match</h4>
               <span className="text-3xl font-mono font-bold text-tl-gold">{score}%</span>
             </div>
-            {topThree.length > 0 ? (
+            {!skillsLoaded ? (
+              <div className="space-y-2.5">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-8 bg-tl-bg-elevated/60 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : topThree.length > 0 ? (
               <div className="space-y-2.5">
                 {topThree.map((skill, i) => (
                   <div key={i} className="flex items-start gap-2.5 text-xs text-tl-text-secondary">
@@ -425,33 +464,50 @@ export default function JobDetailPage() {
           <motion.div {...fadeUp(0.14)} className="tl-card p-5">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-semibold text-tl-text-primary">Skills Breakdown</h4>
-              <span className="text-xs font-mono text-tl-text-secondary">{matchedSkills.length}/{job.skills.length} matched</span>
+              {skillsLoaded ? (
+                <span className="text-xs font-mono text-tl-text-secondary">{matchedSkills.length}/{job.skills.length} matched</span>
+              ) : (
+                <span className="text-xs font-mono text-tl-text-secondary/50">Loading…</span>
+              )}
             </div>
 
-            {matchedSkills.length > 0 && (
-              <div className="mb-4">
-                <p className="text-[10px] uppercase tracking-wider font-semibold text-tl-teal mb-2">Matched</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {matchedSkills.map(s => (
-                    <span key={s} className="tl-tag-teal inline-flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 shrink-0" />{s}
-                    </span>
-                  ))}
-                </div>
+            {!skillsLoaded ? (
+              /* Loading state: neutral pills */
+              <div className="flex flex-wrap gap-1.5">
+                {job.skills.map(s => (
+                  <span key={s} className="px-2.5 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] text-tl-text-secondary/60 animate-pulse">
+                    {s}
+                  </span>
+                ))}
               </div>
-            )}
+            ) : (
+              <>
+                {matchedSkills.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-tl-teal mb-2">Matched</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {matchedSkills.map(s => (
+                        <span key={s} className="tl-tag-teal inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 shrink-0" />{s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {missingSkills.length > 0 && (
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-semibold text-tl-gold mb-2">To Learn</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {missingSkills.slice(0, 5).map(s => (
-                    <span key={s} className="tl-tag-gold inline-flex items-center gap-1">
-                      <Info className="w-3 h-3 shrink-0" />{s}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                {missingSkills.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-tl-gold mb-2">To Learn</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {missingSkills.slice(0, 5).map(s => (
+                        <span key={s} className="tl-tag-gold inline-flex items-center gap-1">
+                          <Info className="w-3 h-3 shrink-0" />{s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
 

@@ -35,6 +35,7 @@ export const Tables = {
   CrmJobs: process.env.DYNAMODB_CRM_JOBS_TABLE ?? 'talentbridge-crm-jobs',
   AuditLogs: process.env.DYNAMODB_AUDIT_TABLE ?? 'talentbridge-audit-logs',
   Users: process.env.DYNAMODB_USERS_TABLE ?? 'talentbridge-users',
+  Notifications: process.env.DYNAMODB_NOTIFICATIONS_TABLE ?? 'talentbridge-notifications',
 } as const
 
 export { GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand, ScanCommand, TransactWriteCommand }
