@@ -269,7 +269,7 @@ export default function CandidatesPage() {
   const [experienceFilter, setExperienceFilter] = useState<ExperienceLevel[]>([])
   const [workModeFilter, setWorkModeFilter] = useState<WorkMode[]>([])
   const [salaryMin, setSalaryMin] = useState(0)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [page, setPage] = useState(1)
   const [showFilters, setShowFilters] = useState(true)
   const [sortBy, setSortBy] = useState<'match' | 'recent' | 'salary'>('match')

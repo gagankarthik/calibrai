@@ -72,6 +72,7 @@ function TBMark({ size = 28 }: { size?: number }) {
 const NAV_ITEMS = [
   { label: 'Product',      href: '#features' },
   { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Jobs',         href: '/jobs' },
   { label: 'Pricing',      href: '/pricing' },
   { label: 'For Talent',   href: '/auth/register?role=talent' },
 ]

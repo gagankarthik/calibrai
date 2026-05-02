@@ -1,51 +1,54 @@
-﻿'use client'
+'use client'
 
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getJobs, getApplications } from '@/lib/api'
-import { STAGE_LABELS, STAGE_COLORS, PIPELINE_STAGES } from '@/lib/constants'
+import { STAGE_LABELS, PIPELINE_STAGES } from '@/lib/constants'
 import type { Job, PipelineStage, Application } from '@/lib/types'
 import { cn, timeAgo } from '@/lib/utils'
 import {
-  Plus,
-  ChevronDown,
-  Calendar,
-  MessageSquare,
-  ChevronRight,
-  Kanban,
-  LayoutList,
-  Search,
-  MoreHorizontal,
-  Users,
-  Clock,
+  Plus, ChevronDown, Calendar, MessageSquare, ChevronRight,
+  Kanban, LayoutList, Search, MoreHorizontal, Users, Clock,
+  ChevronLeft, ChevronsLeft,
 } from 'lucide-react'
 
-// ─── Stage dot colors (TalentBridge palette) ────────────────────────────────────
+// ─── Stage palette ────────────────────────────────────────────────────────────
 
 const STAGE_DOT: Record<PipelineStage, string> = {
-  new: 'bg-tl-blue',
-  screening: 'bg-tl-gold',
+  new:          'bg-tl-blue',
+  screening:    'bg-tl-gold',
   phone_screen: 'bg-tl-teal',
-  technical: 'bg-tl-gold',
-  onsite: 'bg-tl-teal',
-  offer: 'bg-tl-teal',
-  hired: 'bg-tl-teal',
-  rejected: 'bg-tl-rose',
+  technical:    'bg-tl-gold',
+  onsite:       'bg-tl-teal',
+  offer:        'bg-tl-teal',
+  hired:        'bg-tl-teal',
+  rejected:     'bg-tl-rose',
 }
 
 const STAGE_TEXT: Record<PipelineStage, string> = {
-  new: 'text-tl-blue',
-  screening: 'text-tl-gold',
+  new:          'text-tl-blue',
+  screening:    'text-tl-gold',
   phone_screen: 'text-tl-teal',
-  technical: 'text-tl-gold',
-  onsite: 'text-tl-teal',
-  offer: 'text-tl-teal',
-  hired: 'text-tl-teal',
-  rejected: 'text-tl-rose',
+  technical:    'text-tl-gold',
+  onsite:       'text-tl-teal',
+  offer:        'text-tl-teal',
+  hired:        'text-tl-teal',
+  rejected:     'text-tl-rose',
 }
 
-// ─── Match score color ────────────────────────────────────────────────────────
+const STAGE_BORDER: Record<PipelineStage, string> = {
+  new:          'border-tl-blue/20',
+  screening:    'border-tl-gold/20',
+  phone_screen: 'border-tl-teal/20',
+  technical:    'border-tl-gold/20',
+  onsite:       'border-tl-teal/20',
+  offer:        'border-tl-teal/20',
+  hired:        'border-tl-teal/20',
+  rejected:     'border-tl-rose/20',
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function matchColor(score: number) {
   if (score >= 90) return 'bg-tl-teal/15 text-tl-teal border-tl-teal/25'
@@ -54,17 +57,14 @@ function matchColor(score: number) {
   return 'bg-tl-rose/15 text-tl-rose border-tl-rose/25'
 }
 
-// ─── Avatar color from name ───────────────────────────────────────────────────
-
 function avatarColor(name: string): string {
   const colors = [
     'bg-tl-blue/20 text-tl-blue',
     'bg-tl-gold/20 text-tl-gold',
     'bg-tl-teal/20 text-tl-teal',
     'bg-tl-rose/20 text-tl-rose',
-    'bg-tl-teal/15 text-tl-teal',
-    'bg-tl-gold/15 text-tl-gold',
     'bg-tl-blue/15 text-tl-blue',
+    'bg-tl-gold/15 text-tl-gold',
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff
@@ -79,33 +79,31 @@ function CandidateCard({ app }: { app: Application }) {
 
   const daysInStage = Math.max(1, Math.floor((Date.now() - new Date(app.updatedAt).getTime()) / 86_400_000))
   const isStale = daysInStage > 7
-  const initials = candidate.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
-  const avatarCls = avatarColor(candidate.name)
+  const initials = candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      layout
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="tl-card p-4 cursor-pointer hover:border-tl-gold/40 transition-all group shadow-card"
+      transition={{ duration: 0.18 }}
+      className="tl-card p-3.5 cursor-pointer hover:border-tl-gold/40 transition-all group"
     >
-      {/* Top row */}
-      <div className="flex items-start gap-2.5 mb-2.5">
-        <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarCls)}>
+      <div className="flex items-start gap-2.5 mb-2">
+        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarColor(candidate.name))}>
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-tl-text-primary truncate">{candidate.name}</p>
-          <p className="text-xs text-tl-text-secondary truncate">{candidate.title}</p>
+          <p className="text-sm font-semibold text-tl-text-primary truncate leading-tight">{candidate.name}</p>
+          <p className="text-[11px] text-tl-text-secondary truncate mt-0.5">{candidate.title}</p>
         </div>
-        <button className="hidden group-hover:flex p-1 rounded-lg hover:bg-tl-bg-elevated text-tl-text-secondary transition-all shrink-0">
+        <button className="hidden group-hover:flex p-1 rounded-lg hover:bg-tl-bg-elevated text-tl-text-secondary shrink-0">
           <MoreHorizontal className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Match + days */}
-      <div className="flex items-center justify-between mb-2.5">
-        <span className={cn('text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border', matchColor(app.matchScore))}>
+      <div className="flex items-center justify-between mb-2">
+        <span className={cn('text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border', matchColor(app.matchScore))}>
           {app.matchScore}% match
         </span>
         <span className={cn(
@@ -118,31 +116,20 @@ function CandidateCard({ app }: { app: Application }) {
         </span>
       </div>
 
-      {/* Applied role */}
-      <p className="text-[11px] text-tl-text-secondary truncate mb-3">
+      <p className="text-[11px] text-tl-text-secondary truncate mb-2.5">
         {app.job?.title ?? 'Unknown Role'}
       </p>
 
-      {/* Action row */}
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-        <button
-          title="Schedule Interview"
-          className="flex items-center justify-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-gold/10 text-tl-text-secondary hover:text-tl-gold transition-colors flex-1"
-        >
+        <button className="flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-gold/10 text-tl-text-secondary hover:text-tl-gold transition-colors flex-1">
           <Calendar className="w-3 h-3" />
           <span>Schedule</span>
         </button>
-        <button
-          title="Message"
-          className="flex items-center justify-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-teal/10 text-tl-text-secondary hover:text-tl-teal transition-colors flex-1"
-        >
+        <button className="flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-teal/10 text-tl-text-secondary hover:text-tl-teal transition-colors flex-1">
           <MessageSquare className="w-3 h-3" />
           <span>Message</span>
         </button>
-        <button
-          title="Move to next stage"
-          className="p-1.5 rounded-lg bg-tl-gold/10 hover:bg-tl-gold/20 text-tl-gold transition-colors shrink-0"
-        >
+        <button className="p-1.5 rounded-lg bg-tl-gold/10 hover:bg-tl-gold/20 text-tl-gold transition-colors shrink-0">
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -153,61 +140,108 @@ function CandidateCard({ app }: { app: Application }) {
 // ─── Kanban Column ────────────────────────────────────────────────────────────
 
 function KanbanColumn({
-  stage,
-  cards,
+  stage, cards, collapsed, onToggle,
 }: {
   stage: PipelineStage
   cards: Application[]
+  collapsed: boolean
+  onToggle: () => void
 }) {
   return (
-    <div className="min-w-[270px] w-[270px] flex-shrink-0 flex flex-col gap-3">
-      {/* Header */}
-      <div className="flex items-center justify-between px-1 mb-2">
-        <div className="flex items-center gap-2">
-          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', STAGE_DOT[stage])} />
-          <span className={cn('font-mono text-sm font-semibold', STAGE_TEXT[stage])}>
-            {STAGE_LABELS[stage]}
-          </span>
-        </div>
-        <span className="font-mono text-xs font-bold bg-tl-bg-elevated text-tl-text-secondary px-2 py-0.5 rounded-full">
-          {cards.length}
-        </span>
-      </div>
-
-      {/* Cards */}
-      <div className="space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-280px)] pr-0.5">
-        {cards.length === 0 ? (
-          <div className="border-2 border-dashed border-tl-border-subtle rounded-xl py-8 flex items-center justify-center">
-            <p className="text-xs text-tl-text-secondary/50">No candidates in {STAGE_LABELS[stage]}</p>
-          </div>
+    <div
+      className={cn(
+        'flex flex-col transition-all duration-300 rounded-xl border bg-[var(--tl-bg-surface)]/50',
+        STAGE_BORDER[stage],
+        collapsed ? 'min-w-[48px] w-12' : 'min-w-[240px] w-60'
+      )}
+    >
+      {/* Column header */}
+      <div
+        className={cn(
+          'flex items-center px-3 py-3 border-b shrink-0',
+          STAGE_BORDER[stage],
+          collapsed ? 'flex-col gap-2 py-4' : 'gap-2 justify-between'
+        )}
+      >
+        {collapsed ? (
+          <>
+            <button
+              onClick={onToggle}
+              className="w-6 h-6 rounded-lg hover:bg-tl-bg-elevated flex items-center justify-center text-tl-text-secondary"
+              title={`Expand ${STAGE_LABELS[stage]}`}
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <span className={cn('text-[10px] font-bold uppercase tracking-widest writing-vertical-lr', STAGE_TEXT[stage])}
+              style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}>
+              {STAGE_LABELS[stage]}
+            </span>
+            <span className="font-mono text-[10px] font-bold bg-tl-bg-elevated text-tl-text-secondary w-6 h-6 rounded-full flex items-center justify-center border border-[var(--tl-border-subtle)]">
+              {cards.length}
+            </span>
+          </>
         ) : (
-          cards.map((app) => <CandidateCard key={app.id} app={app} />)
+          <>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={cn('w-2 h-2 rounded-full shrink-0', STAGE_DOT[stage])} />
+              <span className={cn('font-semibold text-xs truncate', STAGE_TEXT[stage])}>
+                {STAGE_LABELS[stage]}
+              </span>
+              <span className="font-mono text-[10px] font-bold bg-tl-bg-elevated text-tl-text-secondary px-1.5 py-0.5 rounded-full border border-[var(--tl-border-subtle)] shrink-0">
+                {cards.length}
+              </span>
+            </div>
+            <button
+              onClick={onToggle}
+              className="w-6 h-6 rounded-lg hover:bg-tl-bg-elevated flex items-center justify-center text-tl-text-secondary shrink-0"
+              title="Collapse column"
+            >
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </button>
+          </>
         )}
       </div>
 
-      {/* Footer add button */}
-      <button className="flex items-center justify-center gap-1.5 py-2.5 w-full rounded-xl border border-dashed border-tl-border-subtle text-xs text-tl-text-secondary hover:text-tl-gold hover:border-tl-gold/30 hover:bg-tl-gold/5 transition-all duration-200">
-        <Plus className="w-3.5 h-3.5" />
-        Add
-      </button>
+      {/* Cards area */}
+      {!collapsed && (
+        <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-2">
+          {cards.length === 0 ? (
+            <div className="border-2 border-dashed border-[var(--tl-border-subtle)] rounded-xl py-8 flex items-center justify-center">
+              <p className="text-[10px] text-tl-text-secondary/50 text-center px-2">
+                No candidates
+              </p>
+            </div>
+          ) : (
+            cards.map(app => <CandidateCard key={app.id} app={app} />)
+          )}
+        </div>
+      )}
+
+      {/* Add button (only when expanded) */}
+      {!collapsed && (
+        <div className="shrink-0 p-2 pt-0">
+          <button className="flex items-center justify-center gap-1.5 py-2 w-full rounded-xl border border-dashed border-[var(--tl-border-subtle)] text-[11px] text-tl-text-secondary hover:text-tl-gold hover:border-tl-gold/30 hover:bg-tl-gold/5 transition-all">
+            <Plus className="w-3 h-3" /> Add
+          </button>
+        </div>
+      )}
     </div>
   )
 }
 
-// ─── List View Row ────────────────────────────────────────────────────────────
+// ─── List Row ─────────────────────────────────────────────────────────────────
 
 function ListRow({ app, idx }: { app: Application; idx: number }) {
   const candidate = app.candidate
   if (!candidate) return null
-
   const daysInStage = Math.max(1, Math.floor((Date.now() - new Date(app.updatedAt).getTime()) / 86_400_000))
-  const initials = candidate.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+  const initials = candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
     <motion.tr
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, delay: idx * 0.04 }}
+      transition={{ duration: 0.18, delay: idx * 0.03 }}
       className="border-b border-tl-border-subtle hover:bg-tl-bg-elevated/30 transition-colors group"
     >
       <td className="px-4 py-3">
@@ -222,9 +256,10 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className={cn('tl-tag-teal text-xs font-medium')}>
-          {STAGE_LABELS[app.stage]}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', STAGE_DOT[app.stage])} />
+          <span className={cn('text-xs font-medium', STAGE_TEXT[app.stage])}>{STAGE_LABELS[app.stage]}</span>
+        </div>
       </td>
       <td className="px-4 py-3">
         <span className="text-sm text-tl-text-secondary">{app.job?.title ?? '—'}</span>
@@ -246,10 +281,8 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
         </span>
       </td>
       <td className="px-4 py-3">
-        <Link
-          href={`/company/candidates/${candidate.id}`}
-          className="text-xs font-medium text-tl-gold hover:text-tl-gold/80 opacity-0 group-hover:opacity-100 transition-all"
-        >
+        <Link href={`/company/candidates/${candidate.id}`}
+          className="text-xs font-medium text-tl-gold hover:text-tl-gold/80 opacity-0 group-hover:opacity-100 transition-all">
           View →
         </Link>
       </td>
@@ -266,6 +299,7 @@ export default function PipelinePage() {
   const [selectedJob, setSelectedJob] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
   const [searchQuery, setSearchQuery] = useState('')
+  const [collapsed, setCollapsed] = useState<Set<PipelineStage>>(new Set())
 
   useEffect(() => {
     async function load() {
@@ -277,72 +311,71 @@ export default function PipelinePage() {
     load()
   }, [])
 
-  // Build all apps list (exclude rejected)
-  const allApps = useMemo(() => {
-    return applications.filter((a) => a.stage !== 'rejected')
-  }, [applications])
+  const toggleCollapse = (stage: PipelineStage) => {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      next.has(stage) ? next.delete(stage) : next.add(stage)
+      return next
+    })
+  }
 
-  // Filter by job + search
   const filteredApps = useMemo(() => {
-    return allApps.filter((app) => {
+    return applications.filter(app => {
+      if (app.stage === 'rejected') return false
       const matchesJob = selectedJob === 'all' || app.jobId === selectedJob
-      const query = searchQuery.toLowerCase()
+      const q = searchQuery.toLowerCase()
       const matchesSearch =
-        !query ||
-        (app.candidate?.name ?? '').toLowerCase().includes(query) ||
-        (app.candidate?.title ?? '').toLowerCase().includes(query) ||
-        (app.job?.title ?? '').toLowerCase().includes(query)
+        !q ||
+        (app.candidate?.name ?? '').toLowerCase().includes(q) ||
+        (app.candidate?.title ?? '').toLowerCase().includes(q) ||
+        (app.job?.title ?? '').toLowerCase().includes(q)
       return matchesJob && matchesSearch
     })
-  }, [allApps, selectedJob, searchQuery])
+  }, [applications, selectedJob, searchQuery])
 
-  // Stage counts
   const stageCounts = useMemo(() => {
     const counts: Partial<Record<PipelineStage, number>> = {}
     for (const stage of PIPELINE_STAGES) {
-      counts[stage] = filteredApps.filter((a) => a.stage === stage).length
+      counts[stage] = filteredApps.filter(a => a.stage === stage).length
     }
     return counts
   }, [filteredApps])
 
-  // Kanban columns
-  const kanbanData = useMemo(() => {
-    return PIPELINE_STAGES.map((stage) => ({
+  const kanbanData = useMemo(() => (
+    PIPELINE_STAGES.map(stage => ({
       stage,
-      cards: filteredApps.filter((a) => a.stage === stage),
+      cards: filteredApps.filter(a => a.stage === stage),
     }))
-  }, [filteredApps])
+  ), [filteredApps])
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
+    <div className="flex items-center justify-center h-full">
       <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   return (
-    <div className="flex flex-col h-full min-h-screen">
+    <div className="flex flex-col">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-b border-tl-border-subtle">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          {/* Left: title + count */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 sm:px-5 py-4 border-b border-tl-border-subtle bg-tl-bg-base/50">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl text-tl-text-primary">Hiring Pipeline</h1>
+            <h1 className="font-display text-xl text-tl-text-primary">Pipeline</h1>
             <span className="font-mono text-xs font-bold bg-tl-gold/10 text-tl-gold border border-tl-gold/20 px-2.5 py-1 rounded-full">
-              {filteredApps.length} candidates
+              {filteredApps.length}
             </span>
           </div>
 
-          {/* Right: controls */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tl-text-secondary" />
               <input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search candidates…"
-                className="pl-9 pr-4 py-2 bg-tl-bg-surface border border-tl-border-subtle rounded-xl text-sm text-tl-text-primary placeholder:text-tl-text-secondary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 w-48 transition-all"
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search…"
+                className="pl-8 pr-3 py-1.5 bg-tl-bg-surface border border-tl-border-subtle rounded-xl text-sm text-tl-text-primary placeholder:text-tl-text-secondary focus:outline-none focus:border-tl-gold/50 w-36 sm:w-44 transition-all"
               />
             </div>
 
@@ -350,26 +383,25 @@ export default function PipelinePage() {
             <div className="relative">
               <select
                 value={selectedJob}
-                onChange={(e) => setSelectedJob(e.target.value)}
-                className="appearance-none bg-tl-bg-surface border border-tl-border-subtle rounded-xl pl-3 pr-8 py-2 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all"
+                onChange={e => setSelectedJob(e.target.value)}
+                className="appearance-none bg-tl-bg-surface border border-tl-border-subtle rounded-xl pl-3 pr-7 py-1.5 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold/50 transition-all"
               >
                 <option value="all">All Jobs</option>
-                {jobs.map((j) => (
+                {jobs.map(j => (
                   <option key={j.id} value={j.id}>{j.title}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-tl-text-secondary pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tl-text-secondary pointer-events-none" />
             </div>
 
             {/* View toggle */}
-            <div className="flex items-center gap-1 p-1 bg-tl-bg-surface rounded-xl border border-tl-border-subtle">
+            <div className="flex items-center gap-0.5 p-0.5 bg-tl-bg-surface rounded-xl border border-tl-border-subtle">
               <button
                 onClick={() => setViewMode('kanban')}
-                title="Kanban view"
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                   viewMode === 'kanban'
-                    ? 'bg-tl-bg-elevated text-tl-gold border border-tl-gold/30'
+                    ? 'bg-tl-bg-elevated text-tl-gold border border-tl-gold/25'
                     : 'text-tl-text-secondary hover:text-tl-text-primary'
                 )}
               >
@@ -378,11 +410,10 @@ export default function PipelinePage() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                title="List view"
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                   viewMode === 'list'
-                    ? 'bg-tl-bg-elevated text-tl-gold border border-tl-gold/30'
+                    ? 'bg-tl-bg-elevated text-tl-gold border border-tl-gold/25'
                     : 'text-tl-text-secondary hover:text-tl-text-primary'
                 )}
               >
@@ -391,20 +422,25 @@ export default function PipelinePage() {
               </button>
             </div>
 
-            {/* Add candidate */}
-            <button className="btn-gold flex items-center gap-1.5 px-3 py-2 text-sm">
-              <Plus className="w-4 h-4" />
-              Add Candidate
-            </button>
+            <Link href="/company/jobs/new" className="btn-gold flex items-center gap-1.5 px-3 py-1.5 text-xs">
+              <Plus className="w-3.5 h-3.5" /> Add Candidate
+            </Link>
           </div>
         </div>
 
-        {/* Stage stats strip */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {PIPELINE_STAGES.map((stage) => (
+        {/* Stage stat pills */}
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          {PIPELINE_STAGES.map(stage => (
             <button
               key={stage}
-              className="tl-tag-teal flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 whitespace-nowrap"
+              onClick={() => toggleCollapse(stage)}
+              title={collapsed.has(stage) ? `Expand ${STAGE_LABELS[stage]}` : `Collapse ${STAGE_LABELS[stage]}`}
+              className={cn(
+                'inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shrink-0 transition-all',
+                collapsed.has(stage)
+                  ? 'bg-[var(--tl-bg-elevated)] border-[var(--tl-border-subtle)] text-[var(--tl-text-secondary)] opacity-60'
+                  : 'bg-tl-teal/10 border-tl-teal/20 text-tl-teal'
+              )}
             >
               <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', STAGE_DOT[stage])} />
               {STAGE_LABELS[stage]}
@@ -414,8 +450,8 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {/* ── Content ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-x-auto p-4 sm:p-6 pb-4">
+      {/* ── Board ──────────────────────────────────────────────────────────── */}
+      <div className="overflow-x-auto" style={{ height: 'calc(100svh - 244px)', minHeight: '320px' }}>
         <AnimatePresence mode="wait">
           {viewMode === 'kanban' ? (
             <motion.div
@@ -423,11 +459,18 @@ export default function PipelinePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex gap-4 min-h-[600px]"
+              transition={{ duration: 0.15 }}
+              className="flex gap-3 h-full p-4 pb-3"
+              style={{ minWidth: 'max-content' }}
             >
               {kanbanData.map(({ stage, cards }) => (
-                <KanbanColumn key={stage} stage={stage} cards={cards} />
+                <KanbanColumn
+                  key={stage}
+                  stage={stage}
+                  cards={cards}
+                  collapsed={collapsed.has(stage)}
+                  onToggle={() => toggleCollapse(stage)}
+                />
               ))}
             </motion.div>
           ) : (
@@ -436,65 +479,68 @@ export default function PipelinePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="tl-card overflow-x-auto"
+              transition={{ duration: 0.15 }}
+              className="h-full overflow-y-auto p-4"
             >
-              {filteredApps.length === 0 ? (
-                <div className="p-16 flex flex-col items-center justify-center text-center">
-                  <Users className="w-12 h-12 text-tl-text-secondary/20 mb-4" />
-                  <p className="text-sm font-medium text-tl-text-primary">No candidates found</p>
-                  <p className="text-xs text-tl-text-secondary mt-1">Try adjusting your search or filters</p>
-                </div>
-              ) : (
-                <table className="w-full min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-tl-border-subtle bg-tl-bg-base/50">
-                      {['Candidate', 'Stage', 'Applied For', 'Applied Date', 'Match', 'Days', 'Actions'].map((h) => (
-                        <th key={h} className="text-left text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider px-4 py-3">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredApps.map((app, idx) => (
-                      <ListRow key={app.id} app={app} idx={idx} />
-                    ))}
-                  </tbody>
-                </table>
-              )}
+              <div className="tl-card overflow-hidden">
+                {filteredApps.length === 0 ? (
+                  <div className="p-16 flex flex-col items-center justify-center text-center">
+                    <Users className="w-12 h-12 text-tl-text-secondary/20 mb-4" />
+                    <p className="text-sm font-medium text-tl-text-primary">No candidates</p>
+                    <p className="text-xs text-tl-text-secondary mt-1">Adjust your filters</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[700px]">
+                      <thead>
+                        <tr className="border-b border-tl-border-subtle bg-tl-bg-base/50">
+                          {['Candidate', 'Stage', 'Applied For', 'Date', 'Match', 'Days', ''].map(h => (
+                            <th key={h} className="text-left text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider px-4 py-3">
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredApps.map((app, idx) => (
+                          <ListRow key={app.id} app={app} idx={idx} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── Stage velocity strip ─────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-4 sm:px-6 pb-4 sm:pb-6">
-        <div className="tl-card p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4 text-tl-text-secondary" />
-            <h3 className="text-sm font-semibold text-tl-text-primary">Avg. Days Per Stage</h3>
-          </div>
-          <div className="flex items-center gap-3 overflow-x-auto pb-1">
-            {PIPELINE_STAGES.slice(0, -1).map((stage, i) => {
-              const days = [1, 3, 5, 8, 5, 3][i] ?? 2
-              return (
-                <div key={stage} className="flex items-center gap-3 shrink-0">
-                  <div className="text-center">
-                    <div className="w-16 py-2 rounded-xl text-xs font-mono font-bold text-center bg-tl-gold/10 text-tl-gold border border-tl-gold/20">
-                      {days}d
-                    </div>
-                    <div className="text-[10px] text-tl-text-secondary mt-1 w-16 text-center truncate">
-                      {STAGE_LABELS[stage]}
-                    </div>
+      {/* ── Stage velocity footer ──────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 py-3 border-t border-tl-border-subtle">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <Clock className="w-3.5 h-3.5 text-tl-text-secondary shrink-0" />
+          <span className="text-xs text-tl-text-secondary shrink-0 mr-1">Avg. days/stage:</span>
+          {PIPELINE_STAGES.slice(0, -1).map((stage, i) => {
+            const appsInStage = applications.filter(a => a.stage === stage)
+            const avgDays = appsInStage.length > 0
+              ? Math.round(appsInStage.reduce((s, a) => s + Math.max(1, (Date.now() - new Date(a.updatedAt).getTime()) / 86400000), 0) / appsInStage.length)
+              : [1, 3, 5, 8, 5, 3][i] ?? 2
+            return (
+              <div key={stage} className="flex items-center gap-2 shrink-0">
+                <div className="text-center">
+                  <div className="w-12 py-1 rounded-lg text-xs font-mono font-bold text-center bg-tl-gold/8 text-tl-gold border border-tl-gold/15">
+                    {avgDays}d
                   </div>
-                  {i < PIPELINE_STAGES.length - 2 && (
-                    <ChevronRight className="w-3.5 h-3.5 text-tl-border-subtle shrink-0" />
-                  )}
+                  <div className="text-[9px] text-tl-text-secondary mt-0.5 w-12 text-center truncate">
+                    {STAGE_LABELS[stage]}
+                  </div>
                 </div>
-              )
-            })}
-          </div>
+                {i < PIPELINE_STAGES.length - 2 && (
+                  <ChevronRight className="w-3 h-3 text-[var(--tl-border-subtle)] shrink-0" />
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

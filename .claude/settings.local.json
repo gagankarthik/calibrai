@@ -39,7 +39,12 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
       "PowerShell(Set-Location C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge; $out = npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"src/\" }; if \\($out\\) { $out } else { \"No src/ errors\" })",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\talent\\\\settings\\\\page.tsx\")",
+      "Bash(Select-Object -Last 100)",
+      "Bash(Select-Object -First 80)"
     ]
   }
 }

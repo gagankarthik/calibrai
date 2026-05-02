@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import { getCandidate, getApplications } from '@/lib/api'
-import { STAGE_LABELS, STAGE_COLORS } from '@/lib/constants'
+import { STAGE_LABELS } from '@/lib/constants'
 import type { Candidate, Application } from '@/lib/types'
 import { cn, timeAgo } from '@/lib/utils'
 import {
@@ -14,6 +14,8 @@ import {
   Mail,
   Phone,
   Globe,
+  Github,
+  Linkedin,
   CheckCircle2,
   Download,
   Calendar,
@@ -25,11 +27,14 @@ import {
   Archive,
   XCircle,
   MoreHorizontal,
+  GraduationCap,
+  RefreshCw,
+  User,
 } from 'lucide-react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getMatchScore(id: string): number {
+function deterministicScore(id: string): number {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff
   return 70 + (Math.abs(hash) % 28)
@@ -51,9 +56,11 @@ function avatarBg(name: string): string {
 
 function formatDateRange(start: string, end?: string, current?: boolean): string {
   const fmt = (d: string) => {
-    const [year, month] = d.split('-')
+    const parts = d.split('-')
+    if (parts.length < 2) return d
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    return `${months[parseInt(month, 10) - 1]} ${year}`
+    const month = parseInt(parts[1], 10) - 1
+    return `${months[month] ?? '?'} ${parts[0]}`
   }
   return `${fmt(start)} – ${current ? 'Present' : end ? fmt(end) : 'Present'}`
 }
@@ -95,12 +102,19 @@ export default function CandidateDetailPage() {
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [candidateApplications, setCandidateApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
     async function load() {
       const [candRes, appsRes] = await Promise.all([getCandidate(id), getApplications()])
-      if (candRes.data) setCandidate(candRes.data)
-      if (appsRes.data) setCandidateApplications(appsRes.data.filter((a) => a.candidateId === id))
+      if (candRes.data) {
+        setCandidate(candRes.data)
+      } else {
+        setNotFound(true)
+      }
+      if (appsRes.data) {
+        setCandidateApplications(appsRes.data.filter((a) => a.candidateId === id))
+      }
       setLoading(false)
     }
     load()
@@ -113,21 +127,34 @@ export default function CandidateDetailPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+      <RefreshCw className="w-6 h-6 text-tl-text-secondary animate-spin" />
     </div>
   )
 
-  if (!candidate) return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-tl-text-secondary">Candidate not found.</p>
+  if (notFound || !candidate) return (
+    <div className="p-6">
+      <Link href="/company/candidates" className="inline-flex items-center gap-2 text-sm text-tl-text-secondary hover:text-tl-gold mb-8">
+        <ArrowLeft className="w-4 h-4" /> Back to Candidates
+      </Link>
+      <div className="flex flex-col items-center justify-center h-48 text-center">
+        <User className="w-12 h-12 text-tl-text-secondary/20 mb-4" />
+        <p className="text-sm font-medium text-tl-text-primary">Candidate not found</p>
+        <p className="text-xs text-tl-text-secondary mt-1">This profile may have been removed.</p>
+      </div>
     </div>
   )
 
-  const matchScore = candidate.matchScore ?? getMatchScore(candidate.id)
-  const verifiedSkills = candidate.skills.filter((s) => s.verified)
-  const selfReportedSkills = candidate.skills.filter((s) => !s.verified)
-  const assessmentEntries = Object.entries(candidate.assessmentScores)
-  const bgGrad = avatarBg(candidate.name)
+  // ── Safe accessors with fallbacks ──────────────────────────────────────────
+  const matchScore = candidate.matchScore || deterministicScore(candidate.id)
+  const skills = candidate.skills ?? []
+  const experience = candidate.experience ?? []
+  const education = candidate.education ?? []
+  const assessmentScores = candidate.assessmentScores ?? {}
+  const assessmentEntries = Object.entries(assessmentScores)
+  const verifiedSkills = skills.filter((s) => s.verified)
+  const selfReportedSkills = skills.filter((s) => !s.verified)
+  const bgGrad = avatarBg(candidate.name || 'U')
+  const initials = (candidate.name || '??').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
   const matchBreakdown = [
     { label: 'Overall Match', value: matchScore },
@@ -137,23 +164,23 @@ export default function CandidateDetailPage() {
   ]
 
   const aiReasons = [
-    `${verifiedSkills[0]?.name ?? 'Primary skill'} verified at ${verifiedSkills[0]?.score ?? 90}% — top 5% of candidates`,
-    'Current role at a leading tech company with directly relevant experience',
-    `Salary expectation of $${Math.round(candidate.salaryExpectation / 1000)}K aligns with budget range`,
-    `${candidate.workPreference.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' / ')} preference matches posting`,
-    `${candidate.education[0]?.degree ?? 'Degree'} from ${candidate.education[0]?.institution ?? 'university'} — strong background`,
+    verifiedSkills[0] ? `${verifiedSkills[0].name} verified at ${verifiedSkills[0].score ?? 90}% — top 5% of candidates` : 'Strong verified skill portfolio',
+    experience[0] ? `Current role at ${experience[0].company} with directly relevant experience` : 'Relevant professional background',
+    candidate.salaryExpectation > 0 ? `Salary expectation of $${Math.round(candidate.salaryExpectation / 1000)}K aligns with budget range` : 'Competitive salary expectations',
+    candidate.workPreference?.length ? `${candidate.workPreference.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' / ')} preference matches posting` : 'Flexible work arrangement',
+    education[0] ? `${education[0].degree ?? 'Degree'} from ${education[0].institution ?? 'university'}` : 'Strong educational background',
   ]
 
   const riskSignals = [
-    { text: 'No direct industry-specific experience in recent roles', severity: 'medium' },
-    { text: 'Short tenure detected at previous position', severity: 'low' },
+    { text: 'Verify relevant industry-specific experience for the role', severity: 'medium' },
+    { text: 'Review tenure at previous positions before extending offer', severity: 'low' },
   ]
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'experience', label: 'Experience' },
     { key: 'skills', label: 'Skills' },
-    { key: 'assessments', label: 'Assessments' },
+    { key: 'assessments', label: `Assessments${assessmentEntries.length > 0 ? ` (${assessmentEntries.length})` : ''}` },
     { key: 'notes', label: `Notes${notes.length > 0 ? ` (${notes.length})` : ''}` },
   ]
 
@@ -164,10 +191,10 @@ export default function CandidateDetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
 
       {/* Back nav */}
-      <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="mb-6">
+      <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="mb-5 sm:mb-6">
         <Link
           href="/company/candidates"
           className="inline-flex items-center gap-2 text-sm text-tl-text-secondary hover:text-tl-gold transition-colors group"
@@ -177,21 +204,29 @@ export default function CandidateDetailPage() {
         </Link>
       </motion.div>
 
-      <div className="grid lg:grid-cols-[300px,1fr] gap-6">
+      <div className="grid lg:grid-cols-[280px,1fr] gap-5 sm:gap-6">
 
         {/* ── LEFT SIDEBAR ───────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
-          className="tl-card p-6 lg:sticky lg:top-6 space-y-5 h-fit bg-tl-bg-surface"
+          className="tl-card p-5 sm:p-6 lg:sticky lg:top-6 space-y-5 h-fit bg-tl-bg-surface"
         >
           {/* Avatar + Name */}
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-3">
-              <div className={cn('w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br', bgGrad)}>
-                {candidate.name.slice(0, 2).toUpperCase()}
-              </div>
+              {candidate.avatar ? (
+                <img
+                  src={candidate.avatar}
+                  alt={candidate.name}
+                  className="w-20 h-20 rounded-full object-cover"
+                />
+              ) : (
+                <div className={cn('w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br', bgGrad)}>
+                  {initials}
+                </div>
+              )}
               {candidate.verified && (
                 <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-tl-teal border-2 border-tl-bg-surface flex items-center justify-center">
                   <CheckCircle2 className="w-3.5 h-3.5 text-tl-bg-base" />
@@ -199,27 +234,29 @@ export default function CandidateDetailPage() {
               )}
             </div>
             {candidate.premium && (
-              <span className="tl-tag-gold text-[10px] mb-2">
-                Premium
-              </span>
+              <span className="tl-tag-gold text-[10px] mb-2">Premium</span>
             )}
-            <h1 className="font-display text-xl text-tl-text-primary">{candidate.name}</h1>
-            <p className="text-sm text-tl-text-secondary mt-0.5">{candidate.title}</p>
-            <div className="flex items-center gap-1.5 mt-2 text-xs text-tl-text-secondary">
-              <MapPin className="w-3.5 h-3.5" />
-              {candidate.location}
-            </div>
-            <div className="mt-2">
-              <span className={cn(
-                'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium',
-                candidate.availability.toLowerCase().includes('immediately') || candidate.availability.toLowerCase().includes('now')
-                  ? 'bg-tl-teal/10 text-tl-teal border border-tl-teal/20'
-                  : 'bg-tl-gold/10 text-tl-gold border border-tl-gold/20'
-              )}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                {candidate.availability}
-              </span>
-            </div>
+            <h1 className="font-display text-lg sm:text-xl text-tl-text-primary">{candidate.name || '—'}</h1>
+            <p className="text-sm text-tl-text-secondary mt-0.5">{candidate.title || 'No title set'}</p>
+            {candidate.location && (
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-tl-text-secondary">
+                <MapPin className="w-3.5 h-3.5" />
+                {candidate.location}
+              </div>
+            )}
+            {candidate.availability && (
+              <div className="mt-2">
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium',
+                  (candidate.availability.toLowerCase().includes('immediately') || candidate.availability.toLowerCase().includes('open'))
+                    ? 'bg-tl-teal/10 text-tl-teal border border-tl-teal/20'
+                    : 'bg-tl-gold/10 text-tl-gold border border-tl-gold/20'
+                )}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {candidate.availability}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Match ring */}
@@ -234,21 +271,70 @@ export default function CandidateDetailPage() {
           {/* Contact */}
           <div className="space-y-2.5">
             <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider">Contact</p>
-            <a href={`mailto:${candidate.email}`} className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-gold transition-colors group">
-              <Mail className="w-4 h-4 text-tl-gold shrink-0" />
-              <span className="truncate">{candidate.email}</span>
-            </a>
-            <div className="flex items-center gap-2.5 text-sm text-tl-text-secondary">
-              <Phone className="w-4 h-4 text-tl-teal shrink-0" />
-              <span>{candidate.phone ?? '—'}</span>
-            </div>
-            {candidate.portfolio && (
-              <a href={`https://${candidate.portfolio}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-teal transition-colors">
-                <Globe className="w-4 h-4 text-tl-teal shrink-0" />
-                <span className="truncate">{candidate.portfolio}</span>
+            {candidate.email && (
+              <a href={`mailto:${candidate.email}`} className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-gold transition-colors group">
+                <Mail className="w-4 h-4 text-tl-gold shrink-0" />
+                <span className="truncate">{candidate.email}</span>
               </a>
             )}
+            {candidate.phone && (
+              <div className="flex items-center gap-2.5 text-sm text-tl-text-secondary">
+                <Phone className="w-4 h-4 text-tl-teal shrink-0" />
+                <span>{candidate.phone}</span>
+              </div>
+            )}
+            {candidate.portfolio && (
+              <a href={candidate.portfolio.startsWith('http') ? candidate.portfolio : `https://${candidate.portfolio}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-teal transition-colors">
+                <Globe className="w-4 h-4 text-tl-teal shrink-0" />
+                <span className="truncate">{candidate.portfolio.replace(/^https?:\/\//, '')}</span>
+              </a>
+            )}
+            {candidate.github && (
+              <a href={candidate.github} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-text-primary transition-colors">
+                <Github className="w-4 h-4 shrink-0" />
+                <span className="truncate">{candidate.github.replace(/^https?:\/\/(www\.)?github\.com\//, '')}</span>
+              </a>
+            )}
+            {candidate.linkedin && (
+              <a href={candidate.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-tl-text-secondary hover:text-tl-blue transition-colors">
+                <Linkedin className="w-4 h-4 shrink-0 text-tl-blue" />
+                <span className="truncate">LinkedIn</span>
+              </a>
+            )}
+            {!candidate.email && !candidate.phone && !candidate.portfolio && (
+              <p className="text-xs text-tl-text-secondary/60 italic">No contact info provided</p>
+            )}
           </div>
+
+          {/* Salary */}
+          {candidate.salaryExpectation > 0 && (
+            <>
+              <div className="h-px bg-tl-border-subtle" />
+              <div>
+                <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider mb-1.5">Expected Salary</p>
+                <p className="font-mono text-base font-bold text-tl-gold">
+                  ${Math.round(candidate.salaryExpectation / 1000)}K <span className="text-xs font-normal text-tl-text-secondary">/ yr</span>
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Work preference */}
+          {candidate.workPreference?.length > 0 && (
+            <>
+              <div className="h-px bg-tl-border-subtle" />
+              <div>
+                <p className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider mb-2">Work Mode</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {candidate.workPreference.map((w) => (
+                    <span key={w} className="text-[11px] px-2.5 py-1 rounded-full bg-tl-teal/10 text-tl-teal border border-tl-teal/20 capitalize">
+                      {w}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Divider */}
           <div className="h-px bg-tl-border-subtle" />
@@ -339,16 +425,16 @@ export default function CandidateDetailPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.08 }}
-          className="space-y-6"
+          className="space-y-5 sm:space-y-6"
         >
           {/* Tab nav */}
-          <div className="flex gap-1 border-b border-tl-border-subtle overflow-x-auto">
+          <div className="flex gap-0 border-b border-tl-border-subtle overflow-x-auto scrollbar-hide">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
                 className={cn(
-                  'px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 -mb-px',
+                  'px-3 sm:px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 -mb-px',
                   activeTab === t.key
                     ? 'text-tl-gold border-tl-gold'
                     : 'text-tl-text-secondary hover:text-tl-text-primary border-transparent'
@@ -361,6 +447,7 @@ export default function CandidateDetailPage() {
 
           {/* Tab content */}
           <AnimatePresence mode="wait">
+
             {/* ── OVERVIEW ──────────────────────────────────────────────── */}
             {activeTab === 'overview' && (
               <motion.div
@@ -369,16 +456,32 @@ export default function CandidateDetailPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="space-y-5"
+                className="space-y-4 sm:space-y-5"
               >
                 {/* Bio */}
-                <div className="tl-card p-6">
-                  <h3 className="text-base font-semibold text-tl-text-primary mb-3">About</h3>
-                  <p className="text-sm text-tl-text-secondary leading-relaxed">{candidate.bio}</p>
-                </div>
+                {candidate.bio && (
+                  <div className="tl-card p-5 sm:p-6">
+                    <h3 className="text-base font-semibold text-tl-text-primary mb-3">About</h3>
+                    <p className="text-sm text-tl-text-secondary leading-relaxed">{candidate.bio}</p>
+                  </div>
+                )}
+
+                {/* Languages */}
+                {candidate.languages?.length > 0 && (
+                  <div className="tl-card p-5 sm:p-6">
+                    <h3 className="text-base font-semibold text-tl-text-primary mb-3">Languages</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {candidate.languages.map((lang) => (
+                        <span key={lang} className="text-sm px-3 py-1.5 rounded-xl bg-tl-bg-elevated border border-tl-border-subtle text-tl-text-primary">
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* AI Match Analysis */}
-                <div className="tl-card-gold p-6">
+                <div className="tl-card-gold p-5 sm:p-6">
                   <div className="flex items-center gap-3 mb-5">
                     <div className="w-9 h-9 rounded-xl bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center shrink-0">
                       <Sparkles className="w-4 h-4 text-tl-gold" />
@@ -412,7 +515,7 @@ export default function CandidateDetailPage() {
                 </div>
 
                 {/* Why this candidate */}
-                <div className="tl-card p-6">
+                <div className="tl-card p-5 sm:p-6">
                   <h3 className="text-base font-semibold text-tl-text-primary mb-4">Why this candidate?</h3>
                   <ul className="space-y-3">
                     {aiReasons.map((reason, i) => (
@@ -431,7 +534,7 @@ export default function CandidateDetailPage() {
                 </div>
 
                 {/* Risk Signals */}
-                <div className="tl-card p-6">
+                <div className="tl-card p-5 sm:p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <AlertCircle className="w-4 h-4 text-tl-gold" />
                     <h3 className="text-base font-semibold text-tl-text-primary">Risk Signals</h3>
@@ -464,54 +567,93 @@ export default function CandidateDetailPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="tl-card p-6"
+                className="space-y-4"
               >
-                <h3 className="text-base font-semibold text-tl-text-primary mb-6">Work History</h3>
-                <div className="relative border-l-2 border-tl-border-subtle ml-4 space-y-6">
-                  {candidate.experience.map((exp, i) => (
-                    <motion.div
-                      key={exp.id}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.08 }}
-                      className="relative pl-8"
-                    >
-                      <div className={cn(
-                        'absolute -left-[9px] top-0.5 w-4 h-4 rounded-full border-2 border-tl-bg-surface',
-                        exp.current ? 'bg-tl-teal' : 'bg-tl-gold/60'
-                      )} />
-                      <div className="flex items-start justify-between gap-3 mb-1">
-                        <div>
-                          <p className="text-sm font-semibold text-tl-text-primary">{exp.title}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Building2 className="w-3.5 h-3.5 text-tl-text-secondary" />
-                            <span className="text-sm text-tl-text-secondary">{exp.company}</span>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs text-tl-text-secondary">
-                            {formatDateRange(exp.startDate, exp.endDate, exp.current)}
-                          </span>
-                          {exp.current && (
+                {/* Work Experience */}
+                <div className="tl-card p-5 sm:p-6">
+                  <h3 className="text-base font-semibold text-tl-text-primary mb-5 sm:mb-6">Work History</h3>
+                  {experience.length === 0 ? (
+                    <p className="text-sm text-tl-text-secondary/60 italic">No work experience added yet.</p>
+                  ) : (
+                    <div className="relative border-l-2 border-tl-border-subtle ml-4 space-y-6">
+                      {experience.map((exp, i) => (
+                        <motion.div
+                          key={exp.id ?? i}
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.08 }}
+                          className="relative pl-8"
+                        >
+                          <div className={cn(
+                            'absolute -left-[9px] top-0.5 w-4 h-4 rounded-full border-2 border-tl-bg-surface',
+                            exp.current ? 'bg-tl-teal' : 'bg-tl-gold/60'
+                          )} />
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 mb-1">
                             <div>
-                              <span className="tl-tag-teal text-[10px] mt-1 inline-block">
-                                Current
+                              <p className="text-sm font-semibold text-tl-text-primary">{exp.title}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <Building2 className="w-3.5 h-3.5 text-tl-text-secondary" />
+                                <span className="text-sm text-tl-text-secondary">{exp.company}</span>
+                              </div>
+                            </div>
+                            <div className="sm:text-right shrink-0">
+                              <span className="text-xs text-tl-text-secondary">
+                                {exp.startDate ? formatDateRange(exp.startDate, exp.endDate, exp.current) : ''}
                               </span>
+                              {exp.current && (
+                                <div><span className="tl-tag-teal text-[10px] mt-1 inline-block">Current</span></div>
+                              )}
+                            </div>
+                          </div>
+                          {exp.description && (
+                            <p className="text-sm text-tl-text-secondary leading-relaxed mb-3">{exp.description}</p>
+                          )}
+                          {exp.skills?.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {exp.skills.map((skill) => (
+                                <span key={skill} className="tl-tag-teal text-[11px]">{skill}</span>
+                              ))}
                             </div>
                           )}
-                        </div>
-                      </div>
-                      <p className="text-sm text-tl-text-secondary leading-relaxed mb-3">{exp.description}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {exp.skills.map((skill) => (
-                          <span key={skill} className="tl-tag-teal text-[11px]">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Education */}
+                {education.length > 0 && (
+                  <div className="tl-card p-5 sm:p-6">
+                    <h3 className="text-base font-semibold text-tl-text-primary mb-5">Education</h3>
+                    <div className="space-y-5">
+                      {education.map((edu, i) => (
+                        <motion.div
+                          key={edu.id ?? i}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.08 }}
+                          className="flex gap-4"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-tl-teal/10 border border-tl-teal/20 flex items-center justify-center shrink-0 mt-0.5">
+                            <GraduationCap className="w-5 h-5 text-tl-teal" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-tl-text-primary">{edu.degree} {edu.field ? `in ${edu.field}` : ''}</p>
+                            <p className="text-sm text-tl-text-secondary">{edu.institution}</p>
+                            {edu.startDate && (
+                              <p className="text-xs text-tl-text-secondary mt-0.5">
+                                {edu.startDate.split('-')[0]} – {edu.endDate ? edu.endDate.split('-')[0] : 'Present'}
+                              </p>
+                            )}
+                            {edu.gpa && (
+                              <p className="text-xs text-tl-gold font-mono mt-0.5">GPA: {edu.gpa}</p>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -523,100 +665,75 @@ export default function CandidateDetailPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="space-y-5"
+                className="space-y-4 sm:space-y-5"
               >
-                {verifiedSkills.length > 0 && (
-                  <div className="tl-card p-6">
-                    <div className="flex items-center justify-between mb-5">
-                      <h3 className="text-base font-semibold text-tl-text-primary">Verified Skills</h3>
-                      <span className="tl-tag-teal text-[11px]">
-                        {verifiedSkills.length} verified
-                      </span>
-                    </div>
-                    <div className="space-y-4">
-                      {verifiedSkills.map((skill, i) => (
-                        <motion.div
-                          key={skill.name}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-sm font-medium text-tl-text-primary">{skill.name}</span>
-                              <span className="tl-tag-teal text-[10px] flex items-center gap-1">
-                                <CheckCircle2 className="w-2.5 h-2.5" />
-                                Verified
-                              </span>
-                            </div>
-                            {skill.score !== undefined && (
-                              <span className="font-mono text-sm font-bold text-tl-gold">{skill.score}%</span>
-                            )}
-                          </div>
-                          {skill.score !== undefined && (
-                            <div className="h-1.5 rounded-full bg-tl-bg-elevated overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${skill.score}%` }}
-                                transition={{ duration: 0.7, delay: i * 0.05, ease: 'easeOut' }}
-                                className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-gold/60"
-                              />
-                            </div>
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
+                {skills.length === 0 ? (
+                  <div className="tl-card p-10 flex flex-col items-center justify-center text-center">
+                    <p className="text-sm font-medium text-tl-text-primary">No skills listed</p>
+                    <p className="text-xs text-tl-text-secondary mt-1">This candidate hasn't added skills yet.</p>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {verifiedSkills.length > 0 && (
+                      <div className="tl-card p-5 sm:p-6">
+                        <div className="flex items-center justify-between mb-5">
+                          <h3 className="text-base font-semibold text-tl-text-primary">Verified Skills</h3>
+                          <span className="tl-tag-teal text-[11px]">{verifiedSkills.length} verified</span>
+                        </div>
+                        <div className="space-y-4">
+                          {verifiedSkills.map((skill, i) => (
+                            <motion.div
+                              key={skill.name}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.05 }}
+                            >
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-sm font-medium text-tl-text-primary">{skill.name}</span>
+                                  <span className="tl-tag-teal text-[10px] flex items-center gap-1">
+                                    <CheckCircle2 className="w-2.5 h-2.5" /> Verified
+                                  </span>
+                                </div>
+                                {skill.score !== undefined && (
+                                  <span className="font-mono text-sm font-bold text-tl-gold">{skill.score}%</span>
+                                )}
+                              </div>
+                              {skill.score !== undefined && (
+                                <div className="h-1.5 rounded-full bg-tl-bg-elevated overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${skill.score}%` }}
+                                    transition={{ duration: 0.7, delay: i * 0.05, ease: 'easeOut' }}
+                                    className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-gold/60"
+                                  />
+                                </div>
+                              )}
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                {selfReportedSkills.length > 0 && (
-                  <div className="tl-card p-6">
-                    <h3 className="text-base font-semibold text-tl-text-primary mb-5">Self-Reported Skills</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selfReportedSkills.map((skill) => (
-                        <span
-                          key={skill.name}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-tl-bg-elevated border border-tl-border-subtle text-sm text-tl-text-primary"
-                        >
-                          {skill.name}
-                          <span className="text-[10px] text-tl-text-secondary capitalize">{skill.level}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {assessmentEntries.length > 0 && (
-                  <div className="tl-card p-6">
-                    <h3 className="text-base font-semibold text-tl-text-primary mb-5">Assessments Passed</h3>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {assessmentEntries.map(([key, score], i) => {
-                        const pct = Math.round(100 - (100 - score) * 0.4)
-                        return (
-                          <motion.div
-                            key={key}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="p-4 rounded-xl bg-tl-bg-elevated border border-tl-border-subtle"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-tl-text-primary capitalize">
-                                {key.replace(/([A-Z])/g, ' $1').trim()}
-                              </span>
-                              <span className="font-mono text-sm font-bold text-tl-gold">{score}%</span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-tl-bg-base overflow-hidden mb-1">
-                              <div className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-teal" style={{ width: `${score}%` }} />
-                            </div>
-                            <p className={cn('text-xs font-medium', pct >= 90 ? 'text-tl-teal' : 'text-tl-gold')}>
-                              Top {100 - pct}%
-                            </p>
-                          </motion.div>
-                        )
-                      })}
-                    </div>
-                  </div>
+                    {selfReportedSkills.length > 0 && (
+                      <div className="tl-card p-5 sm:p-6">
+                        <h3 className="text-base font-semibold text-tl-text-primary mb-4">
+                          {verifiedSkills.length > 0 ? 'Self-Reported Skills' : 'Skills'}
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selfReportedSkills.map((skill) => (
+                            <span
+                              key={skill.name}
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-tl-bg-elevated border border-tl-border-subtle text-sm text-tl-text-primary"
+                            >
+                              {skill.name}
+                              {skill.level && <span className="text-[10px] text-tl-text-secondary capitalize">{skill.level}</span>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </motion.div>
             )}
@@ -629,64 +746,71 @@ export default function CandidateDetailPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="tl-card overflow-hidden"
               >
-                <div className="px-6 py-4 border-b border-tl-border-subtle">
-                  <h3 className="text-base font-semibold text-tl-text-primary">Assessment Scores</h3>
-                  <p className="text-xs text-tl-text-secondary mt-0.5">TalentBridge verified technical assessments</p>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-tl-border-subtle bg-tl-bg-base/50">
-                        {['Assessment', 'Score', 'Percentile', 'Status'].map((h) => (
-                          <th key={h} className="text-left text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider px-6 py-3">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assessmentEntries.map(([key, score], i) => {
-                        const pct = Math.round(100 - (100 - score) * 0.4)
-                        return (
-                          <motion.tr
-                            key={key}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: i * 0.06 }}
-                            className="border-b border-tl-border-subtle hover:bg-tl-bg-elevated/30 transition-colors last:border-0"
-                          >
-                            <td className="px-6 py-3.5">
-                              <span className="text-sm font-medium text-tl-text-primary capitalize">
-                                {key.replace(/([A-Z])/g, ' $1').trim()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-3.5">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-bold text-tl-gold">{score}%</span>
-                                <div className="w-16 h-1.5 rounded-full bg-tl-bg-elevated overflow-hidden">
-                                  <div className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-teal" style={{ width: `${score}%` }} />
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-3.5">
-                              <span className={cn('font-mono text-sm font-semibold', pct >= 90 ? 'text-tl-teal' : 'text-tl-gold')}>
-                                Top {100 - pct}%
-                              </span>
-                            </td>
-                            <td className="px-6 py-3.5">
-                              <span className="tl-tag-teal inline-flex items-center gap-1 text-[11px]">
-                                <CheckCircle2 className="w-3 h-3" />
-                                Verified
-                              </span>
-                            </td>
-                          </motion.tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                {assessmentEntries.length === 0 ? (
+                  <div className="tl-card p-10 flex flex-col items-center justify-center text-center">
+                    <p className="text-sm font-medium text-tl-text-primary">No assessments taken</p>
+                    <p className="text-xs text-tl-text-secondary mt-1">This candidate hasn't completed any assessments yet.</p>
+                  </div>
+                ) : (
+                  <div className="tl-card overflow-hidden">
+                    <div className="px-5 sm:px-6 py-4 border-b border-tl-border-subtle">
+                      <h3 className="text-base font-semibold text-tl-text-primary">Assessment Scores</h3>
+                      <p className="text-xs text-tl-text-secondary mt-0.5">TalentBridge verified technical assessments</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[400px]">
+                        <thead>
+                          <tr className="border-b border-tl-border-subtle bg-tl-bg-base/50">
+                            {['Assessment', 'Score', 'Percentile', 'Status'].map((h) => (
+                              <th key={h} className="text-left text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider px-4 sm:px-6 py-3">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {assessmentEntries.map(([key, score], i) => {
+                            const pct = Math.round(100 - (100 - score) * 0.4)
+                            return (
+                              <motion.tr
+                                key={key}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: i * 0.06 }}
+                                className="border-b border-tl-border-subtle hover:bg-tl-bg-elevated/30 transition-colors last:border-0"
+                              >
+                                <td className="px-4 sm:px-6 py-3.5">
+                                  <span className="text-sm font-medium text-tl-text-primary capitalize">
+                                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                                  </span>
+                                </td>
+                                <td className="px-4 sm:px-6 py-3.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-sm font-bold text-tl-gold">{score}%</span>
+                                    <div className="w-14 h-1.5 rounded-full bg-tl-bg-elevated overflow-hidden">
+                                      <div className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-teal" style={{ width: `${score}%` }} />
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 sm:px-6 py-3.5">
+                                  <span className={cn('font-mono text-sm font-semibold', pct >= 90 ? 'text-tl-teal' : 'text-tl-gold')}>
+                                    Top {100 - pct}%
+                                  </span>
+                                </td>
+                                <td className="px-4 sm:px-6 py-3.5">
+                                  <span className="tl-tag-teal inline-flex items-center gap-1 text-[11px]">
+                                    <CheckCircle2 className="w-3 h-3" /> Verified
+                                  </span>
+                                </td>
+                              </motion.tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -741,6 +865,7 @@ export default function CandidateDetailPage() {
                 )}
               </motion.div>
             )}
+
           </AnimatePresence>
         </motion.div>
       </div>

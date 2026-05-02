@@ -10,7 +10,7 @@ export interface CrmJob {
   requirements: string[]
   skills: string[]
   url: string
-  source: 'remoteok' | 'linkedin' | 'remotive' | 'ycombinator'
+  source: 'remoteok' | 'linkedin' | 'remotive' | 'ycombinator' | 'hiring_cafe'
   jobType: string
   remote: boolean
   scrapedAt: string
@@ -272,6 +272,132 @@ async function scrapeLinkedInJobs(keywords: string[], location?: string, limit =
     await context.close()
   } catch {
     // non-fatal
+  } finally {
+    if (browser) await browser.close().catch(() => {})
+  }
+  return jobs
+}
+
+// ─── hiring.cafe via Playwright ───────────────────────────────────────────
+export async function scrapeHiringCafe(keywords: string[], limit = 30): Promise<CrmJob[]> {
+  const jobs: CrmJob[] = []
+  let browser = null
+  try {
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] })
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      locale: 'en-US',
+    })
+    const page = await context.newPage()
+
+    const searchUrl = keywords.length > 0
+      ? `https://hiring.cafe/?q=${encodeURIComponent(keywords.join(' '))}`
+      : 'https://hiring.cafe/'
+
+    await page.goto(searchUrl, { timeout: 30000, waitUntil: 'networkidle' })
+    await page.waitForTimeout(3000)
+
+    // Try __NEXT_DATA__ first (fast path for Next.js SSR)
+    let listings: Array<{ title: string; company: string; location: string; salary: string; tags: string[]; url: string; description: string; remote: boolean }> = []
+
+    const nextData = await page.evaluate(() => {
+      const el = document.getElementById('__NEXT_DATA__')
+      if (!el) return null
+      try { return JSON.parse(el.textContent || '') } catch { return null }
+    })
+
+    if (nextData) {
+      const flat = JSON.stringify(nextData)
+      // Look for job-array patterns in the JSON
+      const jobArrayMatch = flat.match(/"jobs"\s*:\s*(\[[\s\S]{10,}\])/)?.[1]
+      if (jobArrayMatch) {
+        try {
+          const arr = JSON.parse(jobArrayMatch) as Array<Record<string, unknown>>
+          for (const j of arr.slice(0, limit)) {
+            const title = String(j.title ?? j.role ?? j.position ?? '')
+            const company = String(j.company ?? j.companyName ?? j.employer ?? '')
+            if (!title || !company) continue
+            listings.push({
+              title, company,
+              location: String(j.location ?? j.city ?? 'Remote'),
+              salary: String(j.salary ?? j.compensation ?? ''),
+              tags: Array.isArray(j.tags) ? (j.tags as string[]).slice(0, 6) : (Array.isArray(j.skills) ? (j.skills as string[]).slice(0, 6) : []),
+              url: String(j.url ?? j.link ?? j.applyUrl ?? ''),
+              description: String(j.description ?? j.summary ?? '').replace(/<[^>]*>/g, '').slice(0, 500),
+              remote: /remote/i.test(String(j.location ?? j.workType ?? '')),
+            })
+          }
+        } catch { /* fall through to DOM extraction */ }
+      }
+    }
+
+    // DOM extraction fallback
+    if (listings.length === 0) {
+      listings = await page.evaluate(() => {
+        const results: Array<{ title: string; company: string; location: string; salary: string; tags: string[]; url: string; description: string; remote: boolean }> = []
+        const seen = new Set<string>()
+
+        const cards = document.querySelectorAll(
+          'a[href*="/job"], li, article, [class*="job"], [class*="card"], [class*="listing"], [class*="result"]'
+        )
+
+        for (const card of Array.from(cards).slice(0, 80)) {
+          const headings = card.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="role"], [class*="position"]')
+          const title = headings[0]?.textContent?.trim() ?? ''
+          if (!title || title.length < 3 || title.length > 150) continue
+
+          const compCandidates = card.querySelectorAll('[class*="company"], [class*="employer"], p strong, h5, h6, span')
+          let company = ''
+          for (const cel of Array.from(compCandidates)) {
+            const ct = cel.textContent?.trim() ?? ''
+            if (ct && ct !== title && ct.length > 1 && ct.length < 100) { company = ct; break }
+          }
+          if (!company) continue
+
+          const key = `${title}|${company}`
+          if (seen.has(key)) continue
+          seen.add(key)
+
+          const locEl = card.querySelector('[class*="location"], [class*="place"], [class*="city"]')
+          const location = locEl?.textContent?.trim() ?? ''
+          const salEl = card.querySelector('[class*="salary"], [class*="pay"], [class*="comp"], [class*="range"]')
+          const salary = salEl?.textContent?.trim() ?? ''
+          const tagEls = card.querySelectorAll('[class*="tag"], [class*="badge"], [class*="skill"], [class*="chip"]')
+          const tags = Array.from(tagEls).map(t => t.textContent?.trim() ?? '').filter(t => t.length > 1 && t.length < 30).slice(0, 6)
+          const linkEl = card.tagName === 'A' ? card : card.querySelector('a')
+          const url = (linkEl as HTMLAnchorElement)?.href ?? ''
+          const remote = /remote/i.test(location) || /remote/i.test(card.textContent ?? '')
+
+          results.push({ title, company, location: location || (remote ? 'Remote' : 'Unknown'), salary, tags, url, description: (card.textContent ?? '').slice(0, 500).trim(), remote })
+          if (results.length >= 60) break
+        }
+        return results
+      })
+    }
+
+    for (const listing of listings) {
+      if (jobs.length >= limit) break
+      const slug = (listing.title + listing.company).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 18)
+      jobs.push({
+        jobId: `hc-${slug}-${Date.now().toString(36)}`,
+        title: listing.title,
+        company: listing.company,
+        location: listing.location,
+        salaryRange: listing.salary || undefined,
+        description: listing.description,
+        requirements: [],
+        skills: listing.tags.length > 0 ? listing.tags : keywords.slice(0, 4),
+        url: listing.url,
+        source: 'hiring_cafe',
+        jobType: 'full-time',
+        remote: listing.remote,
+        scrapedAt: new Date().toISOString(),
+      })
+    }
+
+    await context.close()
+  } catch (err) {
+    console.error('[scrapeHiringCafe]', err)
   } finally {
     if (browser) await browser.close().catch(() => {})
   }

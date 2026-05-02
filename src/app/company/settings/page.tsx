@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2,
@@ -29,6 +29,16 @@ import { cn } from '@/lib/utils'
 
 type TabId = 'profile' | 'team' | 'billing' | 'notifications' | 'integrations' | 'api'
 
+type TeamMember = {
+  userId: string
+  email: string
+  fullName: string
+  role: string
+  companyId: string
+  inviteAcceptedAt: string | null
+  createdAt: string
+}
+
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -54,7 +64,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="mb-6">
+    <div className="mb-5 sm:mb-6">
       <h3 className="text-base font-semibold text-foreground">{title}</h3>
       {description && (
         <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
@@ -162,25 +172,68 @@ function UsageMeter({
 // ─── Tab: Profile ─────────────────────────────────────────────────────────────
 
 function TabProfile() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [form, setForm] = useState({
-    name: 'Stripe Corp',
-    industry: 'fintech',
-    size: '1001+',
-    website: 'https://stripe.com',
-    hq: 'San Francisco, CA',
-    founded: '2010',
-    description:
-      'Stripe is a technology company that builds economic infrastructure for the internet. Businesses of every size—from new startups to public companies—use our software to accept payments and manage their businesses online.',
+    name: '',
+    industry: 'other',
+    size: '1-10',
+    website: '',
+    hq: '',
+    founded: '',
+    description: '',
   })
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+  useEffect(() => {
+    fetch('/api/company/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && !data.error) {
+          setForm({
+            name: data.name ?? '',
+            industry: data.industry ?? 'other',
+            size: data.size ?? '1-10',
+            website: data.website ?? '',
+            hq: data.hq ?? data.location ?? '',
+            founded: data.founded ?? data.foundedYear ?? '',
+            description: data.description ?? '',
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/company/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2500)
+      }
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <SectionHeader
         title="Company Profile"
         description="Update your public company information visible to candidates."
@@ -189,10 +242,10 @@ function TabProfile() {
       {/* Logo upload */}
       <div className="space-y-2">
         <FieldLabel>Company Logo</FieldLabel>
-        <div className="flex items-center gap-5">
-          <div className="border-2 border-dashed border-border rounded-xl w-24 h-24 flex flex-col items-center justify-center gap-2 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground text-xl font-black">
-              S
+        <div className="flex items-center gap-4 sm:gap-5">
+          <div className="border-2 border-dashed border-border rounded-xl w-20 h-20 sm:w-24 sm:h-24 flex flex-col items-center justify-center gap-2 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group shrink-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground text-lg sm:text-xl font-black">
+              C
             </div>
             <Upload className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
@@ -207,12 +260,13 @@ function TabProfile() {
       </div>
 
       {/* Form grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <FieldLabel>Company Name</FieldLabel>
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="Acme Corp"
           />
         </div>
         <div className="space-y-1.5">
@@ -286,6 +340,7 @@ function TabProfile() {
       <div className="flex justify-end">
         <Button
           onClick={handleSave}
+          disabled={saving}
           className={cn(
             'gap-2 min-w-[140px] transition-all duration-300',
             saved
@@ -293,10 +348,10 @@ function TabProfile() {
               : 'bg-primary text-primary-foreground'
           )}
         >
-          {saved ? (
-            <>
-              <Check className="w-4 h-4" /> Saved!
-            </>
+          {saving ? (
+            <><RefreshCw className="w-4 h-4 animate-spin" /> Saving…</>
+          ) : saved ? (
+            <><Check className="w-4 h-4" /> Saved!</>
           ) : (
             'Save Changes'
           )}
@@ -308,107 +363,152 @@ function TabProfile() {
 
 // ─── Tab: Team ─────────────────────────────────────────────────────────────────
 
-const INITIAL_MEMBERS = [
-  { name: 'Sarah Chen', role: 'Admin', email: 'sarah@stripe.com', joined: 'Jan 2025' },
-  { name: 'Mike Ross', role: 'Recruiter', email: 'mike@stripe.com', joined: 'Feb 2025' },
-  { name: 'Lisa Park', role: 'Viewer', email: 'lisa@stripe.com', joined: 'Mar 2025' },
-]
+function getTeamInitials(member: TeamMember) {
+  if (member.fullName?.trim()) {
+    return member.fullName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  }
+  return member.email[0].toUpperCase()
+}
 
 function TabTeam() {
-  const [members, setMembers] = useState(INITIAL_MEMBERS)
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [loading, setLoading] = useState(true)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('recruiter')
-  const [pendingInvites, setPendingInvites] = useState<
-    Array<{ email: string; role: string }>
-  >([])
+  const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [inviteSent, setInviteSent] = useState(false)
 
-  const handleRemove = (email: string) => {
-    setMembers((m) => m.filter((t) => t.email !== email))
+  useEffect(() => {
+    fetch('/api/company/team')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: TeamMember[]) => setMembers(Array.isArray(data) ? data : []))
+      .catch(() => setMembers([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleRemove = async (userId: string) => {
+    setMembers(m => m.filter(t => t.userId !== userId))
+    await fetch(`/api/company/team/${encodeURIComponent(userId)}`, { method: 'DELETE' })
   }
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (!inviteEmail.trim()) return
-    setPendingInvites((prev) => [...prev, { email: inviteEmail.trim(), role: inviteRole }])
-    setInviteEmail('')
+    setInviting(true)
+    setInviteError(null)
+    setInviteSent(false)
+    try {
+      const res = await fetch('/api/company/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setInviteError(data.error ?? 'Failed to send invite')
+        return
+      }
+      setMembers(m => [...m, data as TeamMember])
+      setInviteEmail('')
+      setInviteSent(true)
+      setTimeout(() => setInviteSent(false), 3000)
+    } catch {
+      setInviteError('Network error. Please try again.')
+    } finally {
+      setInviting(false)
+    }
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <SectionHeader
         title="Team Members"
-        description="Manage who has access to your Calibr workspace."
+        description="Manage who has access to your TalentBridge workspace."
       />
 
-      {/* Members table */}
+      {/* Members list */}
       <div className="glass-card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/20">
-              <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-5 py-3">
-                Name
-              </th>
-              <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3 hidden sm:table-cell">
-                Role
-              </th>
-              <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3 hidden md:table-cell">
-                Email
-              </th>
-              <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3 hidden lg:table-cell">
-                Joined
-              </th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {members.map((member) => (
-              <tr key={member.email} className="hover:bg-muted/20 transition-colors">
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                      {member.name[0]}
-                    </div>
-                    <span className="font-medium text-foreground">{member.name}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3.5 hidden sm:table-cell">
-                  <select
-                    value={member.role}
-                    onChange={(e) =>
-                      setMembers((prev) =>
-                        prev.map((m) =>
-                          m.email === member.email ? { ...m, role: e.target.value } : m
-                        )
-                      )
-                    }
-                    className="text-xs bg-muted border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Recruiter">Recruiter</option>
-                    <option value="Viewer">Viewer</option>
-                  </select>
-                </td>
-                <td className="px-4 py-3.5 text-xs text-muted-foreground hidden md:table-cell">
-                  {member.email}
-                </td>
-                <td className="px-4 py-3.5 text-xs text-muted-foreground hidden lg:table-cell">
-                  {member.joined}
-                </td>
-                <td className="px-4 py-3.5 text-right">
-                  {member.role !== 'Admin' && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-rose-400 hover:bg-rose-400/10"
-                      onClick={() => handleRemove(member.email)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+            <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2" />
+            Loading team…
+          </div>
+        ) : members.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+            No team members yet. Invite someone below.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[400px]">
+              <thead>
+                <tr className="border-b border-border bg-muted/20">
+                  <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-5 py-3">
+                    Member
+                  </th>
+                  <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3 hidden sm:table-cell">
+                    Role
+                  </th>
+                  <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3 hidden md:table-cell">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 w-12" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {members.map((member) => (
+                  <tr key={member.userId} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                          {getTeamInitials(member)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground truncate">
+                            {member.fullName?.trim() || member.email}
+                          </p>
+                          {member.fullName?.trim() && (
+                            <p className="text-[10px] text-muted-foreground truncate">{member.email}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 hidden sm:table-cell">
+                      <span className="text-xs bg-muted border border-border rounded-lg px-2 py-1 text-foreground capitalize">
+                        {member.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 hidden md:table-cell">
+                      {member.inviteAcceptedAt ? (
+                        <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-[11px] text-amber-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                          Pending invite
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      {member.role !== 'admin' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-rose-400 hover:bg-rose-400/10"
+                          onClick={() => handleRemove(member.userId)}
+                          aria-label={`Remove ${member.email}`}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Invite form */}
@@ -418,7 +518,9 @@ function TabTeam() {
           <input
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
             placeholder="colleague@company.com"
+            type="email"
             className="flex-1 rounded-xl bg-card border border-border text-sm text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground"
           />
           <select
@@ -428,42 +530,31 @@ function TabTeam() {
           >
             <option value="admin">Admin</option>
             <option value="recruiter">Recruiter</option>
+            <option value="interviewer">Interviewer</option>
             <option value="viewer">Viewer</option>
           </select>
-          <Button onClick={handleInvite} className="gap-2 shrink-0">
-            <Send className="w-3.5 h-3.5" /> Send Invite
+          <Button
+            onClick={handleInvite}
+            disabled={inviting || !inviteEmail.trim()}
+            className={cn(
+              'gap-2 shrink-0 transition-all',
+              inviteSent && 'bg-emerald-600 hover:bg-emerald-600'
+            )}
+          >
+            {inviting ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : inviteSent ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <Send className="w-3.5 h-3.5" />
+            )}
+            {inviteSent ? 'Sent!' : 'Send Invite'}
           </Button>
         </div>
+        {inviteError && (
+          <p className="text-xs text-rose-400 mt-2">{inviteError}</p>
+        )}
       </div>
-
-      {/* Pending invites */}
-      {pendingInvites.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">Pending Invites</p>
-          {pendingInvites.map((inv, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between px-4 py-3 glass-card"
-            >
-              <div>
-                <span className="text-sm text-foreground">{inv.email}</span>
-                <span className="text-xs text-muted-foreground ml-2">· {inv.role}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="text-xs text-primary hover:underline">Resend</button>
-                <button
-                  onClick={() =>
-                    setPendingInvites((prev) => prev.filter((_, j) => j !== i))
-                  }
-                  className="text-xs text-rose-400 hover:underline"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -480,11 +571,11 @@ const INVOICES = [
 
 function TabBilling() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <SectionHeader title="Billing & Subscription" />
 
       {/* Current plan */}
-      <div className="glass-card p-6 flex items-start justify-between gap-4 flex-wrap">
+      <div className="glass-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-base font-semibold text-foreground">Growth Plan</span>
@@ -497,13 +588,7 @@ function TabBilling() {
           </p>
           <p className="text-xs text-muted-foreground mt-1">Next billing date: May 15, 2026</p>
           <div className="flex flex-wrap gap-2 mt-3">
-            {[
-              'Unlimited candidates',
-              'AI matching',
-              'Analytics',
-              '5 team seats',
-              'Priority support',
-            ].map((f) => (
+            {['Unlimited candidates', 'AI matching', 'Analytics', '5 team seats', 'Priority support'].map((f) => (
               <span
                 key={f}
                 className="inline-flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20"
@@ -513,9 +598,9 @@ function TabBilling() {
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-2 shrink-0">
-          <Button className="bg-primary text-primary-foreground">Upgrade Plan</Button>
-          <button className="text-xs text-muted-foreground hover:text-rose-400 transition-colors text-center">
+        <div className="flex flex-row sm:flex-col gap-2 shrink-0">
+          <Button className="bg-primary text-primary-foreground flex-1 sm:flex-none">Upgrade Plan</Button>
+          <button className="text-xs text-muted-foreground hover:text-rose-400 transition-colors text-center flex-1 sm:flex-none">
             Cancel subscription
           </button>
         </div>
@@ -531,7 +616,7 @@ function TabBilling() {
 
       {/* Enterprise promo */}
       <div className="relative rounded-2xl p-[1px] bg-gradient-to-r from-primary via-purple-500 to-cyan-500">
-        <div className="rounded-2xl bg-card p-5 flex items-center justify-between gap-4">
+        <div className="rounded-2xl bg-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Crown className="w-4 h-4 text-amber-400" />
@@ -541,7 +626,7 @@ function TabBilling() {
               Unlimited seats, dedicated support, custom SLAs, and advanced analytics.
             </p>
           </div>
-          <Button size="sm" className="shrink-0 bg-primary text-primary-foreground">
+          <Button size="sm" className="shrink-0 bg-primary text-primary-foreground w-full sm:w-auto">
             Contact Sales
           </Button>
         </div>
@@ -551,45 +636,41 @@ function TabBilling() {
       <div>
         <p className="text-sm font-semibold text-foreground mb-3">Invoice History</p>
         <div className="glass-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/20">
-                <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-5 py-3">
-                  Date
-                </th>
-                <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3">
-                  Amount
-                </th>
-                <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3">
-                  Status
-                </th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {INVOICES.map((inv) => (
-                <tr key={inv.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="px-5 py-3.5 text-sm text-muted-foreground">{inv.date}</td>
-                  <td className="px-4 py-3.5 font-semibold text-foreground">{inv.amount}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="inline-flex text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-right">
-                    <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[320px]">
+              <thead>
+                <tr className="border-b border-border bg-muted/20">
+                  <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-5 py-3">Date</th>
+                  <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3">Amount</th>
+                  <th className="text-left text-xs text-muted-foreground font-semibold uppercase tracking-wide px-4 py-3">Status</th>
+                  <th className="px-4 py-3 w-10" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {INVOICES.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-3.5 text-sm text-muted-foreground">{inv.date}</td>
+                    <td className="px-4 py-3.5 font-semibold text-foreground">{inv.amount}</td>
+                    <td className="px-4 py-3.5">
+                      <span className="inline-flex text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {inv.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* Cancel zone */}
-      <div className="flex items-center justify-between p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
         <div>
           <p className="text-sm font-medium text-foreground">Cancel subscription</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -599,7 +680,7 @@ function TabBilling() {
         <Button
           variant="outline"
           size="sm"
-          className="border-rose-500/30 text-rose-400 hover:bg-rose-400/10 hover:text-rose-400 shrink-0"
+          className="border-rose-500/30 text-rose-400 hover:bg-rose-400/10 hover:text-rose-400 shrink-0 w-full sm:w-auto"
         >
           <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Cancel Plan
         </Button>
@@ -611,36 +692,11 @@ function TabBilling() {
 // ─── Tab: Notifications ────────────────────────────────────────────────────────
 
 const NOTIF_ITEMS = [
-  {
-    id: 'new_app',
-    label: 'New Applications',
-    desc: 'When a candidate applies to any of your open roles',
-    defaultOn: true,
-  },
-  {
-    id: 'interview',
-    label: 'Interview Reminders',
-    desc: 'Reminders before scheduled interviews',
-    defaultOn: true,
-  },
-  {
-    id: 'offer',
-    label: 'Offer Responses',
-    desc: 'When candidates accept or decline offers',
-    defaultOn: true,
-  },
-  {
-    id: 'weekly',
-    label: 'Weekly Report',
-    desc: 'Summary of hiring activity every Monday morning',
-    defaultOn: false,
-  },
-  {
-    id: 'ai',
-    label: 'AI Insights',
-    desc: 'AI-powered recommendations and anomaly alerts',
-    defaultOn: true,
-  },
+  { id: 'new_app', label: 'New Applications', desc: 'When a candidate applies to any of your open roles', defaultOn: true },
+  { id: 'interview', label: 'Interview Reminders', desc: 'Reminders before scheduled interviews', defaultOn: true },
+  { id: 'offer', label: 'Offer Responses', desc: 'When candidates accept or decline offers', defaultOn: true },
+  { id: 'weekly', label: 'Weekly Report', desc: 'Summary of hiring activity every Monday morning', defaultOn: false },
+  { id: 'ai', label: 'AI Insights', desc: 'AI-powered recommendations and anomaly alerts', defaultOn: true },
 ]
 
 function TabNotifications() {
@@ -684,63 +740,14 @@ type Integration = {
 }
 
 const INTEGRATIONS: Integration[] = [
-  {
-    name: 'Greenhouse',
-    desc: 'ATS & recruiting software',
-    initial: 'G',
-    initBg: 'bg-emerald-500/20 text-emerald-400',
-    connected: true,
-  },
-  {
-    name: 'Lever',
-    desc: 'Modern talent acquisition',
-    initial: 'L',
-    initBg: 'bg-blue-500/20 text-blue-400',
-    connected: false,
-  },
-  {
-    name: 'Workday',
-    desc: 'Enterprise HR platform',
-    initial: 'W',
-    initBg: 'bg-indigo-500/20 text-indigo-400',
-    connected: false,
-    enterprise: true,
-  },
-  {
-    name: 'Slack',
-    desc: 'Team messaging and alerts',
-    initial: 'S',
-    initBg: 'bg-purple-500/20 text-purple-400',
-    connected: false,
-  },
-  {
-    name: 'Gmail',
-    desc: 'Email integration',
-    initial: 'G',
-    initBg: 'bg-rose-500/20 text-rose-400',
-    connected: true,
-  },
-  {
-    name: 'Zapier',
-    desc: 'Automate workflows',
-    initial: 'Z',
-    initBg: 'bg-amber-500/20 text-amber-400',
-    connected: false,
-  },
-  {
-    name: 'Google Calendar',
-    desc: 'Interview scheduling',
-    initial: 'C',
-    initBg: 'bg-cyan-500/20 text-cyan-400',
-    connected: true,
-  },
-  {
-    name: 'LinkedIn',
-    desc: 'Source candidates directly',
-    initial: 'Li',
-    initBg: 'bg-blue-600/20 text-blue-400',
-    connected: false,
-  },
+  { name: 'Greenhouse', desc: 'ATS & recruiting software', initial: 'G', initBg: 'bg-emerald-500/20 text-emerald-400', connected: true },
+  { name: 'Lever', desc: 'Modern talent acquisition', initial: 'L', initBg: 'bg-blue-500/20 text-blue-400', connected: false },
+  { name: 'Workday', desc: 'Enterprise HR platform', initial: 'W', initBg: 'bg-indigo-500/20 text-indigo-400', connected: false, enterprise: true },
+  { name: 'Slack', desc: 'Team messaging and alerts', initial: 'S', initBg: 'bg-purple-500/20 text-purple-400', connected: false },
+  { name: 'Gmail', desc: 'Email integration', initial: 'G', initBg: 'bg-rose-500/20 text-rose-400', connected: true },
+  { name: 'Zapier', desc: 'Automate workflows', initial: 'Z', initBg: 'bg-amber-500/20 text-amber-400', connected: false },
+  { name: 'Google Calendar', desc: 'Interview scheduling', initial: 'C', initBg: 'bg-cyan-500/20 text-cyan-400', connected: true },
+  { name: 'LinkedIn', desc: 'Source candidates directly', initial: 'Li', initBg: 'bg-blue-600/20 text-blue-400', connected: false },
 ]
 
 function TabIntegrations() {
@@ -748,25 +755,18 @@ function TabIntegrations() {
     Object.fromEntries(INTEGRATIONS.map((i) => [i.name, i.connected]))
   )
 
-  const toggle = (name: string) => {
-    setConnected((prev) => ({ ...prev, [name]: !prev[name] }))
-  }
+  const toggle = (name: string) => setConnected((prev) => ({ ...prev, [name]: !prev[name] }))
 
   return (
     <div className="space-y-6">
       <SectionHeader
         title="Integrations"
-        description="Connect Calibr to your existing recruiting stack."
+        description="Connect TalentBridge to your existing recruiting stack."
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {INTEGRATIONS.map((item) => (
-          <div key={item.name} className="glass-card p-5 flex items-start gap-4">
-            <div
-              className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0',
-                item.initBg
-              )}
-            >
+          <div key={item.name} className="glass-card p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0', item.initBg)}>
               {item.initial}
             </div>
             <div className="flex-1 min-w-0">
@@ -779,9 +779,8 @@ function TabIntegrations() {
               </span>
             ) : connected[item.name] ? (
               <div className="flex items-center gap-2 shrink-0">
-                <span className="flex items-center gap-1 text-[11px] text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Connected
+                <span className="hidden sm:flex items-center gap-1 text-[11px] text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected
                 </span>
                 <Button
                   variant="ghost"
@@ -793,12 +792,7 @@ function TabIntegrations() {
                 </Button>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 text-xs h-7"
-                onClick={() => toggle(item.name)}
-              >
+              <Button variant="outline" size="sm" className="shrink-0 text-xs h-7" onClick={() => toggle(item.name)}>
                 Connect
               </Button>
             )}
@@ -814,7 +808,7 @@ function TabIntegrations() {
 function TabApi() {
   const [showKey, setShowKey] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [webhookUrl, setWebhookUrl] = useState('https://hooks.your-app.com/calibr')
+  const [webhookUrl, setWebhookUrl] = useState('')
   const [webhookEvents, setWebhookEvents] = useState({
     'application.created': true,
     'application.moved': true,
@@ -822,7 +816,7 @@ function TabApi() {
     hired: false,
   })
 
-  const API_KEY = 'cal_live_sk_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p4a9f'
+  const API_KEY = 'tb_live_sk_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p'
 
   const handleCopy = () => {
     navigator.clipboard.writeText(API_KEY).catch(() => {})
@@ -831,10 +825,10 @@ function TabApi() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <SectionHeader
         title="API & Webhooks"
-        description="Integrate Calibr into your own systems and workflows."
+        description="Integrate TalentBridge into your own systems and workflows."
       />
 
       {/* API Key */}
@@ -846,7 +840,7 @@ function TabApi() {
         <p className="text-xs text-muted-foreground">
           Use this key to authenticate API requests. Never share it publicly.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex-1 relative">
             <input
               type={showKey ? 'text' : 'password'}
@@ -855,30 +849,18 @@ function TabApi() {
               className="w-full rounded-xl bg-muted border border-border text-xs text-muted-foreground font-mono px-3 py-2.5 focus:outline-none"
             />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 gap-1.5 text-xs"
-            onClick={() => setShowKey((v) => !v)}
-          >
-            {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            {showKey ? 'Hide' : 'Show'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 gap-1.5 text-xs"
-            onClick={handleCopy}
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? 'Copied!' : 'Copy'}
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-1 sm:flex-none" onClick={() => setShowKey((v) => !v)}>
+              {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showKey ? 'Hide' : 'Show'}
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-1 sm:flex-none" onClick={handleCopy}>
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? 'Copied!' : 'Copy'}
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 text-xs border-rose-500/30 text-rose-400 hover:bg-rose-400/10 hover:text-rose-400"
-        >
+        <Button variant="outline" size="sm" className="gap-2 text-xs border-rose-500/30 text-rose-400 hover:bg-rose-400/10 hover:text-rose-400">
           <RefreshCw className="w-3.5 h-3.5" /> Regenerate Key
         </Button>
       </div>
@@ -906,9 +888,7 @@ function TabApi() {
                 <input
                   type="checkbox"
                   checked={webhookEvents[event]}
-                  onChange={(e) =>
-                    setWebhookEvents((prev) => ({ ...prev, [event]: e.target.checked }))
-                  }
+                  onChange={(e) => setWebhookEvents((prev) => ({ ...prev, [event]: e.target.checked }))}
                   className="w-4 h-4 rounded accent-primary"
                 />
                 <span className="text-sm text-foreground font-mono">{event}</span>
@@ -917,12 +897,8 @@ function TabApi() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="text-xs">
-            Test Webhook
-          </Button>
-          <Button size="sm" className="text-xs bg-primary text-primary-foreground">
-            Save Webhook
-          </Button>
+          <Button variant="outline" size="sm" className="text-xs flex-1 sm:flex-none">Test Webhook</Button>
+          <Button size="sm" className="text-xs bg-primary text-primary-foreground flex-1 sm:flex-none">Save Webhook</Button>
         </div>
       </div>
     </div>
@@ -942,31 +918,51 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const TAB_COMPONENTS: Record<TabId, React.ReactNode> = {
+  profile: <TabProfile />,
+  team: <TabTeam />,
+  billing: <TabBilling />,
+  notifications: <TabNotifications />,
+  integrations: <TabIntegrations />,
+  api: <TabApi />,
+}
+
 export default function CompanySettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('profile')
 
-  const tabContent: Record<TabId, React.ReactNode> = {
-    profile: <TabProfile />,
-    team: <TabTeam />,
-    billing: <TabBilling />,
-    notifications: <TabNotifications />,
-    integrations: <TabIntegrations />,
-    api: <TabApi />,
-  }
-
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+      <div className="mb-5 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Manage your company account, team, and preferences.
         </p>
       </div>
 
+      {/* Mobile: horizontal tab pills */}
+      <div className="md:hidden flex gap-1.5 overflow-x-auto pb-3 mb-5 -mx-4 px-4 scrollbar-hide">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all duration-200',
+              activeTab === tab.id
+                ? 'bg-primary/10 text-primary border border-primary/20'
+                : 'text-muted-foreground bg-muted/40 hover:text-foreground hover:bg-muted/60'
+            )}
+          >
+            <tab.icon className="w-3.5 h-3.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Shared layout: desktop sidebar + single content area */}
       <div className="flex gap-8">
-        {/* Left nav */}
-        <nav className="w-52 shrink-0">
+        {/* Desktop sidebar nav (hidden on mobile) */}
+        <nav className="hidden md:block w-52 shrink-0">
           <div className="space-y-1">
             {TABS.map((tab) => (
               <button
@@ -987,17 +983,17 @@ export default function CompanySettingsPage() {
           </div>
         </nav>
 
-        {/* Right content */}
+        {/* Content — rendered once, shared for all screen sizes */}
         <div className="flex-1 min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
             >
-              {tabContent[activeTab]}
+              {TAB_COMPONENTS[activeTab]}
             </motion.div>
           </AnimatePresence>
         </div>

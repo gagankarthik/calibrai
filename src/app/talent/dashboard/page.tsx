@@ -127,6 +127,16 @@ export default function TalentDashboardPage() {
     () => jobs.slice(0, 4).map(j => ({ ...j, score: getMatchScore(j.id) })),
     [jobs]
   )
+
+  const newlyPosted = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+    return jobs
+      .filter(j => new Date(j.postedAt).getTime() > cutoff)
+      .sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime())
+      .slice(0, 6)
+      .map(j => ({ ...j, score: getMatchScore(j.id) }))
+  }, [jobs])
+
   const recentApps = applications.slice(0, 5)
 
   const strongMatchCount = topMatches.filter(j => j.score >= 85).length
@@ -308,6 +318,59 @@ export default function TalentDashboardPage() {
           ))}
         </div>
       </section>
+
+      {/* ── NEWLY POSTED JOBS ───────────────────────────────────────────────── */}
+      {newlyPosted.length > 0 && (
+        <section className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="section-eyebrow mb-0.5">Fresh opportunities</p>
+              <h2 className="text-xl font-display font-bold text-tl-text-primary">New This Week</h2>
+            </div>
+            <Link href="/talent/jobs?sort=newest" className="text-sm font-semibold text-tl-gold hover:opacity-80 transition-opacity flex items-center gap-1">
+              See all <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="tl-card divide-y divide-tl-border-subtle overflow-hidden">
+            {newlyPosted.map((job, i) => {
+              const isNew = (Date.now() - new Date(job.postedAt).getTime()) < 48 * 60 * 60 * 1000
+              return (
+                <motion.div
+                  key={job.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                  className="flex items-center gap-3 p-3.5 hover:bg-tl-bg-elevated/40 transition-colors"
+                >
+                  <img src={companyAvatarUrl(job.company.name)} alt={job.company.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Link href={`/talent/jobs/${job.id}`} className="text-sm font-semibold text-tl-text-primary hover:text-tl-gold transition-colors truncate">
+                        {job.title}
+                      </Link>
+                      {isNew && <span className="tl-tag-teal text-[9px] font-bold leading-none shrink-0">NEW</span>}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-tl-text-secondary flex-wrap">
+                      <span className="flex items-center gap-1">
+                        {job.company.name}
+                        {job.company.verified && <CheckCircle2 className="w-3 h-3 text-tl-teal" />}
+                      </span>
+                      <span className="opacity-40">·</span>
+                      <span className="capitalize">{job.workMode}</span>
+                      <span className="opacity-40">·</span>
+                      <span className="text-tl-teal font-mono font-semibold">{formatSalary(job.salaryMin, job.salaryMax)}</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    <span className="font-mono text-xs font-bold text-tl-gold">{job.score}%</span>
+                    <span className="text-[10px] text-tl-text-secondary">{timeAgo(job.postedAt)}</span>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── TWO-COLUMN MIDDLE ────────────────────────────────────────────────── */}
       <div className="grid lg:grid-cols-3 gap-4 mb-4">
