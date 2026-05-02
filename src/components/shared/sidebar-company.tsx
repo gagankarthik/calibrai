@@ -51,17 +51,8 @@ export function SidebarCompany() {
           </span>
         </div>
       </div>
-
-      {/* Post Job CTA */}
-      <div className="px-3 py-4">
-        <Link href="/company/jobs/new" className="btn-gold w-full flex items-center justify-center gap-2 text-sm">
-          <Plus className="w-4 h-4" />
-          Post New Job
-        </Link>
-      </div>
-
       {/* Main Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
         <div className="text-[10px] font-semibold text-tl-text-secondary uppercase tracking-wider px-3 mb-2">
           Workspace
         </div>

@@ -84,7 +84,9 @@ export default function AdminCrmJobs() {
       await fetch('/api/crm/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keywords: scrapeKeywords }),
+        body: JSON.stringify({
+          keywords: scrapeKeywords.split(',').map(k => k.trim()).filter(Boolean),
+        }),
       })
       await load()
       setShowScrapeInput(false)
@@ -144,7 +146,7 @@ export default function AdminCrmJobs() {
             type="text"
             value={scrapeKeywords}
             onChange={(e) => setScrapeKeywords(e.target.value)}
-            placeholder="Keywords (e.g., react developer, senior engineer)…"
+            placeholder="Comma-separated keywords (e.g., react, senior engineer, python)…"
             className="input-field flex-1 min-w-0 py-2"
             required
           />

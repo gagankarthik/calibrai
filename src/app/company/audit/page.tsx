@@ -334,7 +334,7 @@ function actionBadgeStyle(action: string) {
     return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
   if (action.startsWith('settings') || action.startsWith('team'))
     return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-  return 'bg-white/5 text-white/50 border-white/10'
+  return 'bg-white/5 text-black/50 border-white/10'
 }
 
 function fakeRequestId(id: string) {
@@ -409,21 +409,21 @@ export default function AuditLogPage() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/20 flex items-center justify-center">
               <Shield className="w-4 h-4 text-blue-400" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Audit Log</h1>
+            <h1 className="text-2xl font-bold text-black">Audit Log</h1>
           </div>
-          <p className="text-white/40 text-sm ml-12">7-year retention · SOC2 Type II compliant</p>
+          <p className="text-black/40 text-sm ml-12">7-year retention · SOC2 Type II compliant</p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Date range selector (display only) */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm cursor-default">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-black/60 text-sm cursor-default">
             <span>Last 7 days</span>
-            <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+            <ChevronDown className="w-3.5 h-3.5 text-black/30" />
           </div>
 
           <Button
             variant="outline"
-            className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white gap-2"
+            className="border-white/10 text-black/70 hover:bg-white/10 hover:text-black gap-2"
             onClick={() => toast.success('Audit log exported', { description: 'CSV download started' })}
           >
             <Download className="w-4 h-4" />
@@ -448,8 +448,8 @@ export default function AuditLogPage() {
             >
               <Icon className={cn('w-4 h-4 flex-shrink-0', stat.color)} />
               <div>
-                <p className="text-white font-semibold text-base leading-tight">{stat.value}</p>
-                <p className="text-white/40 text-xs">{stat.label}</p>
+                <p className="text-black font-semibold text-base leading-tight">{stat.value}</p>
+                <p className="text-black/40 text-xs">{stat.label}</p>
               </div>
             </div>
           )
@@ -460,12 +460,12 @@ export default function AuditLogPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
           <Input
             placeholder="Search by user, action, resource…"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50"
+            className="pl-9 bg-white/5 border-white/10 text-black placeholder:text-black/30 focus:border-blue-500/50"
           />
         </div>
 
@@ -479,13 +479,13 @@ export default function AuditLogPage() {
                 'px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all duration-150',
                 statusFilter === s
                   ? s === 'all'
-                    ? 'bg-white/15 text-white'
+                    ? 'bg-white/15 text-black'
                     : s === 'success'
                     ? 'bg-emerald-500/20 text-emerald-400'
                     : s === 'warning'
                     ? 'bg-amber-500/20 text-amber-400'
                     : 'bg-red-500/20 text-red-400'
-                  : 'text-white/40 hover:text-white/70'
+                  : 'text-black/40 hover:text-black/70'
               )}
             >
               {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -498,22 +498,22 @@ export default function AuditLogPage() {
           <select
             value={actionCategory}
             onChange={(e) => handleCategory(e.target.value)}
-            className="appearance-none bg-white/5 border border-white/10 text-white/70 text-sm rounded-lg px-3 py-2 pr-8 cursor-pointer focus:outline-none focus:border-blue-500/50 hover:bg-white/8 transition-colors"
+            className="appearance-none bg-white/5 border border-white/10 text-black/70 text-sm rounded-lg px-3 py-2 pr-8 cursor-pointer focus:outline-none focus:border-blue-500/50 hover:bg-white/8 transition-colors"
           >
             {ACTION_CATEGORIES.map((c) => (
-              <option key={c} value={c} className="bg-[#0f0f1a] text-white">
+              <option key={c} value={c} className="bg-[#0f0f1a] text-black">
                 {c}
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30 pointer-events-none" />
         </div>
       </div>
 
       {/* Table */}
       <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.02]">
         {/* Table header */}
-        <div className="grid grid-cols-[1.6fr_1.4fr_1.4fr_1fr_1fr_0.8fr] gap-3 px-4 py-3 bg-white/5 border-b border-white/10 text-xs font-semibold text-white/40 uppercase tracking-wider">
+        <div className="grid grid-cols-[1.6fr_1.4fr_1.4fr_1fr_1fr_0.8fr] gap-3 px-4 py-3 bg-white/5 border-b border-white/10 text-xs font-semibold text-black/40 uppercase tracking-wider">
           <span>Timestamp</span>
           <span>User</span>
           <span>Action</span>
@@ -525,7 +525,7 @@ export default function AuditLogPage() {
         {/* Table rows */}
         <div className="divide-y divide-white/5">
           {paginated.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-white/30 gap-3">
+            <div className="flex flex-col items-center justify-center py-16 text-black/30 gap-3">
               <Search className="w-8 h-8 opacity-50" />
               <p className="text-sm">No entries match your filters</p>
             </div>
@@ -549,7 +549,7 @@ export default function AuditLogPage() {
                   >
                     {/* Timestamp */}
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-white/50 text-xs font-mono truncate">
+                      <span className="text-black/50 text-xs font-mono truncate">
                         {formatTimestamp(entry.timestamp)}
                       </span>
                     </div>
@@ -558,13 +558,13 @@ export default function AuditLogPage() {
                     <div className="flex items-center gap-2 min-w-0">
                       <div
                         className={cn(
-                          'w-6 h-6 rounded-full bg-gradient-to-br flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white',
+                          'w-6 h-6 rounded-full bg-gradient-to-br flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-black',
                           getAvatarColor(entry.user)
                         )}
                       >
                         {getInitials(entry.user)}
                       </div>
-                      <span className="text-white/80 text-sm truncate">{entry.user}</span>
+                      <span className="text-black/80 text-sm truncate">{entry.user}</span>
                     </div>
 
                     {/* Action */}
@@ -581,12 +581,12 @@ export default function AuditLogPage() {
 
                     {/* Resource */}
                     <div className="flex items-center min-w-0">
-                      <span className="text-white/60 text-sm truncate">{entry.resource}</span>
+                      <span className="text-black/60 text-sm truncate">{entry.resource}</span>
                     </div>
 
                     {/* IP */}
                     <div className="flex items-center min-w-0">
-                      <span className="text-white/40 text-xs font-mono truncate">{entry.ip}</span>
+                      <span className="text-black/40 text-xs font-mono truncate">{entry.ip}</span>
                     </div>
 
                     {/* Status */}
@@ -602,9 +602,9 @@ export default function AuditLogPage() {
                         {sc.label}
                       </span>
                       {isExpanded ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-white/30 flex-shrink-0 ml-auto" />
+                        <ChevronUp className="w-3.5 h-3.5 text-black/30 flex-shrink-0 ml-auto" />
                       ) : (
-                        <ChevronDown className="w-3.5 h-3.5 text-white/20 flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100" />
+                        <ChevronDown className="w-3.5 h-3.5 text-black/20 flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100" />
                       )}
                     </div>
                   </motion.div>
@@ -620,21 +620,21 @@ export default function AuditLogPage() {
                     >
                       <div className="mt-3 grid sm:grid-cols-3 gap-4 p-4 rounded-xl bg-white/5 border border-white/8">
                         <div className="sm:col-span-2 space-y-1">
-                          <p className="text-white/40 text-xs font-semibold uppercase tracking-wider">Details</p>
-                          <p className="text-white/70 text-sm leading-relaxed">{entry.details}</p>
+                          <p className="text-black/40 text-xs font-semibold uppercase tracking-wider">Details</p>
+                          <p className="text-black/70 text-sm leading-relaxed">{entry.details}</p>
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-1">Full Timestamp</p>
-                            <p className="text-white/60 text-xs font-mono">{entry.timestamp}</p>
+                            <p className="text-black/40 text-xs font-semibold uppercase tracking-wider mb-1">Full Timestamp</p>
+                            <p className="text-black/60 text-xs font-mono">{entry.timestamp}</p>
                           </div>
                           <div>
-                            <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-1">Request ID</p>
-                            <p className="text-white/60 text-xs font-mono">{fakeRequestId(entry.id)}</p>
+                            <p className="text-black/40 text-xs font-semibold uppercase tracking-wider mb-1">Request ID</p>
+                            <p className="text-black/60 text-xs font-mono">{fakeRequestId(entry.id)}</p>
                           </div>
                           <div>
-                            <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-1">Resource ID</p>
-                            <p className="text-white/60 text-xs font-mono">{entry.resourceId}</p>
+                            <p className="text-black/40 text-xs font-semibold uppercase tracking-wider mb-1">Resource ID</p>
+                            <p className="text-black/60 text-xs font-mono">{entry.resourceId}</p>
                           </div>
                         </div>
                       </div>
@@ -649,13 +649,13 @@ export default function AuditLogPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-sm">
+        <p className="text-black/40 text-sm">
           Showing{' '}
-          <span className="text-white/70 font-medium">
+          <span className="text-black/70 font-medium">
             {filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–
             {Math.min(safePage * PAGE_SIZE, filtered.length)}
           </span>{' '}
-          of <span className="text-white/70 font-medium">{filtered.length}</span> events
+          of <span className="text-black/70 font-medium">{filtered.length}</span> events
         </p>
 
         <div className="flex items-center gap-2">
@@ -664,7 +664,7 @@ export default function AuditLogPage() {
             size="sm"
             disabled={safePage <= 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className="border-white/10 text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-30 gap-1"
+            className="border-white/10 text-black/60 hover:bg-white/10 hover:text-black disabled:opacity-30 gap-1"
           >
             <ChevronLeft className="w-4 h-4" />
             Prev
@@ -682,7 +682,7 @@ export default function AuditLogPage() {
               }, [])
               .map((item, idx) =>
                 item === '...' ? (
-                  <span key={`ellipsis-${idx}`} className="text-white/30 text-sm px-1">
+                  <span key={`ellipsis-${idx}`} className="text-black/30 text-sm px-1">
                     …
                   </span>
                 ) : (
@@ -692,8 +692,8 @@ export default function AuditLogPage() {
                     className={cn(
                       'w-8 h-8 rounded-lg text-sm font-medium transition-all duration-150',
                       safePage === item
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
-                        : 'text-white/50 hover:bg-white/10 hover:text-white'
+                        ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20'
+                        : 'text-black/50 hover:bg-white/10 hover:text-black'
                     )}
                   >
                     {item}
@@ -707,7 +707,7 @@ export default function AuditLogPage() {
             size="sm"
             disabled={safePage >= totalPages}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className="border-white/10 text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-30 gap-1"
+            className="border-white/10 text-black/60 hover:bg-white/10 hover:text-black disabled:opacity-30 gap-1"
           >
             Next
             <ChevronRight className="w-4 h-4" />
