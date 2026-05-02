@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -48,13 +48,13 @@ interface JobDetail {
 function getCompanyName(job: JobDetail): string {
   if (!job.company) return 'Unknown Company'
   if (typeof job.company === 'string') return job.company
-  return job.company.name ?? 'Unknown Company'
+  return job.company?.name ?? 'Unknown Company'
 }
 
 function formatSalary(min?: number, max?: number, currency = 'USD'): string {
   if (!min && !max) return ''
   const sym = currency === 'USD' ? '$' : currency
-  if (min && max) return `${sym}${Math.round(min / 1000)}K – ${sym}${Math.round(max / 1000)}K / year`
+  if (min && max) return `${sym}${Math.round(min / 1000)}K â€“ ${sym}${Math.round(max / 1000)}K / year`
   if (max) return `Up to ${sym}${Math.round(max / 1000)}K / year`
   return `${sym}${Math.round((min ?? 0) / 1000)}K+ / year`
 }
@@ -362,11 +362,11 @@ export default function PublicJobDetailPage() {
                     <Building2 className="w-4 h-4 text-tl-gold" /> Company
                   </h3>
                   <div className="space-y-2 text-sm text-[var(--tl-text-secondary)]">
-                    <p className="font-medium text-[var(--tl-text-primary)]">{job.company.name}</p>
-                    {job.company.industry && <p>{job.company.industry}</p>}
-                    {job.company.size && <p>{job.company.size} employees</p>}
-                    {job.company.description && (
-                      <p className="text-xs leading-relaxed">{job.company.description.slice(0, 200)}</p>
+                    <p className="font-medium text-[var(--tl-text-primary)]">{job.company?.name}</p>
+                    {job.company?.industry && <p>{job.company?.industry}</p>}
+                    {job.company?.size && <p>{job.company?.size} employees</p>}
+                    {job.company?.description && (
+                      <p className="text-xs leading-relaxed">{job.company?.description.slice(0, 200)}</p>
                     )}
                   </div>
                 </div>

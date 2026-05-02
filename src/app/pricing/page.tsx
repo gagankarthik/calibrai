@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { pricingPlans } from '@/lib/data'
-import { Navbar } from '@/components/shared/navbar'
-import { Footer } from '@/components/shared/footer'
+import { LandingNav } from '@/components/landing/landing-nav'
+import { LandingFooter } from '@/components/landing/landing-footer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -371,8 +371,8 @@ export default function PricingPage() {
   const savings = Math.round((1 - pricingPlans[1].annualPrice / pricingPlans[1].monthlyPrice) * 100)
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-tl-bg-base">
+      <LandingNav />
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative pt-32 pb-16 text-center overflow-hidden">
@@ -795,7 +795,7 @@ export default function PricingPage() {
         </motion.div>
       </section>
 
-      <Footer />
+      <LandingFooter />
     </div>
   )
 }

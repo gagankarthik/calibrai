@@ -140,7 +140,7 @@ function LoginContent() {
   const [role, setRole] = useState<Role>(() =>
     (searchParams.get('role') as Role | null) === 'talent' ? 'talent' : 'company',
   )
-  const [email, setEmail]               = useState('')
+  const [email, setEmail]               = useState(() => searchParams.get('email') ?? '')
   const [password, setPassword]         = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading]       = useState(false)
@@ -153,6 +153,13 @@ function LoginContent() {
   useEffect(() => {
     const qr = searchParams.get('role') as Role | null
     if (qr === 'company' || qr === 'talent') setRole(qr)
+  }, [searchParams])
+
+  // Show success banner when arriving from email verification
+  useEffect(() => {
+    if (searchParams.get('verified') === '1') {
+      toast.success('Email verified! Please sign in to continue.')
+    }
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,11 +197,11 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#0d0f14]">
+    <div className="min-h-screen flex bg-tl-bg-base">
       <LeftPanel role={role} />
 
       {/* Right panel */}
-      <div className="w-full lg:w-[54%] flex items-center justify-center p-6 lg:p-12 bg-[#0d0f14]">
+      <div className="w-full lg:w-[54%] flex items-center justify-center p-6 lg:p-12 bg-tl-bg-base">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -229,7 +236,7 @@ function LoginContent() {
                         id="email" type="email" required autoComplete="email"
                         value={email} onChange={(e) => setEmail(e.target.value)}
                         placeholder={role === 'company' ? 'you@company.com' : 'you@email.com'}
-                        className="w-full bg-[#1a1d26] border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                        className="w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                       />
                     </div>
                   </div>
@@ -249,7 +256,7 @@ function LoginContent() {
                         id="password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password"
                         value={password} onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-[#1a1d26] border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 pr-12 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                        className="w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 pr-12 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
@@ -301,7 +308,7 @@ function LoginContent() {
                         <input id="forgot-email" type="email" required
                           value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)}
                           placeholder="you@email.com"
-                          className="w-full bg-[#1a1d26] border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                          className="w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                         />
                       </div>
                     </div>
@@ -325,7 +332,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0d0f14] flex items-center justify-center">
+      <div className="min-h-screen bg-tl-bg-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
       </div>
     }>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, Tables, PutCommand, ScanCommand, QueryCommand } from '@/lib/aws/dynamodb'
+import { db, Tables, GetCommand, PutCommand, QueryCommand } from '@/lib/aws/dynamodb'
 import { discoverCandidatesForJob } from '@/lib/playwright/candidate-discovery'
 import { verifyCognitoToken, extractBearerToken } from '@/lib/aws/cognito'
 import type { Job } from '@/lib/types'
@@ -43,13 +43,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (!job) {
       const result = await db.send(
-        new ScanCommand({
-          TableName: Tables.Jobs,
-          FilterExpression: 'jobId = :id',
-          ExpressionAttributeValues: { ':id': id },
-        }),
+        new GetCommand({ TableName: Tables.Jobs, Key: { id } }),
       )
-      job = (result.Items?.[0] as Job) ?? null
+      job = (result.Item as Job) ?? null
     }
 
     if (!job) {

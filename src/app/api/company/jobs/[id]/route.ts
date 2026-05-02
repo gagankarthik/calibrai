@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { db, Tables, UpdateCommand } from '@/lib/aws/dynamodb'
+import { db, Tables, GetCommand, UpdateCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken } from '@/lib/aws/cognito'
 import { logAuditEvent } from '@/lib/audit'
 
@@ -24,6 +24,18 @@ async function getCompanyId(req: NextRequest): Promise<string | null> {
     return (payload['custom:companyId'] as string) ?? payload.sub
   } catch {
     return null
+  }
+}
+
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  try {
+    const result = await db.send(new GetCommand({ TableName: Tables.Jobs, Key: { id } }))
+    if (!result.Item) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    return NextResponse.json(result.Item)
+  } catch (err) {
+    console.error('[company/jobs/[id] GET]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -65,10 +77,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const result = await db.send(
       new UpdateCommand({
         TableName: Tables.Jobs,
-        Key: { companyId, jobId: id },
+        Key: { id },
+        ConditionExpression: 'companyId = :cid',
         UpdateExpression: `SET ${expressions.join(', ')}`,
         ExpressionAttributeNames: Object.keys(names).length ? names : undefined,
-        ExpressionAttributeValues: values,
+        ExpressionAttributeValues: { ...values, ':cid': companyId },
         ReturnValues: 'ALL_NEW',
       }),
     )
@@ -98,10 +111,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await db.send(
       new UpdateCommand({
         TableName: Tables.Jobs,
-        Key: { companyId, jobId: id },
+        Key: { id },
+        ConditionExpression: 'companyId = :cid',
         UpdateExpression: 'SET #s = :closed, updatedAt = :ts',
         ExpressionAttributeNames: { '#s': 'status' },
-        ExpressionAttributeValues: { ':closed': 'closed', ':ts': new Date().toISOString() },
+        ExpressionAttributeValues: { ':closed': 'closed', ':ts': new Date().toISOString(), ':cid': companyId },
       }),
     )
 

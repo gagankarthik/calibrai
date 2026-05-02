@@ -95,7 +95,7 @@ function OtpInput({ value: otp, onChange: setOtp, disabled, error }: OtpInputPro
           aria-label={`Code digit ${i + 1}`}
           className={cn(
             'w-11 h-14 rounded-xl border text-center text-xl font-mono font-bold transition-all duration-200',
-            'bg-[#1a1d26] text-white outline-none disabled:opacity-40 disabled:cursor-not-allowed',
+            'bg-tl-bg-elevated text-white outline-none disabled:opacity-40 disabled:cursor-not-allowed',
             error       ? 'border-rose-500/60 text-rose-400 animate-[shake_0.3s_ease]'
             : digit     ? 'border-indigo-500/60 text-indigo-300 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]'
             :             'border-white/[0.08] focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15',
@@ -150,7 +150,12 @@ function VerifyContent() {
       setVerified(true)
       toast.success('Email verified!')
       setTimeout(() => {
-        router.push(role === 'company' ? '/onboarding/company' : '/talent/dashboard')
+        // Redirect to login — verification doesn't create a session.
+        // Pass email so the field pre-fills, and redirect so they land in the right place.
+        const dest = role === 'company' ? '/onboarding/company' : '/talent/dashboard'
+        router.push(
+          `/auth/login?role=${role}&email=${encodeURIComponent(email)}&verified=1&redirect=${encodeURIComponent(dest)}`
+        )
       }, 1500)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Verification failed')
@@ -181,7 +186,7 @@ function VerifyContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0f14] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-tl-bg-base flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Ambient glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-violet-600/8 rounded-full blur-3xl pointer-events-none" />
@@ -297,7 +302,7 @@ function VerifyContent() {
 export default function VerifyPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0d0f14] flex items-center justify-center">
+      <div className="min-h-screen bg-tl-bg-base flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
       </div>
     }>

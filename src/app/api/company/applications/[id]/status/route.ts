@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { db, Tables, ScanCommand, UpdateCommand } from '@/lib/aws/dynamodb'
+import { db, Tables, GetCommand, UpdateCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken } from '@/lib/aws/cognito'
 import { logAuditEvent } from '@/lib/audit'
 
@@ -39,14 +39,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { status, notes } = parsed.data
 
   try {
-    const scan = await db.send(
-      new ScanCommand({
-        TableName: Tables.Applications,
-        FilterExpression: 'applicationId = :id',
-        ExpressionAttributeValues: { ':id': id },
-      }),
+    const existing = await db.send(
+      new GetCommand({ TableName: Tables.Applications, Key: { id } }),
     )
-    const app = scan.Items?.[0]
+    const app = existing.Item
     if (!app) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
 
     const oldStatus = app.status as string | undefined
@@ -64,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const result = await db.send(
       new UpdateCommand({
         TableName: Tables.Applications,
-        Key: { jobId: app.jobId, applicationId: id },
+        Key: { id },
         UpdateExpression: 'SET #s = :status, stage = :stage, updatedAt = :ts' + (notes ? ', notes = :notes' : ''),
         ExpressionAttributeNames: { '#s': 'status' },
         ExpressionAttributeValues: {

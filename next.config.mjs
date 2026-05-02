@@ -33,7 +33,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com https://db.onlinewebfonts.com",
               "img-src 'self' data: blob: https: https://*.amazonaws.com https://avatars.githubusercontent.com",
-              "connect-src 'self' https://*.amazonaws.com https://cognito-idp.*.amazonaws.com https://remoteok.com https://remotive.com https://hacker-news.firebaseio.com https://api.github.com",
+              "connect-src 'self' https://*.amazonaws.com https://cognito-idp.us-east-2.amazonaws.com https://remoteok.com https://remotive.com https://hacker-news.firebaseio.com https://api.github.com",
               "media-src 'self' https://*.cloudfront.net https://*.amazonaws.com",
               "frame-src 'none'",
               "object-src 'none'",

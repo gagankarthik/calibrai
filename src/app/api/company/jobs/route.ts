@@ -16,15 +16,15 @@ const createJobSchema = z.object({
   department: z.string().max(100).trim().optional(),
   type: z.enum(['full-time', 'part-time', 'contract', 'internship', 'freelance']),
   workMode: z.enum(['remote', 'hybrid', 'onsite']),
-  level: z.enum(['junior', 'mid', 'senior', 'lead', 'executive']),
-  location: z.string().min(1).max(200).trim(),
-  salaryMin: z.number().min(0).max(10_000_000).optional(),
-  salaryMax: z.number().min(0).max(10_000_000).optional(),
+  level: z.enum(['entry', 'mid', 'senior', 'lead', 'executive']),
+  location: z.string().max(200).trim().default(''),
+  salaryMin: z.coerce.number().min(0).max(10_000_000).optional(),
+  salaryMax: z.coerce.number().min(0).max(10_000_000).optional(),
   currency: z.string().length(3).default('USD'),
   description: z.string().min(50).max(10_000).trim(),
   requirements: z.array(z.string().max(500)).max(30).optional(),
   niceToHave: z.array(z.string().max(500)).max(20).optional(),
-  skills: z.array(z.string().max(50)).min(1).max(20),
+  skills: z.array(z.string().max(50)).max(20).default([]),
   benefits: z.array(z.string().max(200)).max(20).optional(),
   expiresAt: z.string().datetime().optional(),
 }).refine(
@@ -35,11 +35,17 @@ const createJobSchema = z.object({
 async function getCompanyId(req: NextRequest): Promise<string | null> {
   const token = extractBearerToken(req.headers.get('Authorization'))
     ?? req.cookies.get('tb-company-token')?.value
-  if (!token) return null
+  if (!token) {
+    console.warn('[company/jobs] No auth token in request')
+    return null
+  }
   try {
     const payload = await verifyCognitoToken(token, 'company')
-    return (payload['custom:companyId'] as string) ?? payload.sub
-  } catch {
+    const cid = (payload['custom:companyId'] as string) ?? payload.sub
+    console.info('[company/jobs] Auth ok', { sub: payload.sub, customCompanyId: payload['custom:companyId'], resolved: cid, email: payload.email })
+    return cid
+  } catch (err) {
+    console.warn('[company/jobs] Token verification failed:', err instanceof Error ? err.message : err)
     return null
   }
 }
@@ -65,15 +71,18 @@ export async function GET(req: NextRequest) {
     const result = await db.send(
       new QueryCommand({
         TableName: Tables.Jobs,
+        IndexName: 'companyId-index',
         KeyConditionExpression: 'companyId = :cid',
         ExpressionAttributeValues: { ':cid': companyId },
-        ScanIndexForward: false,
       }),
     )
     let items = result.Items ?? []
+    console.info('[company/jobs] Query result', { companyId, found: items.length })
     if (queryParsed.data.status) {
       items = items.filter((j) => j.status === queryParsed.data.status)
     }
+    // Sort by postedAt descending in app code (GSI has no sort key)
+    items.sort((a, b) => String(b.postedAt ?? '').localeCompare(String(a.postedAt ?? '')))
     const { page, limit } = queryParsed.data
     const start = (page - 1) * limit
     return NextResponse.json(items.slice(start, start + limit))
@@ -105,12 +114,12 @@ export async function POST(req: NextRequest) {
   const body = parsed.data
 
   try {
-    const jobId = `j-${uuidv4()}`
+    const id = `j-${uuidv4()}`
     const now = new Date().toISOString()
 
     const job = {
+      id,
       companyId,
-      jobId,
       ...body,
       department: body.department ?? '',
       currency: body.currency ?? 'USD',
@@ -132,7 +141,7 @@ export async function POST(req: NextRequest) {
     await logAuditEvent({
       action: 'job.created',
       resource: 'job',
-      resourceId: jobId,
+      resourceId: id,
       userId: companyId,
       companyId,
       ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
@@ -141,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     // Trigger candidate discovery in background (non-blocking)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-    fetch(`${appUrl}/api/company/jobs/${jobId}/discover-candidates`, {
+    fetch(`${appUrl}/api/company/jobs/${id}/discover-candidates`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

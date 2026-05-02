@@ -71,11 +71,12 @@ export async function POST(req: NextRequest) {
       talent: null,
     })
 
+    // Match Cognito ID token's 1-hour lifetime
     response.cookies.set('tb-talent-token', authResult.IdToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24,
+      maxAge: 60 * 60,
       path: '/',
     })
 

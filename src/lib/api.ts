@@ -169,11 +169,23 @@ async function apiFetch<T>(
     })
 
     if (!res.ok) {
+      // Auth expired/missing on a protected route — bounce to login once.
+      // Skip the redirect on auth endpoints themselves and during SSR.
+      if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/api/auth/')) {
+        const isCompany = path.startsWith('/api/company/')
+        const role = isCompany ? 'company' : 'talent'
+        const next = encodeURIComponent(window.location.pathname + window.location.search)
+        window.location.href = `/auth/login?role=${role}&redirect=${next}`
+      }
+
       // Try to parse the error body; fall back to status text
       let errorMessage = res.statusText
       try {
-        const errorBody = (await res.json()) as { error?: string; message?: string }
-        errorMessage = errorBody.error ?? errorBody.message ?? errorMessage
+        const errorBody = (await res.json()) as { error?: string; message?: string; issues?: Record<string, string[]> }
+        const fieldErrors = errorBody.issues
+          ? Object.entries(errorBody.issues).map(([f, msgs]) => `${f}: ${(msgs as string[]).join(', ')}`).join('; ')
+          : null
+        errorMessage = fieldErrors ? `${errorBody.error ?? 'Error'} — ${fieldErrors}` : (errorBody.error ?? errorBody.message ?? errorMessage)
       } catch {
         // non-JSON error body — keep statusText
       }
@@ -339,6 +351,23 @@ export async function getJobs(
   }
 
   return { data: result, error: null, status: 200 }
+}
+
+/**
+ * Get jobs posted by the authenticated company.
+ * Uses /api/company/jobs which filters by the caller's companyId.
+ */
+export async function getCompanyJobs(filters?: { status?: string; page?: number; limit?: number }): Promise<ApiResponse<Job[]>> {
+  if (!USE_MOCK) {
+    const params = new URLSearchParams()
+    if (filters?.status) params.set('status', filters.status)
+    if (filters?.page)   params.set('page', String(filters.page))
+    if (filters?.limit)  params.set('limit', String(filters.limit))
+    const qs = params.toString()
+    return apiFetch<Job[]>(`/api/company/jobs${qs ? `?${qs}` : ''}`)
+  }
+  const { jobs } = getMockData()
+  return { data: jobs, error: null, status: 200 }
 }
 
 /**

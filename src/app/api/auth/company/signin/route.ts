@@ -75,11 +75,13 @@ export async function POST(req: NextRequest) {
       company: null,
     })
 
+    // Cognito ID token expires after 1 hour — match the cookie so the browser
+    // stops sending it once the JWT inside is no longer valid.
     response.cookies.set('tb-company-token', authResult.IdToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24,
+      maxAge: 60 * 60,
       path: '/',
     })
 

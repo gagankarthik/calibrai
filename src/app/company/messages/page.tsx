@@ -381,6 +381,92 @@ function CandidatePanel({ conv, onClose, allCandidates }: CandidatePanelProps & 
   )
 }
 
+// ─── New Message Modal ────────────────────────────────────────────────────────
+
+function NewMessageModal({
+  candidates,
+  onClose,
+  onCreate,
+}: {
+  candidates: Candidate[]
+  onClose: () => void
+  onCreate: (conv: Conversation, firstMsg: string) => void
+}) {
+  const [selectedId, setSelectedId] = useState('')
+  const [text, setText] = useState('')
+
+  const candidate = candidates.find((c) => c.id === selectedId)
+
+  const handleSend = () => {
+    if (!candidate || !text.trim()) return
+    const now = new Date().toISOString()
+    const conv: Conversation = {
+      id: `new-${Date.now()}`,
+      participantId: candidate.id,
+      participantName: candidate.name,
+      participantAvatar: '',
+      participantRole: candidate.title,
+      lastMessage: text.trim(),
+      lastMessageTime: now,
+      unread: 0,
+      messages: [],
+    }
+    onCreate(conv, text.trim())
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.15 }}
+        className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <h3 className="font-semibold text-foreground">New Message</h3>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">To</label>
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="">Select a candidate…</option>
+              {candidates.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} — {c.title}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Message</label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+              placeholder="Write your message…"
+              rows={4}
+              className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={onClose} className="flex-1">Cancel</Button>
+            <Button size="sm" onClick={handleSend} disabled={!selectedId || !text.trim()} className="flex-1 gap-1.5">
+              <Send className="w-3.5 h-3.5" /> Send
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MessagesPage() {
@@ -393,6 +479,7 @@ export default function MessagesPage() {
   const [showCandidatePanel, setShowCandidatePanel] = useState(true)
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all')
+  const [showNewMsg, setShowNewMsg] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -448,6 +535,22 @@ export default function MessagesPage() {
     }
   }
 
+  const handleNewConversation = (conv: Conversation, firstMsg: string) => {
+    const now = new Date().toISOString()
+    const msg: Message = {
+      id: `local-${Date.now()}`,
+      senderId: 'company',
+      receiverId: conv.participantId,
+      content: firstMsg,
+      timestamp: now,
+      read: false,
+      type: 'text',
+    }
+    setConversations((prev) => [conv, ...prev])
+    setLocalMessages((prev) => ({ ...prev, [conv.id]: [msg] }))
+    setActiveConvId(conv.id)
+  }
+
   if (loadingData) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
@@ -456,13 +559,22 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+      <AnimatePresence>
+        {showNewMsg && (
+          <NewMessageModal
+            candidates={allCandidates}
+            onClose={() => setShowNewMsg(false)}
+            onCreate={handleNewConversation}
+          />
+        )}
+      </AnimatePresence>
       {/* ── COLUMN 1: Conversation list ─────────────────────────────────────── */}
       <div className="w-80 border-r border-border flex flex-col flex-shrink-0">
         {/* Header */}
         <div className="px-4 pt-4 pb-3 border-b border-border">
           <div className="flex items-center justify-between mb-3">
             <span className="font-semibold text-foreground">Messages</span>
-            <Button size="sm" className="h-7 px-2.5 text-xs gap-1">
+            <Button size="sm" className="h-7 px-2.5 text-xs gap-1" onClick={() => setShowNewMsg(true)}>
               <Plus className="w-3.5 h-3.5" /> New
             </Button>
           </div>

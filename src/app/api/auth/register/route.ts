@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { cognitoSignUp } from '@/lib/aws/cognito'
+import { db, Tables, PutCommand } from '@/lib/aws/dynamodb'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const schema = z.object({
@@ -43,7 +44,34 @@ export async function POST(req: Request) {
       attributes['custom:companyName'] = companyName
     }
 
-    await cognitoSignUp(email, password, role, attributes)
+    const signUpResult = await cognitoSignUp(email, password, role, attributes)
+    const userSub = signUpResult?.UserSub
+
+    // Create the company profile record in DynamoDB immediately so that
+    // settings/profile shows the registered name without requiring a first save.
+    if (role === 'company' && userSub) {
+      await db.send(
+        new PutCommand({
+          TableName: Tables.Companies,
+          Item: {
+            id: userSub,
+            name: companyName ?? '',
+            email,
+            industry: '',
+            size: '1-10',
+            website: '',
+            hq: '',
+            founded: '',
+            description: '',
+            createdAt: new Date().toISOString(),
+          },
+          // Don't overwrite if a record somehow already exists
+          ConditionExpression: 'attribute_not_exists(id)',
+        }),
+      ).catch(() => {
+        // Non-fatal — profile page falls back to JWT claims if this fails
+      })
+    }
 
     return NextResponse.json({ message: 'Account created. Check your email for the verification code.' }, { status: 201 })
   } catch (err: unknown) {

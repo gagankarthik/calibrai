@@ -23,9 +23,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
 } from 'recharts'
@@ -51,13 +48,6 @@ const CHART_COLORS = {
   text: 'hsl(215,20%,55%)',
 }
 
-const SOURCE_COLORS: Record<string, string> = {
-  LinkedIn: '#3B82F6',
-  Direct: '#8B5CF6',
-  Referral: '#10B981',
-  GitHub: '#F59E0B',
-  Other: '#6B7280',
-}
 
 // ─── Custom Tooltip ─────────────────────────────────────────────────────────
 
@@ -73,22 +63,6 @@ function CustomTooltip({ active, payload, label }: ChartTooltipProps) {
           <span className="text-foreground font-medium ml-auto">{entry.value}</span>
         </div>
       ))}
-    </div>
-  )
-}
-
-interface PieTooltipProps {
-  active?: boolean
-  payload?: Array<{ name: string; value: number }>
-}
-
-function PieTooltip({ active, payload }: PieTooltipProps) {
-  if (!active || !payload?.length) return null
-  const entry = payload[0]
-  return (
-    <div className="glass rounded-xl p-3 shadow-xl border border-border">
-      <p className="text-xs font-semibold text-foreground">{entry.name}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{entry.value}% of applicants</p>
     </div>
   )
 }
@@ -243,36 +217,9 @@ export default function AnalyticsPage() {
       .sort((a, b) => b.days - a.days)
       .slice(0, 6)
 
-    // Fallback if no department data
-    if (result.length === 0) {
-      return [
-        { dept: 'Engineering', days: 18 },
-        { dept: 'Design', days: 12 },
-        { dept: 'Product', days: 15 },
-        { dept: 'Marketing', days: 10 },
-        { dept: 'Sales', days: 21 },
-      ]
-    }
     return result
   }, [applications])
 
-  // Source distribution (mock — source field not in applications)
-  const sources = [
-    { name: 'LinkedIn', value: 35, color: SOURCE_COLORS.LinkedIn },
-    { name: 'Direct', value: 25, color: SOURCE_COLORS.Direct },
-    { name: 'Referral', value: 20, color: SOURCE_COLORS.Referral },
-    { name: 'GitHub', value: 12, color: SOURCE_COLORS.GitHub },
-    { name: 'Other', value: 8, color: SOURCE_COLORS.Other },
-  ]
-
-  // Sourcing ROI table (mock — cost/source not tracked per application)
-  const sourcingRoi = [
-    { source: 'LinkedIn', color: SOURCE_COLORS.LinkedIn, applications: Math.round(totalApplications * 0.35) || 0, interviews: Math.round(totalApplications * 0.10) || 0, hires: Math.round(hiredCount * 0.38) || 0, convRate: 4.1, avgCost: 1200 },
-    { source: 'Direct',   color: SOURCE_COLORS.Direct,   applications: Math.round(totalApplications * 0.25) || 0, interviews: Math.round(totalApplications * 0.08) || 0, hires: Math.round(hiredCount * 0.30) || 0, convRate: 4.5, avgCost: 420 },
-    { source: 'Referral', color: SOURCE_COLORS.Referral, applications: Math.round(totalApplications * 0.20) || 0, interviews: Math.round(totalApplications * 0.09) || 0, hires: Math.round(hiredCount * 0.22) || 0, convRate: 7.7, avgCost: 280 },
-    { source: 'GitHub',   color: SOURCE_COLORS.GitHub,   applications: Math.round(totalApplications * 0.12) || 0, interviews: Math.round(totalApplications * 0.05) || 0, hires: Math.round(hiredCount * 0.10) || 0, convRate: 5.4, avgCost: 640 },
-    { source: 'Other',    color: SOURCE_COLORS.Other,    applications: Math.round(totalApplications * 0.08) || 0, interviews: Math.round(totalApplications * 0.02) || 0, hires: Math.round(hiredCount * 0.06) || 0, convRate: 3.0, avgCost: 890 },
-  ]
 
   const kpiCards = [
     {
@@ -424,29 +371,19 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Pie Chart */}
-        <div className="glass-card p-4 sm:p-6">
+        <div className="glass-card p-4 sm:p-6 flex flex-col">
           <div className="mb-4 sm:mb-5">
             <h2 className="font-semibold text-foreground">Application Sources</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Where candidates come from</p>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={sources} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                {sources.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<PieTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {sources.map((entry) => (
-              <div key={entry.name} className="flex items-center gap-1.5 text-xs">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: entry.color }} />
-                <span className="text-muted-foreground">{entry.name}</span>
-                <span className="font-semibold text-foreground">{entry.value}%</span>
-              </div>
-            ))}
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-muted-foreground/40" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">No source data yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[180px]">Source tracking requires ATS integration</p>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -468,24 +405,33 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Bar Chart — avg days by dept */}
-        <div className="glass-card p-4 sm:p-6">
+        <div className="glass-card p-4 sm:p-6 flex flex-col">
           <div className="mb-4 sm:mb-5">
             <h2 className="font-semibold text-foreground">Avg Days to Hire by Dept</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Average days from application to offer</p>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={deptData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-              <XAxis dataKey="dept" tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12 }}
-                itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
-                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-              />
-              <Bar dataKey="days" name="Days" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
-            </BarChart>
-          </ResponsiveContainer>
+          {deptData.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                <Clock className="w-6 h-6 text-muted-foreground/40" />
+              </div>
+              <p className="text-sm text-muted-foreground">No department data yet</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={deptData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                <XAxis dataKey="dept" tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12 }}
+                  itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                />
+                <Bar dataKey="days" name="Days" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </motion.div>
 
@@ -501,46 +447,17 @@ export default function AnalyticsPage() {
             <h2 className="font-semibold text-foreground">Sourcing ROI</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Performance and cost breakdown by source</p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2 text-xs w-full sm:w-auto">
-            <Download className="w-3.5 h-3.5" /> Export
-          </Button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[500px]">
-            <thead>
-              <tr className="border-t border-border bg-muted/20">
-                {['Source', 'Applications', 'Interviews', 'Hires', 'Conv. Rate', 'Avg Cost'].map((h) => (
-                  <th key={h} className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4 sm:px-5 py-3">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {sourcingRoi.map((row) => (
-                <tr key={row.source} className="hover:bg-muted/20 transition-colors">
-                  <td className="px-4 sm:px-5 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
-                      <span className="font-medium text-foreground">{row.source}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-5 py-3.5 text-muted-foreground">{row.applications.toLocaleString()}</td>
-                  <td className="px-4 sm:px-5 py-3.5 text-muted-foreground">{row.interviews}</td>
-                  <td className="px-4 sm:px-5 py-3.5 font-semibold text-foreground">{row.hires}</td>
-                  <td className="px-4 sm:px-5 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-muted rounded-full max-w-[60px]">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(row.convRate * 10, 100)}%` }} />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{row.convRate}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-5 py-3.5 text-muted-foreground">${row.avgCost.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-col items-center justify-center gap-3 py-10 px-6 text-center border-t border-border">
+          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+            <DollarSign className="w-6 h-6 text-muted-foreground/40" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">No ROI data yet</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
+              Source cost tracking requires connecting your job boards and ATS
+            </p>
+          </div>
         </div>
       </motion.div>
     </div>

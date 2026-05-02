@@ -20,12 +20,13 @@ export async function GET(req: NextRequest) {
     const jobsResult = await db.send(
       new QueryCommand({
         TableName: Tables.Jobs,
+        IndexName: 'companyId-index',
         KeyConditionExpression: 'companyId = :cid',
         ExpressionAttributeValues: { ':cid': companyId },
       }),
     )
     const jobs = jobsResult.Items ?? []
-    const jobIds = jobs.map((j) => j.jobId as string)
+    const jobIds = jobs.map((j) => j.id as string)
 
     // Fetch applications for all jobs
     let applications: Record<string, unknown>[] = []
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
       const appResult = await db.send(
         new QueryCommand({
           TableName: Tables.Applications,
+          IndexName: 'jobId-index',
           KeyConditionExpression: 'jobId = :jid',
           ExpressionAttributeValues: { ':jid': jobId },
         }),

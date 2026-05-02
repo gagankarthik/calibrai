@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
@@ -35,14 +35,14 @@ import {
 } from 'lucide-react'
 import { WORK_MODE_LABELS, JOB_TYPE_LABELS, EXPERIENCE_LABELS } from '@/lib/constants'
 
-// ─── Deterministic match score ────────────────────────────────────────────────
+// â”€â”€â”€ Deterministic match score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getMatchScore(id: string): number {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff
   return 70 + (Math.abs(hash) % 28)
 }
 
-// ─── Avatar color hash ────────────────────────────────────────────────────────
+// â”€â”€â”€ Avatar color hash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const AVATAR_COLORS = [
   'bg-tl-blue', 'bg-tl-teal', 'bg-tl-rose', 'bg-tl-gold',
   'bg-blue-700', 'bg-cyan-700', 'bg-fuchsia-700', 'bg-teal-700',
@@ -53,7 +53,7 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
-// ─── Benefit icon map ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Benefit icon map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function benefitIcon(benefit: string): React.ReactNode {
   const b = benefit.toLowerCase()
   if (b.includes('remote') || b.includes('wifi'))  return <Wifi className="w-4 h-4 text-tl-teal shrink-0" />
@@ -65,7 +65,7 @@ function benefitIcon(benefit: string): React.ReactNode {
   return <Zap className="w-4 h-4 text-tl-gold shrink-0" />
 }
 
-// ─── Work mode badge config ───────────────────────────────────────────────────
+// â”€â”€â”€ Work mode badge config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const WORK_MODE_STYLES: Record<string, string> = {
   remote: 'tl-tag-teal',
   hybrid: 'bg-violet-500/10 border border-violet-500/30 text-violet-400',
@@ -78,7 +78,7 @@ function WorkModeIcon({ mode }: { mode: string }) {
   return <Globe className="w-3.5 h-3.5" />
 }
 
-// ─── Toggle Switch ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Toggle Switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
@@ -99,14 +99,14 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
   )
 }
 
-// ─── Fade-up animation helper ─────────────────────────────────────────────────
+// â”€â”€â”€ Fade-up animation helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.4, delay },
 })
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function JobDetailPage() {
   const params = useParams()
   const jobId  = params.id as string
@@ -184,7 +184,7 @@ export default function JobDetailPage() {
   const similarJobs = useMemo(() =>
     job
       ? allJobs
-          .filter(j => j.id !== job.id && j.company.industry === job.company.industry)
+          .filter(j => j.id !== job.id && j.company.industry === job.company?.industry)
           .slice(0, 3)
           .map(j => ({ ...j, score: getMatchScore(j.id) }))
       : [],
@@ -206,13 +206,13 @@ export default function JobDetailPage() {
   const daysPosted = Math.floor((Date.now() - new Date(job.postedAt).getTime()) / 86400000)
   const daysLeft   = Math.max(0, Math.ceil((new Date(job.expiresAt).getTime() - Date.now()) / 86400000))
 
-  // While profile is still loading, skills are "unknown" — show a neutral state
+  // While profile is still loading, skills are "unknown" â€” show a neutral state
   const skillsLoaded = userSkills !== null
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
 
-      {/* ── BREADCRUMB ──────────────────────────────────────────────────────── */}
+      {/* â”€â”€ BREADCRUMB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div {...fadeUp(0)} className="flex items-center gap-2 text-sm text-tl-text-secondary mb-6">
         <Link
           href="/talent/jobs"
@@ -225,7 +225,7 @@ export default function JobDetailPage() {
         <span className="text-tl-text-primary font-medium truncate">{job.title}</span>
       </motion.div>
 
-      {/* ── JOB HEADER CARD ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ JOB HEADER CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div {...fadeUp(0.05)} className="tl-card-elevated p-8 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-start gap-6">
 
@@ -233,10 +233,10 @@ export default function JobDetailPage() {
           <div className="flex flex-col sm:flex-row gap-5 flex-1 min-w-0">
             {/* Avatar */}
             <div className="flex flex-col items-center gap-2 shrink-0">
-              <div className={cn('w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl font-black', avatarColor(job.company.name))}>
-                {job.company.name[0]}
+              <div className={cn('w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl font-black', avatarColor(job.company?.name ?? job.title ?? 'C'))}>
+                {(job.company?.name ?? job.title ?? 'C')[0]}
               </div>
-              {job.company.verified && (
+              {job.company?.verified && (
                 <span className="tl-tag-teal inline-flex items-center gap-1">
                   <CheckCircle2 className="w-2.5 h-2.5" /> Verified
                 </span>
@@ -246,7 +246,7 @@ export default function JobDetailPage() {
             {/* Info */}
             <div className="flex-1 min-w-0">
               <h1 className="text-3xl font-display font-black text-tl-text-primary leading-tight mb-1">{job.title}</h1>
-              <p className="text-xl text-tl-text-secondary font-medium mb-3">{job.company.name}</p>
+              <p className="text-xl text-tl-text-secondary font-medium mb-3">{job.company?.name}</p>
 
               {/* Meta badges */}
               <div className="flex flex-wrap gap-2 mt-3 mb-4">
@@ -281,7 +281,7 @@ export default function JobDetailPage() {
               className="btn-gold h-12 w-48 text-base font-semibold"
               onClick={handleApply}
             >
-              {applied ? '✓ Applied!' : 'Apply Now →'}
+              {applied ? 'âœ“ Applied!' : 'Apply Now â†’'}
             </button>
             <button
               className={cn('btn-ghost w-48 gap-2 flex items-center justify-center', saved && 'text-tl-gold')}
@@ -310,10 +310,10 @@ export default function JobDetailPage() {
         </div>
       </motion.div>
 
-      {/* ── TWO-COLUMN LAYOUT ────────────────────────────────────────────────── */}
+      {/* â”€â”€ TWO-COLUMN LAYOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid lg:grid-cols-3 gap-8 mt-8">
 
-        {/* ── LEFT COLUMN ────────────────────────────────────────────────────── */}
+        {/* â”€â”€ LEFT COLUMN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="lg:col-span-2 space-y-6">
 
           {/* About the Role */}
@@ -367,14 +367,14 @@ export default function JobDetailPage() {
 
           {/* About Company */}
           <motion.div {...fadeUp(0.23)} className="tl-card p-6">
-            <h3 className="text-lg font-display font-semibold text-tl-text-primary mb-4">About {job.company.name}</h3>
+            <h3 className="text-lg font-display font-semibold text-tl-text-primary mb-4">About {job.company?.name}</h3>
             <div className="flex items-center gap-3 mb-4">
-              <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0', avatarColor(job.company.name))}>
-                {job.company.name[0]}
+              <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0', avatarColor(job.company?.name ?? job.title ?? 'C'))}>
+                {(job.company?.name ?? job.title ?? 'C')[0]}
               </div>
               <div>
-                <p className="font-semibold text-tl-text-primary">{job.company.name}</p>
-                {job.company.verified && (
+                <p className="font-semibold text-tl-text-primary">{job.company?.name}</p>
+                {job.company?.verified && (
                   <span className="inline-flex items-center gap-1 text-[10px] text-tl-teal">
                     <CheckCircle2 className="w-2.5 h-2.5" /> Verified Company
                   </span>
@@ -382,15 +382,15 @@ export default function JobDetailPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary">{job.company.industry}</span>
-              <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary">{job.company.size} employees</span>
+              <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary">{job.company?.industry}</span>
+              <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary">{job.company?.size} employees</span>
               <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary flex items-center gap-1">
-                <MapPin className="w-3 h-3" />{job.company.location}
+                <MapPin className="w-3 h-3" />{job.company?.location}
               </span>
             </div>
-            <p className="text-sm text-tl-text-secondary leading-relaxed mb-4">{job.company.description}</p>
+            <p className="text-sm text-tl-text-secondary leading-relaxed mb-4">{job.company?.description}</p>
             <a
-              href={`https://${job.company.website}`}
+              href={`https://${job.company?.website}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-tl-gold hover:underline"
@@ -426,10 +426,10 @@ export default function JobDetailPage() {
           )}
         </div>
 
-        {/* ── RIGHT STICKY COLUMN ──────────────────────────────────────────────── */}
+        {/* â”€â”€ RIGHT STICKY COLUMN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="lg:col-span-1 space-y-4 sticky top-24 self-start">
 
-          {/* Match Analysis — gold card */}
+          {/* Match Analysis â€” gold card */}
           <motion.div {...fadeUp(0.1)} className="tl-card-gold p-5">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold text-tl-text-primary">Why You&apos;re a Strong Match</h4>
@@ -467,7 +467,7 @@ export default function JobDetailPage() {
               {skillsLoaded ? (
                 <span className="text-xs font-mono text-tl-text-secondary">{matchedSkills.length}/{job.skills.length} matched</span>
               ) : (
-                <span className="text-xs font-mono text-tl-text-secondary/50">Loading…</span>
+                <span className="text-xs font-mono text-tl-text-secondary/50">Loadingâ€¦</span>
               )}
             </div>
 

@@ -1,16 +1,22 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getJobs, getApplications } from '@/lib/api'
+import { toast } from 'sonner'
+import {
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
+} from '@dnd-kit/core'
+import { getCompanyJobs, getApplications } from '@/lib/api'
 import { STAGE_LABELS, PIPELINE_STAGES } from '@/lib/constants'
 import type { Job, PipelineStage, Application } from '@/lib/types'
 import { cn, timeAgo } from '@/lib/utils'
 import {
   Plus, ChevronDown, Calendar, MessageSquare, ChevronRight,
   Kanban, LayoutList, Search, MoreHorizontal, Users, Clock,
-  ChevronLeft, ChevronsLeft,
+  ChevronsLeft,
 } from 'lucide-react'
 
 // ─── Stage palette ────────────────────────────────────────────────────────────
@@ -73,8 +79,10 @@ function avatarColor(name: string): string {
 
 // ─── Candidate Card ───────────────────────────────────────────────────────────
 
-function CandidateCard({ app }: { app: Application }) {
+function CandidateCard({ app, dragging = false }: { app: Application; dragging?: boolean }) {
   const candidate = app.candidate
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: app.id })
+
   if (!candidate) return null
 
   const daysInStage = Math.max(1, Math.floor((Date.now() - new Date(app.updatedAt).getTime()) / 86_400_000))
@@ -83,11 +91,17 @@ function CandidateCard({ app }: { app: Application }) {
 
   return (
     <motion.div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       layout
       initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: isDragging ? 0.4 : 1, y: 0 }}
       transition={{ duration: 0.18 }}
-      className="tl-card p-3.5 cursor-pointer hover:border-tl-gold/40 transition-all group"
+      className={cn(
+        'tl-card p-3.5 cursor-grab active:cursor-grabbing hover:border-tl-gold/40 transition-all group touch-none',
+        dragging && 'shadow-2xl border-tl-gold rotate-2 scale-105 cursor-grabbing'
+      )}
     >
       <div className="flex items-start gap-2.5 mb-2">
         <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarColor(candidate.name))}>
@@ -147,11 +161,15 @@ function KanbanColumn({
   collapsed: boolean
   onToggle: () => void
 }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `col-${stage}` })
+
   return (
     <div
+      ref={setNodeRef}
       className={cn(
         'flex flex-col transition-all duration-300 rounded-xl border bg-[var(--tl-bg-surface)]/50',
         STAGE_BORDER[stage],
+        isOver && 'ring-2 ring-tl-gold/40 bg-tl-gold/5',
         collapsed ? 'min-w-[48px] w-12' : 'min-w-[240px] w-60'
       )}
     >
@@ -293,17 +311,52 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PipelinePage() {
+  const searchParams = useSearchParams()
   const [jobs, setJobs] = useState<Job[]>([])
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedJob, setSelectedJob] = useState<string>('all')
+  const [selectedJob, setSelectedJob] = useState<string>(() => searchParams.get('job') ?? 'all')
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
   const [searchQuery, setSearchQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Set<PipelineStage>>(new Set())
+  const [activeApp, setActiveApp] = useState<Application | null>(null)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+
+  const handleDragStart = (e: DragStartEvent) => {
+    const app = applications.find(a => a.id === e.active.id)
+    setActiveApp(app ?? null)
+  }
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    setActiveApp(null)
+    if (!e.over) return
+    const newStage = String(e.over.id).replace(/^col-/, '') as PipelineStage
+    const appId = String(e.active.id)
+    const app = applications.find(a => a.id === appId)
+    if (!app || app.stage === newStage) return
+
+    setApplications(prev => prev.map(a =>
+      a.id === appId ? { ...a, stage: newStage, updatedAt: new Date().toISOString() } : a
+    ))
+
+    const stageToStatus: Record<PipelineStage, string> = {
+      new: 'applied', screening: 'screening', phone_screen: 'interview',
+      technical: 'technical', onsite: 'interview', offer: 'offer',
+      hired: 'hired', rejected: 'rejected',
+    }
+    fetch(`/api/company/applications/${appId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: stageToStatus[newStage] }),
+    })
+      .then(r => r.ok ? toast.success(`Moved to ${STAGE_LABELS[newStage]}`) : toast.error('Failed to update'))
+      .catch(() => toast.error('Failed to update'))
+  }
 
   useEffect(() => {
     async function load() {
-      const [jobsRes, appsRes] = await Promise.all([getJobs(), getApplications()])
+      const [jobsRes, appsRes] = await Promise.all([getCompanyJobs({ limit: 100 }), getApplications()])
       if (jobsRes.data) setJobs(jobsRes.data)
       if (appsRes.data) setApplications(appsRes.data)
       setLoading(false)
@@ -355,7 +408,7 @@ export default function PipelinePage() {
   )
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full max-w-full overflow-hidden" style={{ height: 'calc(100svh - 57px)' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="shrink-0 px-4 sm:px-5 py-4 border-b border-tl-border-subtle bg-tl-bg-base/50">
@@ -451,28 +504,33 @@ export default function PipelinePage() {
       </div>
 
       {/* ── Board ──────────────────────────────────────────────────────────── */}
-      <div className="overflow-x-auto" style={{ height: 'calc(100svh - 244px)', minHeight: '320px' }}>
+      <div className="flex-1 min-h-0 overflow-x-auto">
         <AnimatePresence mode="wait">
           {viewMode === 'kanban' ? (
-            <motion.div
-              key="kanban"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex gap-3 h-full p-4 pb-3"
-              style={{ minWidth: 'max-content' }}
-            >
-              {kanbanData.map(({ stage, cards }) => (
-                <KanbanColumn
-                  key={stage}
-                  stage={stage}
-                  cards={cards}
-                  collapsed={collapsed.has(stage)}
-                  onToggle={() => toggleCollapse(stage)}
-                />
-              ))}
-            </motion.div>
+            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+              <motion.div
+                key="kanban"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex gap-3 h-full p-4 pb-3"
+                style={{ minWidth: 'max-content' }}
+              >
+                {kanbanData.map(({ stage, cards }) => (
+                  <KanbanColumn
+                    key={stage}
+                    stage={stage}
+                    cards={cards}
+                    collapsed={collapsed.has(stage)}
+                    onToggle={() => toggleCollapse(stage)}
+                  />
+                ))}
+              </motion.div>
+              <DragOverlay dropAnimation={null}>
+                {activeApp ? <CandidateCard app={activeApp} dragging /> : null}
+              </DragOverlay>
+            </DndContext>
           ) : (
             <motion.div
               key="list"

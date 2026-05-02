@@ -259,8 +259,8 @@ export default function TalentDashboardPage() {
               {/* Company row */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <img src={companyAvatarUrl(job.company.name)} alt={job.company.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
-                  {job.company.verified && (
+                  <img src={companyAvatarUrl(job.company?.name ?? job.title ?? 'company')} alt={job.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                  {job.company?.verified && (
                     <span className="tl-tag-teal inline-flex items-center gap-1">
                       <CheckCircle2 className="w-2.5 h-2.5" /> Verified
                     </span>
@@ -275,7 +275,7 @@ export default function TalentDashboardPage() {
 
               {/* Company + location */}
               <p className="text-sm text-tl-text-secondary flex items-center gap-1 -mt-1">
-                {job.company.name}
+                {job.company?.name ?? '—'}
                 <span className="inline-block mx-1 opacity-30">·</span>
                 <MapPin className="w-3 h-3 shrink-0" />
                 <span className="truncate">{job.location}</span>
@@ -342,7 +342,7 @@ export default function TalentDashboardPage() {
                   transition={{ delay: i * 0.05, duration: 0.3 }}
                   className="flex items-center gap-3 p-3.5 hover:bg-tl-bg-elevated/40 transition-colors"
                 >
-                  <img src={companyAvatarUrl(job.company.name)} alt={job.company.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                  <img src={companyAvatarUrl(job.company?.name ?? job.title ?? 'company')} alt={job.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <Link href={`/talent/jobs/${job.id}`} className="text-sm font-semibold text-tl-text-primary hover:text-tl-gold transition-colors truncate">
@@ -352,8 +352,8 @@ export default function TalentDashboardPage() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-tl-text-secondary flex-wrap">
                       <span className="flex items-center gap-1">
-                        {job.company.name}
-                        {job.company.verified && <CheckCircle2 className="w-3 h-3 text-tl-teal" />}
+                        {job.company?.name ?? '—'}
+                        {job.company?.verified && <CheckCircle2 className="w-3 h-3 text-tl-teal" />}
                       </span>
                       <span className="opacity-40">·</span>
                       <span className="capitalize">{job.workMode}</span>
@@ -410,10 +410,10 @@ export default function TalentDashboardPage() {
                     transition={{ delay: i * 0.06 }}
                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-tl-bg-elevated transition-colors cursor-pointer"
                   >
-                    <img src={companyAvatarUrl(app.job.company.name)} alt={app.job.company.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                    <img src={companyAvatarUrl(app.job?.company?.name ?? app.job?.title ?? 'company')} alt={app.job?.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-tl-text-primary truncate">{app.job.title}</p>
-                      <p className="text-xs text-tl-text-secondary truncate">{app.job.company.name}</p>
+                      <p className="font-medium text-sm text-tl-text-primary truncate">{app.job?.title ?? '—'}</p>
+                      <p className="text-xs text-tl-text-secondary truncate">{app.job?.company?.name ?? '—'}</p>
                       <div className="flex items-center gap-1 mt-1.5">
                         {STATUS_ORDER.map((s, idx) => (
                           <div

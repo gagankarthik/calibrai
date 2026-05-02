@@ -44,7 +44,12 @@
       "Bash(Select-Object Name, PSIsContainer)",
       "Bash(Get-Content \"C:\\\\Users\\\\gagan\\\\Desktop\\\\talentbridge\\\\src\\\\app\\\\talent\\\\settings\\\\page.tsx\")",
       "Bash(Select-Object -Last 100)",
-      "Bash(Select-Object -First 80)"
+      "Bash(Select-Object -First 80)",
+      "Bash(ls *.env*)",
+      "Bash(ls .env*)",
+      "Bash(cat .env.local)",
+      "Bash(grep -nB1 -A8 \"signInCompany\\\\|signInTalent\" src/lib/api.ts)",
+      "Bash(grep -nB1 -A6 \"export function companyAvatarUrl\\\\|export function userAvatarUrl\\\\|export function jobIconUrl\" src/lib/utils.ts)"
     ]
   }
 }

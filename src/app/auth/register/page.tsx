@@ -142,14 +142,14 @@ export default function RegisterPage() {
     }
   }
 
-  const inputCls = "w-full bg-[#1a1d26] border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+  const inputCls = "w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
 
   return (
-    <div className="min-h-screen flex bg-[#0d0f14]">
+    <div className="min-h-screen flex bg-tl-bg-base">
       <LeftPanel />
 
       {/* Right panel */}
-      <div className="w-full lg:w-[54%] flex items-center justify-center p-6 lg:p-12 bg-[#0d0f14]">
+      <div className="w-full lg:w-[54%] flex items-center justify-center p-6 lg:p-12 bg-tl-bg-base">
         <div className="w-full max-w-[420px]">
 
           {/* Mobile logo */}
@@ -202,7 +202,7 @@ export default function RegisterPage() {
                         'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5',
                         role === r.id ? 'border-indigo-500 bg-indigo-500' : 'border-white/[0.15]',
                       )}>
-                        {role === r.id && <div className="w-2 h-2 rounded-full bg-[#0d0f14]" />}
+                        {role === r.id && <div className="w-2 h-2 rounded-full bg-tl-bg-base" />}
                       </div>
                     </button>
                   ))}

@@ -1,64 +1,91 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect, KeyboardEvent } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useParams } from 'next/navigation'
-import { getJob, getApplications } from '@/lib/api'
-import { STAGE_LABELS, STAGE_COLORS, PIPELINE_STAGES } from '@/lib/constants'
-import type { Job, Application, PipelineStage } from '@/lib/types'
-import { cn, timeAgo, formatDate } from '@/lib/utils'
+import { toast } from 'sonner'
+import { cn, formatSalary, timeAgo } from '@/lib/utils'
+import { STAGE_LABELS } from '@/lib/constants'
 import {
-  ArrowLeft,
-  MapPin,
-  Users,
-  Eye,
-  Calendar,
-  Clock,
-  Briefcase,
-  Pause,
-  Play,
-  Share2,
-  Edit,
-  CheckCircle2,
-  Plus,
-  Sparkles,
-  TrendingUp,
-  AlertCircle,
-  Bell,
-  Trash2,
-  Filter,
-  Download,
-  ChevronRight,
-  MessageSquare,
-  Search,
+  ArrowLeft, Pencil, Save, X, MapPin, Briefcase, Wifi, Building2,
+  MonitorSmartphone, DollarSign, Users, Calendar, Tag, Layers,
+  CheckCircle2, Sparkles, Eye, Plus, Trash2, FileText, Mail, MessageSquare,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
-// ─── Stage dot colors ─────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-const STAGE_DOT: Record<PipelineStage, string> = {
-  new: 'bg-tl-blue',
-  screening: 'bg-tl-gold',
-  phone_screen: 'bg-tl-teal',
-  technical: 'bg-tl-gold',
-  onsite: 'bg-tl-teal',
-  offer: 'bg-tl-teal',
-  hired: 'bg-tl-teal',
-  rejected: 'bg-tl-rose',
+interface JobDetail {
+  id: string
+  title: string
+  department: string
+  type: string
+  workMode: string
+  level: string
+  location: string
+  salaryMin: number
+  salaryMax: number
+  currency: string
+  description: string
+  requirements: string[]
+  niceToHave: string[]
+  skills: string[]
+  benefits: string[]
+  status: string
+  featured: boolean
+  postedAt: string
+  expiresAt: string
+  applicantCount: number
 }
 
-function avatarBg(name: string): string {
-  const palette = [
-    'from-tl-gold/60 to-tl-gold/30',
-    'from-tl-teal/60 to-tl-teal/30',
-    'from-tl-blue/60 to-tl-blue/30',
-    'from-tl-rose/60 to-tl-rose/30',
-    'from-tl-teal/40 to-tl-gold/40',
-    'from-tl-gold/40 to-tl-teal/40',
-  ]
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff
-  return palette[Math.abs(hash) % palette.length]
+interface Applicant {
+  id: string
+  candidateId?: string
+  candidateName?: string
+  candidateEmail?: string
+  candidateTitle?: string
+  matchScore?: number
+  status?: string
+  stage?: string
+  appliedAt?: string
+  updatedAt?: string
+  coverLetter?: string
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const LEVEL_LABELS: Record<string, string> = {
+  entry: 'Entry Level', mid: 'Mid Level', senior: 'Senior',
+  lead: 'Lead / Staff', executive: 'Executive',
+}
+const TYPE_LABELS: Record<string, string> = {
+  'full-time': 'Full-time', 'part-time': 'Part-time',
+  contract: 'Contract', internship: 'Internship', freelance: 'Freelance',
+}
+const WM: Record<string, { label: string; icon: React.ReactNode; cls: string }> = {
+  remote: { label: 'Remote', icon: <Wifi className="w-3.5 h-3.5" />,             cls: 'text-cyan-400'   },
+  hybrid: { label: 'Hybrid', icon: <MonitorSmartphone className="w-3.5 h-3.5"/>, cls: 'text-purple-400' },
+  onsite: { label: 'Onsite', icon: <Building2 className="w-3.5 h-3.5" />,        cls: 'text-blue-400'   },
+}
+const STATUS_STYLES: Record<string, string> = {
+  active: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  paused: 'bg-amber-500/10  text-amber-400  border-amber-500/20',
+  closed: 'bg-muted/50 text-muted-foreground border-border',
+}
+const STAGE_DOT: Record<string, string> = {
+  new: 'bg-tl-blue', screening: 'bg-tl-gold', phone_screen: 'bg-tl-teal',
+  technical: 'bg-tl-gold', onsite: 'bg-tl-teal', offer: 'bg-tl-teal',
+  hired: 'bg-tl-teal', rejected: 'bg-tl-rose',
+}
+
+function daysAgo(iso?: string) {
+  if (!iso) return 0
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000))
+}
+
+function getInitials(name: string) {
+  return name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
 function matchColor(score: number) {
@@ -68,760 +95,450 @@ function matchColor(score: number) {
   return 'bg-tl-rose/15 text-tl-rose border-tl-rose/25'
 }
 
-// ─── Toggle Switch ────────────────────────────────────────────────────────────
-
-function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
-  return (
-    <button
-      onClick={onChange}
-      className={cn('w-12 h-6 rounded-full transition-all duration-200 relative shrink-0', value ? 'bg-tl-teal' : 'bg-tl-bg-elevated border border-tl-border-subtle')}
-    >
-      <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200', value && 'translate-x-6')} />
-    </button>
-  )
-}
-
-function SmallToggle({ value, onChange }: { value: boolean; onChange: () => void }) {
-  return (
-    <button
-      onClick={onChange}
-      className={cn('w-10 h-[22px] rounded-full transition-all duration-200 relative shrink-0', value ? 'bg-tl-gold' : 'bg-tl-bg-elevated border border-tl-border-subtle')}
-    >
-      <span className={cn('absolute top-0.5 left-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-transform duration-200', value && 'translate-x-[18px]')} />
-    </button>
-  )
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function JobDetailPage() {
-  const params = useParams()
-  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : ''
+  const { id }       = useParams<{ id: string }>()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
 
-  const [job, setJob] = useState<Job | null>(null)
-  const [jobApplications, setJobApplications] = useState<Application[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function load() {
-      const [jobRes, appsRes] = await Promise.all([getJob(id), getApplications(id)])
-      if (jobRes.data) setJob(jobRes.data)
-      if (appsRes.data) setJobApplications(appsRes.data)
-      setLoading(false)
-    }
-    load()
-  }, [id])
-
-  const [activeTab, setActiveTab] = useState<'overview' | 'applicants' | 'analytics' | 'settings'>('overview')
-  const [isPaused, setIsPaused] = useState(false)
-  const [stageFilter, setStageFilter] = useState<PipelineStage | 'all'>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [isJobActive, setIsJobActive] = useState(true)
-  const [notifyNewApp, setNotifyNewApp] = useState(true)
-  const [notifyHighMatch, setNotifyHighMatch] = useState(true)
-
-  // Use all applications as demo data if jobApplications is sparse
-  const displayApps = jobApplications
-
-  const filteredApps = useMemo(() => {
-    return displayApps.filter((a) => {
-      const matchesStage = stageFilter === 'all' || a.stage === stageFilter
-      const q = searchQuery.toLowerCase()
-      const matchesSearch =
-        !q ||
-        (a.candidate?.name ?? '').toLowerCase().includes(q) ||
-        (a.candidate?.title ?? '').toLowerCase().includes(q)
-      return matchesStage && matchesSearch
-    })
-  }, [displayApps, stageFilter, searchQuery])
-
-  const stageCounts = useMemo(() => {
-    const c: Partial<Record<PipelineStage, number>> = {}
-    for (const stage of PIPELINE_STAGES) {
-      c[stage] = displayApps.filter((a) => a.stage === stage).length
-    }
-    return c
-  }, [displayApps])
-
-  const avgMatch = Math.round(
-    displayApps.reduce((s, a) => s + a.matchScore, 0) / (displayApps.length || 1)
+  const [job, setJob]               = useState<JobDetail | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [tab, setTab]               = useState<'overview' | 'applicants'>(
+    searchParams.get('tab') === 'applicants' ? 'applicants' : 'overview'
   )
+
+  const [editing, setEditing]       = useState(searchParams.get('edit') === '1')
+  const [saving, setSaving]         = useState(false)
+
+  const [applicants, setApplicants] = useState<Applicant[]>([])
+  const [appsLoading, setAppsLoading] = useState(false)
+
+  // Edit fields
+  const [editTitle,      setEditTitle]      = useState('')
+  const [editDesc,       setEditDesc]       = useState('')
+  const [editSalaryMin,  setEditSalaryMin]  = useState(0)
+  const [editSalaryMax,  setEditSalaryMax]  = useState(0)
+  const [editSkills,     setEditSkills]     = useState<string[]>([])
+  const [editSkillInput, setEditSkillInput] = useState('')
+  const [editReqs,       setEditReqs]       = useState<string[]>([])
+  const [editStatus,     setEditStatus]     = useState('active')
+
+  // Load job
+  useEffect(() => {
+    fetch(`/api/company/jobs/${id}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: JobDetail) => {
+        setJob(data)
+        setEditTitle(data.title ?? '')
+        setEditDesc(data.description ?? '')
+        setEditSalaryMin(data.salaryMin ?? 0)
+        setEditSalaryMax(data.salaryMax ?? 0)
+        setEditSkills(data.skills ?? [])
+        setEditReqs(data.requirements ?? [])
+        setEditStatus(data.status ?? 'active')
+        setLoading(false)
+      })
+      .catch(() => { toast.error('Job not found'); router.push('/company/jobs') })
+  }, [id, router])
+
+  // Load applicants when tab is opened
+  useEffect(() => {
+    if (tab !== 'applicants' || !id) return
+    setAppsLoading(true)
+    fetch(`/api/company/jobs/${id}/applications`)
+      .then(r => r.ok ? r.json() : [])
+      .then((items: Applicant[]) => setApplicants(Array.isArray(items) ? items : []))
+      .catch(() => setApplicants([]))
+      .finally(() => setAppsLoading(false))
+  }, [tab, id])
+
+  const cancelEdit = () => {
+    if (!job) return
+    setEditTitle(job.title); setEditDesc(job.description)
+    setEditSalaryMin(job.salaryMin); setEditSalaryMax(job.salaryMax)
+    setEditSkills(job.skills ?? []); setEditReqs(job.requirements ?? [])
+    setEditStatus(job.status); setEditing(false)
+  }
+
+  const save = async () => {
+    if (!job) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/company/jobs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDesc,
+          salaryMin: Number(editSalaryMin),
+          salaryMax: Number(editSalaryMax),
+          skills: editSkills,
+          requirements: editReqs.filter(Boolean),
+          status: editStatus,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string; issues?: Record<string, string[]> }
+        const msg = err.issues
+          ? Object.entries(err.issues).map(([f, m]) => `${f}: ${(m as string[]).join(', ')}`).join('; ')
+          : (err.error ?? 'Failed to save')
+        throw new Error(msg)
+      }
+      const updated = await res.json() as Partial<JobDetail>
+      setJob(prev => prev ? { ...prev, ...updated } : prev)
+      setEditing(false)
+      toast.success('Job updated')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSkillKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === 'Enter' || e.key === ',') && editSkillInput.trim()) {
+      e.preventDefault()
+      const s = editSkillInput.trim().replace(/,$/, '')
+      if (s && !editSkills.includes(s)) setEditSkills(p => [...p, s])
+      setEditSkillInput('')
+    }
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
     </div>
   )
+  if (!job) return null
 
-  if (!job) return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-tl-text-secondary">Job not found.</p>
-    </div>
-  )
-
-  const daysPosted = Math.floor((Date.now() - new Date(job.postedAt).getTime()) / 86_400_000)
-  const daysUntilExpiry = Math.max(0, Math.ceil((new Date(job.expiresAt).getTime() - Date.now()) / 86_400_000))
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-  const toggleAll = () => {
-    setSelectedIds(selectedIds.size === filteredApps.length ? new Set() : new Set(filteredApps.map((a) => a.id)))
-  }
-
-  // Analytics data
-  const weeklyData = [
-    { week: 'Apr 7', apps: 32 },
-    { week: 'Apr 14', apps: 54 },
-    { week: 'Apr 21', apps: 76 },
-    { week: 'Apr 28', apps: 88 },
-    { week: 'May 1', apps: 34 },
-  ]
-  const maxApps = Math.max(...weeklyData.map((d) => d.apps))
-
-  const sourcesData = [
-    { name: 'TalentBridge', pct: 48, color: 'bg-tl-gold' },
-    { name: 'LinkedIn', pct: 28, color: 'bg-tl-teal' },
-    { name: 'Referrals', pct: 14, color: 'bg-tl-blue' },
-    { name: 'Direct', pct: 10, color: 'bg-tl-rose' },
-  ]
-
-  const funnelData = [
-    { stage: 'Applied', count: job.applicantCount, pct: 100 },
-    { stage: 'Screened', count: Math.round(job.applicantCount * 0.30), pct: 30 },
-    { stage: 'Phone Screen', count: Math.round(job.applicantCount * 0.13), pct: 13 },
-    { stage: 'Technical', count: Math.round(job.applicantCount * 0.06), pct: 6 },
-    { stage: 'Offer', count: Math.round(job.applicantCount * 0.014), pct: 1.4 },
-  ]
-
-  const tabs = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'applicants', label: `Applicants (${job.applicantCount})` },
-    { key: 'analytics', label: 'Analytics' },
-    { key: 'settings', label: 'Settings' },
-  ] as const
-
-  const workModeLabel = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On-site' }[job.workMode] ?? job.workMode
-  const levelLabel = { entry: 'Entry Level', mid: 'Mid Level', senior: 'Senior', lead: 'Lead', executive: 'Executive' }[job.level] ?? job.level
+  const wm = WM[job.workMode] ?? WM.onsite
+  const currentStatus = editing ? editStatus : job.status
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-5xl space-y-5">
 
-      {/* Back nav */}
-      <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="mb-6">
-        <Link href="/company/jobs" className="inline-flex items-center gap-2 text-sm text-tl-text-secondary hover:text-tl-gold transition-colors group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          Back to Jobs
-        </Link>
-      </motion.div>
-
-      {/* ── JOB HEADER CARD ───────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="tl-card-elevated p-6 mb-6"
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-start justify-between gap-3"
       >
-        <div className="flex flex-col md:flex-row md:items-start gap-5">
-          {/* Company avatar */}
-          <div className={cn('w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white shrink-0 bg-gradient-to-br', avatarBg(job.company.name))}>
-            {job.company.name.slice(0, 2).toUpperCase()}
-          </div>
-
-          {/* Center content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm text-tl-text-secondary">{job.company.name}</span>
-              {job.company.verified && (
-                <CheckCircle2 className="w-4 h-4 text-tl-teal shrink-0" />
-              )}
-            </div>
-            <h1 className="font-display text-3xl text-tl-text-primary mb-3">{job.title}</h1>
-
-            {/* Meta badges */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full border', isPaused
-                ? 'bg-tl-gold/10 text-tl-gold border-tl-gold/20'
-                : 'tl-tag-teal'
-              )}>
-                <span className={cn('inline-block w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse', isPaused ? 'bg-tl-gold' : 'bg-tl-teal')} />
-                {isPaused ? 'Paused' : 'Active'}
+        <div className="flex items-start gap-3 min-w-0">
+          <Button variant="ghost" size="icon" asChild className="w-8 h-8 mt-0.5 shrink-0">
+            <Link href="/company/jobs"><ArrowLeft className="w-4 h-4" /></Link>
+          </Button>
+          <div className="min-w-0">
+            {editing ? (
+              <input
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                className="bg-tl-bg-elevated border border-tl-border-default rounded-lg px-2 py-1 text-xl font-bold text-tl-text-primary focus:outline-none focus:border-tl-gold w-full max-w-md"
+              />
+            ) : (
+              <h1 className="text-xl font-bold text-tl-text-primary truncate">{job.title}</h1>
+            )}
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border capitalize', STATUS_STYLES[currentStatus])}>
+                {currentStatus}
               </span>
-              <span className="tl-tag-teal text-xs">
-                {workModeLabel}
-              </span>
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full border bg-tl-bg-elevated border-tl-border-subtle text-tl-text-secondary">
-                {levelLabel}
-              </span>
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full border bg-tl-bg-elevated border-tl-border-subtle text-tl-text-secondary capitalize">
-                {job.type}
+              <span className="text-[10px] font-mono text-tl-text-secondary bg-tl-bg-elevated px-1.5 py-0.5 rounded border border-tl-border-subtle select-all">
+                {job.id}
               </span>
             </div>
-
-            {/* Salary */}
-            <div className="flex items-center gap-1.5 font-mono font-semibold text-tl-gold">
-              <span>${Math.round(job.salaryMin / 1000)}K</span>
-              <span className="text-tl-text-secondary">–</span>
-              <span>${Math.round(job.salaryMax / 1000)}K</span>
-              <span className="text-sm font-normal text-tl-text-secondary">/ year</span>
-            </div>
-
-            {/* Stats strip */}
-            <div className="flex flex-wrap gap-6 mt-4 pt-4 border-t border-tl-border-subtle text-sm text-tl-text-secondary">
-              <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
-                <span className="font-mono font-semibold text-tl-text-primary">{job.applicantCount}</span> applicants
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5" />
-                <span className="font-mono font-semibold text-tl-text-primary">{job.viewCount.toLocaleString()}</span> views
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                Posted <span className="font-mono font-semibold text-tl-text-primary ml-1">{daysPosted}d ago</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" />
-                Expires in <span className="font-mono font-semibold text-tl-text-primary ml-1">{daysUntilExpiry}d</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" />
-                {job.location}
-              </div>
-              <div className="flex items-center gap-2 ml-auto">
-                <div className="px-3 py-1 rounded-xl bg-tl-gold/10 border border-tl-gold/20 flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-tl-gold" />
-                  <span className="font-mono text-xs text-tl-gold font-medium">Avg match: <span className="font-bold">{avgMatch}%</span></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <button className="btn-ghost flex items-center gap-1.5 px-3 py-2 text-sm">
-              <Edit className="w-3.5 h-3.5" />
-              Edit
-            </button>
-            <button
-              onClick={() => setIsPaused((p) => !p)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm transition-all',
-                isPaused
-                  ? 'border-tl-teal/30 text-tl-teal hover:bg-tl-teal/10'
-                  : 'border-tl-border-subtle text-tl-text-secondary hover:text-tl-text-primary hover:bg-tl-bg-elevated'
-              )}
-            >
-              {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-              {isPaused ? 'Activate' : 'Pause'}
-            </button>
-            <button className="btn-ghost flex items-center gap-1.5 px-3 py-2 text-sm">
-              <Share2 className="w-3.5 h-3.5" />
-              Share
-            </button>
           </div>
         </div>
-      </motion.div>
 
-      {/* ── TABS ──────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.08 }}
-      >
-        {/* Tab nav */}
-        <div className="flex gap-1 border-b border-tl-border-subtle mb-6 overflow-x-auto">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
-              className={cn(
-                'px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 -mb-px',
-                activeTab === t.key
-                  ? 'text-tl-gold border-tl-gold'
-                  : 'text-tl-text-secondary hover:text-tl-text-primary border-transparent'
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <AnimatePresence mode="wait">
-
-          {/* ── OVERVIEW TAB ────────────────────────────────────────── */}
-          {activeTab === 'overview' && (
-            <motion.div
-              key="overview"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-            >
-              <div className="grid lg:grid-cols-3 gap-5">
-                {/* Left: job details */}
-                <div className="lg:col-span-2 space-y-5">
-                  <div className="tl-card p-6">
-                    <h3 className="text-base font-semibold text-tl-text-primary mb-3">About the Role</h3>
-                    <p className="text-sm text-tl-text-secondary leading-relaxed mb-6">{job.description}</p>
-
-                    <h4 className="text-sm font-semibold text-tl-text-primary mb-3">Requirements</h4>
-                    <ul className="space-y-2.5 mb-6">
-                      {job.requirements.map((req, i) => (
-                        <li key={i} className="flex items-start gap-3 text-sm text-tl-text-secondary">
-                          <CheckCircle2 className="w-4 h-4 text-tl-teal mt-0.5 shrink-0" />
-                          {req}
-                        </li>
-                      ))}
-                    </ul>
-
-                    {job.niceToHave.length > 0 && (
-                      <>
-                        <h4 className="text-sm font-semibold text-tl-text-primary mb-3">Nice to Have</h4>
-                        <ul className="space-y-2.5 mb-6">
-                          {job.niceToHave.map((item, i) => (
-                            <li key={i} className="flex items-start gap-3 text-sm text-tl-text-secondary">
-                              <Plus className="w-4 h-4 text-tl-gold mt-0.5 shrink-0" />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-
-                    <h4 className="text-sm font-semibold text-tl-text-primary mb-3">Required Skills</h4>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {job.skills.map((skill) => (
-                        <span key={skill} className="tl-tag-teal text-xs font-medium">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-
-                    <h4 className="text-sm font-semibold text-tl-text-primary mb-3">Benefits</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {job.benefits.map((b) => (
-                        <span key={b} className="tl-tag-gold text-xs font-medium">
-                          {b}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Company */}
-                  <div className="tl-card p-6">
-                    <h3 className="text-base font-semibold text-tl-text-primary mb-3">About {job.company.name}</h3>
-                    <p className="text-sm text-tl-text-secondary leading-relaxed mb-4">{job.company.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {job.company.culture.map((c) => (
-                        <span key={c} className="text-xs px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-subtle text-tl-text-secondary">
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: AI insights */}
-                <div className="space-y-4">
-                  <div className="tl-card-gold p-5">
-                    <div className="flex items-center gap-2.5 mb-5">
-                      <div className="w-9 h-9 rounded-xl bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-4 h-4 text-tl-gold" />
-                      </div>
-                      <h3 className="text-sm font-semibold text-tl-text-primary">AI Insights</h3>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="p-3 rounded-xl bg-tl-bg-base border border-tl-border-subtle">
-                        <p className="text-[10px] text-tl-text-secondary uppercase tracking-wider font-semibold mb-1">Predicted Fill Time</p>
-                        <p className="font-mono text-lg font-bold text-tl-text-primary">22 days</p>
-                        <div className="h-1.5 rounded-full bg-tl-bg-elevated overflow-hidden mt-2">
-                          <div className="h-full w-[64%] rounded-full bg-gradient-to-r from-tl-gold to-tl-teal" />
-                        </div>
-                        <p className="text-[10px] text-tl-text-secondary mt-1">Day 14 of projected 22</p>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-tl-gold/[0.06] border border-tl-gold/20">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-tl-gold shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-[10px] text-tl-gold/80 uppercase tracking-wider font-semibold mb-1">Market Signal</p>
-                            <p className="text-sm text-tl-text-primary">Candidate market: Tight</p>
-                            <p className="text-xs text-tl-text-secondary mt-0.5">8% fewer qualified candidates vs last month</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-tl-teal/[0.06] border border-tl-teal/20">
-                        <div className="flex items-start gap-2">
-                          <TrendingUp className="w-4 h-4 text-tl-teal shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-[10px] text-tl-teal/80 uppercase tracking-wider font-semibold mb-1">Salary Insight</p>
-                            <p className="text-sm text-tl-text-primary">Adjust +$15K to target</p>
-                            <p className="text-xs text-tl-text-secondary mt-0.5">Increases qualified applicants by ~34%</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-tl-bg-base border border-tl-border-subtle">
-                        <p className="text-[10px] text-tl-text-secondary uppercase tracking-wider font-semibold mb-1.5">Top Competing Companies</p>
-                        {[
-                          { name: 'Google', color: 'text-tl-rose' },
-                          { name: 'Meta', color: 'text-tl-teal' },
-                          { name: 'Vercel', color: 'text-tl-text-secondary' },
-                        ].map((c) => (
-                          <div key={c.name} className="flex items-center justify-between py-1">
-                            <span className="text-sm text-tl-text-secondary">{c.name}</span>
-                            <span className={cn('text-[10px] font-medium', c.color)}>Hiring</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+        <div className="flex items-center gap-2 shrink-0 pl-11 sm:pl-0">
+          {editing ? (
+            <>
+              <Button variant="outline" size="sm" onClick={cancelEdit} className="gap-1.5 text-xs h-8">
+                <X className="w-3.5 h-3.5" /> Cancel
+              </Button>
+              <Button size="sm" onClick={save} disabled={saving}
+                className="gap-1.5 text-xs h-8 bg-tl-gold text-white hover:bg-tl-gold/90">
+                <Save className="w-3.5 h-3.5" /> {saving ? 'Saving…' : 'Save Changes'}
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => setEditing(true)} className="gap-1.5 text-xs h-8">
+              <Pencil className="w-3.5 h-3.5" /> Edit Job
+            </Button>
           )}
+        </div>
+      </motion.div>
 
-          {/* ── APPLICANTS TAB ──────────────────────────────────────── */}
-          {activeTab === 'applicants' && (
-            <motion.div
-              key="applicants"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
+      {/* ── Tabs ───────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-1 border-b border-tl-border-subtle">
+        {([
+          { id: 'overview',   label: 'Overview',  icon: FileText },
+          { id: 'applicants', label: 'Applicants', icon: Users, count: tab === 'applicants' ? applicants.length : (job.applicantCount ?? 0) },
+        ] as const).map(t => {
+          const Icon = t.icon
+          const isActive = tab === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+                isActive
+                  ? 'border-tl-gold text-tl-gold'
+                  : 'border-transparent text-tl-text-secondary hover:text-tl-text-primary'
+              )}
             >
-              {/* Filter bar */}
-              <div className="tl-card p-4 mb-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Filter className="w-4 h-4 text-tl-text-secondary shrink-0" />
-                    {/* All stages pill */}
-                    <button
-                      onClick={() => setStageFilter('all')}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                        stageFilter === 'all'
-                          ? 'bg-tl-gold/20 border-tl-gold/40 text-tl-gold'
-                          : 'bg-tl-bg-elevated border-tl-border-subtle text-tl-text-secondary hover:text-tl-text-primary'
-                      )}
-                    >
-                      All ({displayApps.length})
-                    </button>
-                    {PIPELINE_STAGES.map((stage) => {
-                      const count = stageCounts[stage] ?? 0
-                      if (count === 0) return null
-                      return (
-                        <button
-                          key={stage}
-                          onClick={() => setStageFilter(stage)}
-                          className={cn(
-                            'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                            stageFilter === stage
-                              ? 'tl-tag-teal'
-                              : 'bg-tl-bg-elevated border-tl-border-subtle text-tl-text-secondary hover:text-tl-text-primary'
-                          )}
-                        >
-                          {STAGE_LABELS[stage]} ({count})
-                        </button>
-                      )
-                    })}
-                  </div>
+              <Icon className="w-4 h-4" />
+              {t.label}
+              {'count' in t && (
+                <span className={cn(
+                  'ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold',
+                  isActive ? 'bg-tl-gold/15 text-tl-gold' : 'bg-tl-bg-elevated text-tl-text-secondary'
+                )}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Search */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tl-text-secondary" />
-                      <input
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search…"
-                        className="pl-9 pr-3 py-1.5 bg-tl-bg-surface border border-tl-border-subtle rounded-xl text-xs text-tl-text-primary placeholder:text-tl-text-secondary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 w-40 transition-all"
-                      />
-                    </div>
-
-                    {/* Bulk actions */}
-                    {selectedIds.size > 0 && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-tl-text-secondary">{selectedIds.size} selected</span>
-                        <button className="tl-tag-teal text-xs px-3 py-1.5">
-                          Move Stage
-                        </button>
-                        <button className="btn-ghost text-xs px-3 py-1.5">
-                          Send Email
-                        </button>
-                        <button className="text-xs px-3 py-1.5 rounded-xl border border-tl-rose/30 text-tl-rose hover:bg-tl-rose/10 transition-all">
-                          Reject
-                        </button>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={toggleAll}
-                      className="btn-ghost text-xs px-3 py-1.5"
-                    >
-                      {selectedIds.size === filteredApps.length ? 'Deselect All' : 'Select All'}
-                    </button>
-                    <button className="btn-ghost flex items-center gap-1.5 text-xs px-3 py-1.5">
-                      <Download className="w-3.5 h-3.5" />
-                      Export
-                    </button>
-                  </div>
-                </div>
+      {/* ── Tab content ────────────────────────────────────────────────── */}
+      <AnimatePresence mode="wait">
+        {tab === 'overview' ? (
+          <motion.div key="overview"
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="space-y-5"
+          >
+            {/* Meta grid */}
+            <div className="tl-card p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <Meta label="Department" icon={<Briefcase className="w-3.5 h-3.5" />} value={job.department || '—'} />
+              <Meta label="Type"       icon={<Tag className="w-3.5 h-3.5" />}        value={TYPE_LABELS[job.type] ?? job.type} />
+              <Meta label="Level"      icon={<Layers className="w-3.5 h-3.5" />}     value={LEVEL_LABELS[job.level] ?? job.level} />
+              <Meta label="Location"   icon={<MapPin className="w-3.5 h-3.5" />}     value={job.location || 'Remote'} />
+              <div>
+                <p className="text-tl-text-secondary text-[10px] font-semibold uppercase tracking-wider mb-1">Work Mode</p>
+                <div className={cn('flex items-center gap-1.5 text-sm font-medium', wm.cls)}>{wm.icon}{wm.label}</div>
               </div>
-
-              {/* Applicant list */}
-              <div className="space-y-3">
-                {filteredApps.length === 0 ? (
-                  <div className="tl-card p-16 flex flex-col items-center justify-center text-center">
-                    <Users className="w-12 h-12 text-tl-text-secondary/20 mb-4" />
-                    <p className="text-sm font-medium text-tl-text-primary">No applicants in this stage</p>
-                    <p className="text-xs text-tl-text-secondary mt-1">Try a different filter</p>
+              <div>
+                <p className="text-tl-text-secondary text-[10px] font-semibold uppercase tracking-wider mb-1">Salary</p>
+                {editing ? (
+                  <div className="flex items-center gap-1 text-sm">
+                    <input type="number" value={editSalaryMin} onChange={e => setEditSalaryMin(Number(e.target.value))}
+                      className="w-20 bg-tl-bg-elevated border border-tl-border-default rounded px-1.5 py-0.5 text-xs text-tl-text-primary focus:outline-none focus:border-tl-gold" />
+                    <span className="text-tl-text-secondary text-xs">–</span>
+                    <input type="number" value={editSalaryMax} onChange={e => setEditSalaryMax(Number(e.target.value))}
+                      className="w-20 bg-tl-bg-elevated border border-tl-border-default rounded px-1.5 py-0.5 text-xs text-tl-text-primary focus:outline-none focus:border-tl-gold" />
                   </div>
                 ) : (
-                  filteredApps.map((app, idx) => {
-                    const candidate = app.candidate
-                    if (!candidate) return null
-                    const isSelected = selectedIds.has(app.id)
-                    return (
-                      <motion.div
-                        key={app.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.04 }}
-                        className={cn(
-                          'tl-card p-4 hover:border-tl-gold/30 transition-all',
-                          isSelected && 'border-tl-gold/40 bg-tl-gold/[0.02]'
-                        )}
-                      >
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelect(app.id)}
-                            className="w-4 h-4 rounded accent-[#C9A84C] shrink-0"
-                          />
-                          <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 text-white bg-gradient-to-br', avatarBg(candidate.name))}>
-                            {candidate.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-tl-text-primary">{candidate.name}</span>
-                              {candidate.verified && <CheckCircle2 className="w-3.5 h-3.5 text-tl-teal shrink-0" />}
-                            </div>
-                            <p className="text-xs text-tl-text-secondary">{candidate.title}</p>
-                          </div>
-                          <span className={cn('hidden sm:inline-flex font-mono text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0', matchColor(app.matchScore))}>
-                            {app.matchScore}% match
-                          </span>
-                          <span className="hidden md:inline-flex tl-tag-teal text-xs shrink-0">
-                            <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5', STAGE_DOT[app.stage])} />
-                            {STAGE_LABELS[app.stage]}
-                          </span>
-                          <span className="hidden lg:block text-xs text-tl-text-secondary shrink-0">{timeAgo(app.appliedAt)}</span>
-                          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                            <Link
-                              href={`/company/candidates/${candidate.id}`}
-                              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-tl-gold/10 border border-tl-gold/20 text-tl-gold hover:bg-tl-gold/20 transition-all"
-                            >
-                              View Profile
-                            </Link>
-                            <button className="p-1.5 rounded-lg text-tl-text-secondary hover:text-tl-gold hover:bg-tl-gold/10 transition-all">
-                              <Calendar className="w-3.5 h-3.5" />
-                            </button>
-                            <button className="p-1.5 rounded-lg text-tl-text-secondary hover:text-tl-teal hover:bg-tl-teal/10 transition-all">
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </button>
-                            <button className="p-1.5 rounded-lg text-tl-text-secondary hover:text-tl-gold hover:bg-tl-gold/10 transition-all">
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                        {app.notes && (
-                          <div className="mt-3 ml-14 text-xs text-tl-text-secondary bg-tl-bg-base border border-tl-border-subtle rounded-lg px-3 py-2">
-                            {app.notes}
-                          </div>
-                        )}
-                      </motion.div>
-                    )
-                  })
+                  <div className="flex items-center gap-1.5 text-sm font-semibold font-mono text-tl-teal">
+                    <DollarSign className="w-3.5 h-3.5" />
+                    {formatSalary(job.salaryMin, job.salaryMax)}
+                  </div>
                 )}
               </div>
-            </motion.div>
-          )}
+              <Meta label="Posted" icon={<Calendar className="w-3.5 h-3.5" />} value={`${daysAgo(job.postedAt)}d ago`} />
+              {editing && (
+                <div>
+                  <p className="text-tl-text-secondary text-[10px] font-semibold uppercase tracking-wider mb-1">Status</p>
+                  <select value={editStatus} onChange={e => setEditStatus(e.target.value)}
+                    className="bg-tl-bg-elevated border border-tl-border-default rounded-lg px-2 py-1 text-xs text-tl-text-primary focus:outline-none focus:border-tl-gold">
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+              )}
+            </div>
 
-          {/* ── ANALYTICS TAB ───────────────────────────────────────── */}
-          {activeTab === 'analytics' && (
-            <motion.div
-              key="analytics"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-5"
-            >
-              {/* Applications over time */}
-              <div className="tl-card p-6">
-                <p className="section-eyebrow mb-1">Applications Over Time</p>
-                <h3 className="text-base font-semibold text-tl-text-primary mb-5">Weekly Application Volume</h3>
-                <div className="flex items-end gap-3 h-36">
-                  {weeklyData.map((d, i) => (
-                    <div key={d.week} className="flex-1 flex flex-col items-center gap-2">
-                      <div className="flex items-end w-full h-24">
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${(d.apps / maxApps) * 100}%` }}
-                          transition={{ duration: 0.6, delay: i * 0.08 }}
-                          className="w-full rounded-t-lg bg-gradient-to-t from-tl-gold to-tl-gold/60"
-                          title={`${d.apps} applications`}
-                        />
-                      </div>
-                      <span className="font-mono text-[10px] text-tl-text-secondary whitespace-nowrap">{d.week}</span>
+            {/* Description */}
+            <div className="tl-card p-5 space-y-2">
+              <h2 className="text-sm font-semibold text-tl-text-primary flex items-center gap-2">
+                <Eye className="w-4 h-4 text-tl-text-secondary" /> About the Role
+              </h2>
+              {editing ? (
+                <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={8}
+                  className="w-full bg-tl-bg-elevated border border-tl-border-default rounded-xl px-3 py-2.5 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold resize-none" />
+              ) : (
+                <p className="text-sm text-tl-text-secondary leading-relaxed whitespace-pre-wrap">{job.description}</p>
+              )}
+            </div>
+
+            {/* Requirements */}
+            <div className="tl-card p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-tl-text-primary flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-tl-teal" /> Requirements
+              </h2>
+              {editing ? (
+                <div className="space-y-2">
+                  {editReqs.map((req, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input value={req}
+                        onChange={e => { const n = [...editReqs]; n[i] = e.target.value; setEditReqs(n) }}
+                        placeholder={`Requirement ${i + 1}`}
+                        className="flex-1 bg-tl-bg-elevated border border-tl-border-default rounded-lg px-3 py-1.5 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold" />
+                      <button onClick={() => setEditReqs(editReqs.filter((_, j) => j !== i))}
+                        className="p-1.5 text-tl-rose hover:bg-tl-rose/10 rounded-lg transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-5">
-                {/* Source breakdown */}
-                <div className="tl-card p-6">
-                  <p className="section-eyebrow mb-1">Source Breakdown</p>
-                  <h3 className="text-base font-semibold text-tl-text-primary mb-5">Where Applicants Come From</h3>
-                  <div className="space-y-4">
-                    {sourcesData.map((s, i) => (
-                      <div key={s.name}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm text-tl-text-secondary">{s.name}</span>
-                          <span className="font-mono text-sm font-semibold text-tl-gold">{s.pct}%</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-tl-bg-elevated overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${s.pct}%` }}
-                            transition={{ duration: 0.7, delay: i * 0.08, ease: 'easeOut' }}
-                            className={cn('h-full rounded-full', s.color)}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Funnel */}
-                <div className="tl-card p-6">
-                  <p className="section-eyebrow mb-1">Hiring Funnel</p>
-                  <h3 className="text-base font-semibold text-tl-text-primary mb-5">Conversion by Stage</h3>
-                  <div className="space-y-3">
-                    {funnelData.map((item, i) => (
-                      <div key={item.stage} className="flex items-center gap-3">
-                        <span className="text-xs text-tl-text-secondary w-24 shrink-0">{item.stage}</span>
-                        <div className="flex-1 h-2 rounded-full bg-tl-bg-elevated overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${item.pct}%` }}
-                            transition={{ duration: 0.7, delay: i * 0.08, ease: 'easeOut' }}
-                            className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-teal"
-                          />
-                        </div>
-                        <span className="font-mono text-xs font-semibold text-tl-gold w-8 text-right">{item.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ── SETTINGS TAB ────────────────────────────────────────── */}
-          {activeTab === 'settings' && (
-            <motion.div
-              key="settings"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="max-w-2xl space-y-5"
-            >
-              {/* Job status */}
-              <div className="tl-card p-5">
-                <h3 className="text-base font-semibold text-tl-text-primary mb-4">Job Status</h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-tl-text-primary">Active Listing</p>
-                    <p className="text-xs text-tl-text-secondary mt-0.5">
-                      {isJobActive ? 'Visible to candidates, accepting applications' : 'Paused — not visible to candidates'}
-                    </p>
-                  </div>
-                  <Toggle value={isJobActive} onChange={() => setIsJobActive((p) => !p)} />
-                </div>
-              </div>
-
-              {/* Expiry date */}
-              <div className="tl-card p-5">
-                <h3 className="text-base font-semibold text-tl-text-primary mb-4">Expiry Date</h3>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tl-bg-elevated border border-tl-border-subtle text-sm text-tl-text-primary">
-                    <Calendar className="w-4 h-4 text-tl-text-secondary" />
-                    {formatDate(job.expiresAt)}
-                  </div>
-                  <button className="btn-ghost flex items-center gap-1.5 px-3 py-2 text-sm">
-                    <Edit className="w-3.5 h-3.5" />
-                    Edit Date
+                  <button onClick={() => setEditReqs([...editReqs, ''])}
+                    className="flex items-center gap-1.5 text-xs text-tl-text-secondary hover:text-tl-gold transition-colors">
+                    <Plus className="w-3.5 h-3.5" /> Add requirement
                   </button>
                 </div>
-                <p className="text-xs text-tl-text-secondary mt-2">Job expires in {daysUntilExpiry} days</p>
-              </div>
-
-              {/* Notifications */}
-              <div className="tl-card p-5">
-                <div className="flex items-center gap-2.5 mb-5">
-                  <Bell className="w-4 h-4 text-tl-gold" />
-                  <h3 className="text-base font-semibold text-tl-text-primary">Notifications</h3>
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { label: 'New Application', desc: 'Get notified when someone applies', value: notifyNewApp, set: () => setNotifyNewApp((p) => !p) },
-                    { label: 'High Match Found', desc: 'Alert when AI score > 90% candidate applies', value: notifyHighMatch, set: () => setNotifyHighMatch((p) => !p) },
-                  ].map((s) => (
-                    <div key={s.label} className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-tl-text-primary">{s.label}</p>
-                        <p className="text-xs text-tl-text-secondary mt-0.5">{s.desc}</p>
-                      </div>
-                      <SmallToggle value={s.value} onChange={s.set} />
-                    </div>
+              ) : (job.requirements ?? []).length > 0 ? (
+                <ul className="space-y-2">
+                  {(job.requirements ?? []).map((r, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-tl-text-secondary">
+                      <CheckCircle2 className="w-4 h-4 text-tl-teal shrink-0 mt-0.5" />{r}
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ul>
+              ) : <p className="text-sm text-tl-text-secondary/50 italic">No requirements listed.</p>}
+            </div>
 
-              {/* Danger zone */}
-              <div className="tl-card p-5 border-tl-rose/20 bg-tl-rose/[0.02]">
-                <h3 className="text-base font-semibold text-tl-rose mb-2">Danger Zone</h3>
-                <p className="text-sm text-tl-text-secondary mb-4">
-                  Closing this job will hide it from candidates and end all active applications. This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-tl-gold/30 text-tl-gold hover:bg-tl-gold/10 text-sm transition-all">
-                    <Pause className="w-4 h-4" />
-                    Pause Job
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-tl-rose/30 text-tl-rose hover:bg-tl-rose/10 text-sm transition-all">
-                    <Trash2 className="w-4 h-4" />
-                    Close Job
-                  </button>
+            {/* Skills */}
+            <div className="tl-card p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-tl-text-primary flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-tl-gold" /> Required Skills
+              </h2>
+              {editing ? (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                    {editSkills.map(s => (
+                      <span key={s} className="inline-flex items-center gap-1 tl-tag-gold text-xs">
+                        {s}
+                        <button onClick={() => setEditSkills(editSkills.filter(x => x !== s))}
+                          className="hover:text-tl-rose ml-0.5"><X className="w-2.5 h-2.5" /></button>
+                      </span>
+                    ))}
+                  </div>
+                  <input value={editSkillInput} onChange={e => setEditSkillInput(e.target.value)}
+                    onKeyDown={handleSkillKey}
+                    placeholder="Type skill and press Enter or comma…"
+                    className="w-full bg-tl-bg-elevated border border-tl-border-default rounded-lg px-3 py-1.5 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold" />
                 </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {(job.skills ?? []).length > 0
+                    ? (job.skills ?? []).map(s => <span key={s} className="tl-tag-gold text-xs">{s}</span>)
+                    : <p className="text-sm text-tl-text-secondary/50 italic">No skills listed.</p>}
+                </div>
+              )}
+            </div>
+
+            {/* Danger zone */}
+            {!editing && (
+              <div className="tl-card p-4 border border-tl-rose/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-tl-text-primary">Close this job</p>
+                  <p className="text-xs text-tl-text-secondary mt-0.5">Stops accepting new applications.</p>
+                </div>
+                <Button variant="outline" size="sm"
+                  className="gap-1.5 text-xs border-tl-rose/30 text-tl-rose hover:bg-tl-rose/10 shrink-0"
+                  onClick={async () => {
+                    if (!confirm('Close this job posting?')) return
+                    await fetch(`/api/company/jobs/${id}`, { method: 'DELETE' })
+                    toast.success('Job closed')
+                    router.push('/company/jobs')
+                  }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Close Job
+                </Button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div key="applicants"
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            {appsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-6 h-6 border-2 border-tl-teal border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : applicants.length === 0 ? (
+              <div className="tl-card p-12 flex flex-col items-center text-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-tl-bg-elevated flex items-center justify-center">
+                  <Users className="w-6 h-6 text-tl-text-secondary/40" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-tl-text-primary">No applicants yet</p>
+                  <p className="text-xs text-tl-text-secondary mt-1 max-w-sm">
+                    Once candidates apply to this role, they&rsquo;ll show up here with match scores and pipeline stage.
+                  </p>
+                </div>
+                <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs h-8 mt-2">
+                  <Link href="/company/pipeline"><Eye className="w-3.5 h-3.5" /> Open Pipeline</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {applicants.map(app => {
+                  const name = app.candidateName ?? 'Candidate'
+                  const stage = (app.stage ?? 'new') as keyof typeof STAGE_LABELS
+                  return (
+                    <div key={app.id} className="tl-card p-4 flex items-center gap-4 hover:border-tl-gold/30 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-tl-gold/15 border border-tl-gold/30 flex items-center justify-center text-xs font-bold text-tl-gold shrink-0">
+                        {getInitials(name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-tl-text-primary">{name}</span>
+                          {typeof app.matchScore === 'number' && app.matchScore > 0 && (
+                            <span className={cn('text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border', matchColor(app.matchScore))}>
+                              {app.matchScore}% match
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-tl-text-secondary">
+                          {app.candidateTitle && <span>{app.candidateTitle}</span>}
+                          {app.appliedAt && <span>· {timeAgo(app.appliedAt)}</span>}
+                        </div>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                        <span className={cn('w-1.5 h-1.5 rounded-full', STAGE_DOT[stage] ?? 'bg-tl-text-secondary')} />
+                        <span className="text-xs text-tl-text-secondary">{STAGE_LABELS[stage] ?? stage}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {app.candidateEmail && (
+                          <Button asChild variant="ghost" size="icon" className="w-8 h-8" title="Email">
+                            <a href={`mailto:${app.candidateEmail}`}><Mail className="w-3.5 h-3.5" /></a>
+                          </Button>
+                        )}
+                        <Button asChild variant="ghost" size="icon" className="w-8 h-8" title="Message">
+                          <Link href={`/company/messages?candidate=${app.candidateId ?? ''}`}>
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </Link>
+                        </Button>
+                        {app.candidateId && (
+                          <Button asChild variant="outline" size="sm" className="gap-1 text-xs h-8">
+                            <Link href={`/company/candidates/${app.candidateId}`}>View</Link>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Small helpers ───────────────────────────────────────────────────────────
+
+function Meta({ label, icon, value }: { label: string; icon: React.ReactNode; value: string }) {
+  return (
+    <div>
+      <p className="text-tl-text-secondary text-[10px] font-semibold uppercase tracking-wider mb-1">{label}</p>
+      <div className="flex items-center gap-1.5 text-sm text-tl-text-primary">
+        <span className="text-tl-text-secondary">{icon}</span>
+        {value}
+      </div>
     </div>
   )
 }

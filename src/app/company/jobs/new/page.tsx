@@ -401,12 +401,13 @@ export default function PostNewJobPage() {
     const s2 = step2Form.getValues()
     setIsPublishing(true)
     try {
+      const location = s1.location.trim() || (s1.workMode === 'remote' ? 'Remote' : '')
       const result = await createJob({
         title: s1.title, department: s1.department,
         type: s1.jobType as Parameters<typeof createJob>[0]['type'],
         workMode: s1.workMode as Parameters<typeof createJob>[0]['workMode'],
         level: s1.level as Parameters<typeof createJob>[0]['level'],
-        location: s1.location, salaryMin: s1.salaryMin, salaryMax: s1.salaryMax,
+        location, salaryMin: s1.salaryMin, salaryMax: s1.salaryMax,
         currency: s1.currency, description: s2.description,
         requirements: requirements.filter(Boolean),
         niceToHave:   niceToHave.filter(Boolean),
@@ -436,7 +437,7 @@ export default function PostNewJobPage() {
       {/* ── LEFT: Multi-step form ────────────────────────────────────────────── */}
       <div
         className="flex flex-col overflow-y-auto shrink-0 border-r border-tl-border-subtle w-full"
-        style={{ width: window?.innerWidth >= 1024 ? leftWidth : undefined }}
+        style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? leftWidth : undefined }}
       >
         {/* Header + step progress */}
         <div className="px-5 pt-5 pb-4 border-b border-tl-border-subtle bg-tl-bg-surface/80 backdrop-blur-sm shrink-0">

@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   Search,
   Download,
@@ -18,8 +17,11 @@ import {
   XCircle,
   CheckCircle2,
   Filter,
+  RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Status = 'success' | 'warning' | 'error'
 
@@ -33,255 +35,69 @@ interface AuditEntry {
   ip: string
   status: Status
   details: string
+  newValue?: Record<string, unknown>
+  oldValue?: Record<string, unknown>
 }
 
-const AUDIT_LOGS: AuditEntry[] = [
-  {
-    id: 'evt_001',
-    timestamp: '2026-05-01T09:14:32Z',
-    user: 'Sarah Kim',
-    action: 'login',
-    resource: 'Auth',
-    resourceId: 'session_8f2a',
-    ip: '192.168.1.42',
-    status: 'success',
-    details: 'Successful login via SSO (Google Workspace). Session created.',
-  },
-  {
-    id: 'evt_002',
-    timestamp: '2026-05-01T09:22:05Z',
-    user: 'Sarah Kim',
-    action: 'job.create',
-    resource: 'Job',
-    resourceId: 'job_1093',
-    ip: '192.168.1.42',
-    status: 'success',
-    details: 'Created new job posting: "Senior Backend Engineer" in Engineering department.',
-  },
-  {
-    id: 'evt_003',
-    timestamp: '2026-05-01T10:05:18Z',
-    user: 'James Park',
-    action: 'candidate.view',
-    resource: 'Candidate',
-    resourceId: 'cand_4412',
-    ip: '10.0.0.5',
-    status: 'success',
-    details: 'Viewed candidate profile: Alex Thompson. Resume and contact details accessed.',
-  },
-  {
-    id: 'evt_004',
-    timestamp: '2026-05-01T10:31:47Z',
-    user: 'Mike Chen',
-    action: 'candidate.export',
-    resource: 'Candidate',
-    resourceId: 'export_229',
-    ip: '203.0.113.24',
-    status: 'warning',
-    details: 'Bulk export of 47 candidate records initiated. Awaiting compliance review for GDPR scope.',
-  },
-  {
-    id: 'evt_005',
-    timestamp: '2026-05-01T11:00:00Z',
-    user: 'Admin (System)',
-    action: 'mfa.enable',
-    resource: 'Auth',
-    resourceId: 'usr_james_park',
-    ip: '10.0.0.1',
-    status: 'success',
-    details: 'MFA enforcement policy applied to account: James Park. TOTP enrolled.',
-  },
-  {
-    id: 'evt_006',
-    timestamp: '2026-05-01T11:45:03Z',
-    user: 'Lisa Wang',
-    action: 'settings.update',
-    resource: 'Settings',
-    resourceId: 'org_settings',
-    ip: '10.0.0.11',
-    status: 'success',
-    details: 'Updated organization notification settings. Weekly digest disabled for all non-admin users.',
-  },
-  {
-    id: 'evt_007',
-    timestamp: '2026-05-01T12:02:59Z',
-    user: 'James Park',
-    action: 'pipeline.move',
-    resource: 'Candidate',
-    resourceId: 'cand_5581',
-    ip: '10.0.0.5',
-    status: 'success',
-    details: 'Moved candidate Jordan Lee from "Phone Screen" to "Technical Interview" stage.',
-  },
-  {
-    id: 'evt_008',
-    timestamp: '2026-05-01T13:17:22Z',
-    user: 'Mike Chen',
-    action: 'api_key.create',
-    resource: 'API',
-    resourceId: 'key_7h3x',
-    ip: '203.0.113.24',
-    status: 'warning',
-    details: 'New API key created with full read/write scope. Key starts with "tb_live_...". Notify security team.',
-  },
-  {
-    id: 'evt_009',
-    timestamp: '2026-05-01T13:55:10Z',
-    user: 'Sarah Kim',
-    action: 'job.update',
-    resource: 'Job',
-    resourceId: 'job_1093',
-    ip: '192.168.1.42',
-    status: 'success',
-    details: 'Updated job posting salary range and requirements. Published changes to all connected boards.',
-  },
-  {
-    id: 'evt_010',
-    timestamp: '2026-05-01T14:30:05Z',
-    user: 'Admin (System)',
-    action: 'report.download',
-    resource: 'Report',
-    resourceId: 'rpt_diversity_q1',
-    ip: '10.0.0.1',
-    status: 'success',
-    details: 'Q1 Diversity & Inclusion report generated and downloaded (PDF, 3.2 MB).',
-  },
-  {
-    id: 'evt_011',
-    timestamp: '2026-04-30T16:48:33Z',
-    user: 'Lisa Wang',
-    action: 'team.invite',
-    resource: 'Team',
-    resourceId: 'invite_33b2',
-    ip: '10.0.0.11',
-    status: 'success',
-    details: 'Invited new team member: priya.patel@company.com with Recruiter role.',
-  },
-  {
-    id: 'evt_012',
-    timestamp: '2026-04-30T17:10:14Z',
-    user: 'Mike Chen',
-    action: 'billing.update',
-    resource: 'Billing',
-    resourceId: 'sub_pro_plan',
-    ip: '203.0.113.24',
-    status: 'error',
-    details: 'Failed to upgrade to Enterprise plan. Payment method declined. Card ending in 4242.',
-  },
-  {
-    id: 'evt_013',
-    timestamp: '2026-04-30T17:55:40Z',
-    user: 'James Park',
-    action: 'logout',
-    resource: 'Auth',
-    resourceId: 'session_7c1b',
-    ip: '10.0.0.5',
-    status: 'success',
-    details: 'User initiated logout. Session invalidated successfully.',
-  },
-  {
-    id: 'evt_014',
-    timestamp: '2026-04-30T18:22:01Z',
-    user: 'Sarah Kim',
-    action: 'job.delete',
-    resource: 'Job',
-    resourceId: 'job_0974',
-    ip: '192.168.1.42',
-    status: 'success',
-    details: 'Deleted archived job posting: "Junior Data Analyst" (expired 30 days ago). 12 applications archived.',
-  },
-  {
-    id: 'evt_015',
-    timestamp: '2026-04-29T09:03:11Z',
-    user: 'Admin (System)',
-    action: 'settings.update',
-    resource: 'Settings',
-    resourceId: 'security_policy',
-    ip: '10.0.0.1',
-    status: 'success',
-    details: 'Session timeout policy updated from 8h to 4h for all roles. Change effective immediately.',
-  },
-  {
-    id: 'evt_016',
-    timestamp: '2026-04-29T10:44:28Z',
-    user: 'Lisa Wang',
-    action: 'candidate.view',
-    resource: 'Candidate',
-    resourceId: 'cand_8820',
-    ip: '10.0.0.11',
-    status: 'success',
-    details: 'Reviewed candidate portfolio and attached assessment scores for role: Product Designer.',
-  },
-  {
-    id: 'evt_017',
-    timestamp: '2026-04-29T13:15:55Z',
-    user: 'Mike Chen',
-    action: 'login',
-    resource: 'Auth',
-    resourceId: 'session_fail_9x',
-    ip: '198.51.100.77',
-    status: 'error',
-    details: 'Login failed: invalid credentials. 3rd consecutive failure from this IP. Account temporarily locked.',
-  },
-  {
-    id: 'evt_018',
-    timestamp: '2026-04-28T11:30:00Z',
-    user: 'Sarah Kim',
-    action: 'report.download',
-    resource: 'Report',
-    resourceId: 'rpt_hiring_funnel',
-    ip: '192.168.1.42',
-    status: 'success',
-    details: 'Hiring funnel report for April downloaded. 284 applicants, 12 offers, 8 accepted.',
-  },
-  {
-    id: 'evt_019',
-    timestamp: '2026-04-27T15:02:47Z',
-    user: 'James Park',
-    action: 'pipeline.move',
-    resource: 'Candidate',
-    resourceId: 'cand_3301',
-    ip: '10.0.0.5',
-    status: 'warning',
-    details: 'Moved candidate to "Offer" stage without completing reference check step. Policy deviation flagged.',
-  },
-  {
-    id: 'evt_020',
-    timestamp: '2026-04-26T08:55:12Z',
-    user: 'Admin (System)',
-    action: 'mfa.enable',
-    resource: 'Auth',
-    resourceId: 'org_wide_mfa',
-    ip: '10.0.0.1',
-    status: 'success',
-    details: 'Organization-wide MFA enforcement enabled. All users prompted to enroll on next login.',
-  },
-]
+// ─── Normalise raw DynamoDB items → AuditEntry ────────────────────────────────
 
-const ACTION_CATEGORIES = ['All Actions', 'Auth', 'Jobs', 'Candidates', 'Settings', 'Billing', 'Reports', 'API']
+function buildDetails(item: Record<string, unknown>): string {
+  const action = String(item.action ?? '')
+  const resource = String(item.resource ?? '')
+  const nv = item.newValue as Record<string, unknown> | undefined
 
+  if (action === 'auth.signin')  return 'User signed in successfully.'
+  if (action === 'auth.signout') return 'User signed out.'
+  if (action === 'job.created')  return `Created job posting${nv?.title ? `: "${nv.title}"` : ''}.`
+  if (action === 'job.updated')  return `Updated job posting${nv?.title ? `: "${nv.title}"` : ''}.`
+  if (action === 'job.deleted')  return `Deleted job posting.`
+  if (action === 'profile.updated') return 'Company profile updated.'
+  if (action === 'application.status_changed') {
+    const prev = (item.oldValue as Record<string, unknown>)?.status
+    const next = nv?.status
+    return prev && next ? `Application moved from "${prev}" to "${next}".` : 'Application status changed.'
+  }
+  if (nv && Object.keys(nv).length) return `${resource} ${action}: ${JSON.stringify(nv)}`
+  return `${action} on ${resource}.`
+}
+
+function inferStatus(item: Record<string, unknown>): Status {
+  const action = String(item.action ?? '')
+  if (action.endsWith('.failed') || action.endsWith('.error')) return 'error'
+  return 'success'
+}
+
+function normalizeEntry(item: Record<string, unknown>): AuditEntry {
+  return {
+    id:         String(item.id ?? ''),
+    timestamp:  String(item.createdAt ?? ''),
+    user:       String(item.userEmail ?? item.userId ?? 'System'),
+    action:     String(item.action ?? ''),
+    resource:   String(item.resource ?? ''),
+    resourceId: String(item.resourceId ?? ''),
+    ip:         String(item.ipAddress ?? '—'),
+    status:     inferStatus(item),
+    details:    buildDetails(item),
+    newValue:   item.newValue as Record<string, unknown> | undefined,
+    oldValue:   item.oldValue as Record<string, unknown> | undefined,
+  }
+}
+
+// ─── Styling helpers ──────────────────────────────────────────────────────────
+
+const ACTION_CATEGORIES = ['All Actions', 'Auth', 'Jobs', 'Applications', 'Settings', 'API']
 const PAGE_SIZE = 10
 
 function formatTimestamp(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   })
 }
 
 function getInitials(name: string) {
-  return name
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
+  return name.split(/[\s@]+/).slice(0, 2).map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function getAvatarColor(name: string) {
@@ -292,116 +108,102 @@ function getAvatarColor(name: string) {
     'from-orange-500 to-orange-700',
     'from-pink-500 to-pink-700',
   ]
-  const idx = name.charCodeAt(0) % colors.length
-  return colors[idx]
+  return colors[name.charCodeAt(0) % colors.length]
 }
 
 function statusConfig(status: Status) {
   switch (status) {
-    case 'success':
-      return {
-        icon: CheckCircle2,
-        label: 'Success',
-        dot: 'bg-emerald-400',
-        text: 'text-emerald-400',
-        bg: 'bg-emerald-400/10',
-      }
-    case 'warning':
-      return {
-        icon: AlertTriangle,
-        label: 'Warning',
-        dot: 'bg-amber-400',
-        text: 'text-amber-400',
-        bg: 'bg-amber-400/10',
-      }
-    case 'error':
-      return {
-        icon: XCircle,
-        label: 'Error',
-        dot: 'bg-red-400',
-        text: 'text-red-400',
-        bg: 'bg-red-400/10',
-      }
+    case 'success': return { icon: CheckCircle2, label: 'Success', dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-400/10' }
+    case 'warning': return { icon: AlertTriangle, label: 'Warning', dot: 'bg-amber-400',  text: 'text-amber-400',  bg: 'bg-amber-400/10'  }
+    case 'error':   return { icon: XCircle,       label: 'Error',   dot: 'bg-red-400',    text: 'text-red-400',   bg: 'bg-red-400/10'   }
   }
 }
 
 function actionBadgeStyle(action: string) {
-  if (action.startsWith('job')) return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-  if (action.startsWith('candidate')) return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-  if (action === 'login' || action === 'logout' || action === 'mfa.enable')
-    return 'bg-green-500/10 text-green-400 border-green-500/20'
-  if (action.startsWith('billing') || action.startsWith('api_key'))
-    return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-  if (action.startsWith('settings') || action.startsWith('team'))
-    return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-  return 'bg-white/5 text-black/50 border-white/10'
+  if (action.startsWith('job'))         return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+  if (action.startsWith('application')) return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+  if (action.startsWith('auth'))        return 'bg-green-500/10 text-green-400 border-green-500/20'
+  if (action.startsWith('profile') || action.startsWith('settings')) return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+  if (action.startsWith('api'))         return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+  return 'bg-white/5 text-slate-400 border-white/10'
 }
 
-function fakeRequestId(id: string) {
-  return 'req_' + id.replace('evt_', '') + '_' + Math.abs(id.charCodeAt(4) * 13377) % 99999
+function matchesCategory(action: string, cat: string): boolean {
+  const c = cat.toLowerCase()
+  if (c === 'all actions') return true
+  if (c === 'auth')         return action.startsWith('auth')
+  if (c === 'jobs')         return action.startsWith('job')
+  if (c === 'applications') return action.startsWith('application')
+  if (c === 'settings')     return action.startsWith('profile') || action.startsWith('settings')
+  if (c === 'api')          return action.startsWith('api')
+  return true
 }
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AuditLogPage() {
-  const [search, setSearch] = useState('')
+  const [logs, setLogs]               = useState<AuditEntry[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [search, setSearch]           = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | Status>('all')
   const [actionCategory, setActionCategory] = useState('All Actions')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Filter logic
-  const filtered = AUDIT_LOGS.filter((entry) => {
-    const matchSearch =
-      search === '' ||
-      entry.user.toLowerCase().includes(search.toLowerCase()) ||
-      entry.action.toLowerCase().includes(search.toLowerCase()) ||
-      entry.resource.toLowerCase().includes(search.toLowerCase())
+  const fetchLogs = () => {
+    setLoading(true)
+    fetch('/api/company/audit?limit=200')
+      .then(r => r.ok ? r.json() : [])
+      .then((items: Record<string, unknown>[]) => {
+        setLogs(Array.isArray(items) ? items.map(normalizeEntry) : [])
+      })
+      .catch(() => setLogs([]))
+      .finally(() => setLoading(false))
+  }
 
-    const matchStatus = statusFilter === 'all' || entry.status === statusFilter
+  useEffect(() => { fetchLogs() }, [])
 
-    const matchCategory =
-      actionCategory === 'All Actions' ||
-      (() => {
-        const cat = actionCategory.toLowerCase()
-        if (cat === 'auth') return entry.action === 'login' || entry.action === 'logout' || entry.action === 'mfa.enable'
-        if (cat === 'jobs') return entry.action.startsWith('job')
-        if (cat === 'candidates') return entry.action.startsWith('candidate') || entry.action === 'pipeline.move'
-        if (cat === 'settings') return entry.action.startsWith('settings') || entry.action.startsWith('team')
-        if (cat === 'billing') return entry.action.startsWith('billing')
-        if (cat === 'reports') return entry.action.startsWith('report')
-        if (cat === 'api') return entry.action.startsWith('api_key')
-        return true
-      })()
-
+  const filtered = useMemo(() => logs.filter(entry => {
+    const q = search.toLowerCase()
+    const matchSearch = !q ||
+      entry.user.toLowerCase().includes(q) ||
+      entry.action.toLowerCase().includes(q) ||
+      entry.resource.toLowerCase().includes(q) ||
+      entry.details.toLowerCase().includes(q)
+    const matchStatus   = statusFilter === 'all' || entry.status === statusFilter
+    const matchCategory = matchesCategory(entry.action, actionCategory)
     return matchSearch && matchStatus && matchCategory
-  })
+  }), [logs, search, statusFilter, actionCategory])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const safePage = Math.min(currentPage, totalPages)
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const safePage   = Math.min(currentPage, totalPages)
+  const paginated  = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  const handleSearch = (v: string) => {
-    setSearch(v)
-    setCurrentPage(1)
+  const handleSearch   = (v: string) => { setSearch(v);           setCurrentPage(1) }
+  const handleStatus   = (s: 'all' | Status) => { setStatusFilter(s); setCurrentPage(1) }
+  const handleCategory = (c: string) => { setActionCategory(c);   setCurrentPage(1) }
+
+  const successCount = logs.filter(e => e.status === 'success').length
+  const successRate  = logs.length ? Math.round((successCount / logs.length) * 100) : 0
+  const uniqueUsers  = new Set(logs.map(e => e.user)).size
+
+  const handleExport = () => {
+    const header = 'Timestamp,User,Action,Resource,Resource ID,IP,Status\n'
+    const rows = filtered.map(e =>
+      [e.timestamp, e.user, e.action, e.resource, e.resourceId, e.ip, e.status]
+        .map(v => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',')
+    ).join('\n')
+    const blob = new Blob([header + rows], { type: 'text/csv' })
+    const url  = URL.createObjectURL(blob)
+    const a    = Object.assign(document.createElement('a'), { href: url, download: `audit-log-${Date.now()}.csv` })
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Audit log exported', { description: `${filtered.length} events downloaded` })
   }
-
-  const handleStatusFilter = (s: 'all' | Status) => {
-    setStatusFilter(s)
-    setCurrentPage(1)
-  }
-
-  const handleCategory = (c: string) => {
-    setActionCategory(c)
-    setCurrentPage(1)
-  }
-
-  // Stats
-  const totalEvents = AUDIT_LOGS.length
-  const successCount = AUDIT_LOGS.filter((e) => e.status === 'success').length
-  const successRate = Math.round((successCount / totalEvents) * 100)
-  const uniqueUsers = new Set(AUDIT_LOGS.map((e) => e.user)).size
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -409,47 +211,37 @@ export default function AuditLogPage() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/20 flex items-center justify-center">
               <Shield className="w-4 h-4 text-blue-400" />
             </div>
-            <h1 className="text-2xl font-bold text-black">Audit Log</h1>
+            <h1 className="text-2xl font-bold text-tl-text-primary">Audit Log</h1>
           </div>
-          <p className="text-black/40 text-sm ml-12">7-year retention · SOC2 Type II compliant</p>
+          <p className="text-tl-text-secondary text-sm ml-12">All activity for your company account</p>
         </div>
-
-        <div className="flex items-center gap-3">
-          {/* Date range selector (display only) */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-black/60 text-sm cursor-default">
-            <span>Last 7 days</span>
-            <ChevronDown className="w-3.5 h-3.5 text-black/30" />
-          </div>
-
-          <Button
-            variant="outline"
-            className="border-white/10 text-black/70 hover:bg-white/10 hover:text-black gap-2"
-            onClick={() => toast.success('Audit log exported', { description: 'CSV download started' })}
-          >
-            <Download className="w-4 h-4" />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-2 text-xs" onClick={fetchLogs} disabled={loading}>
+            <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
+            Refresh
+          </Button>
+          <Button variant="outline" className="gap-2 text-xs" onClick={handleExport} disabled={!filtered.length}>
+            <Download className="w-3.5 h-3.5" />
             Export CSV
           </Button>
         </div>
       </div>
 
-      {/* Stats row */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Events', value: totalEvents, icon: Shield, color: 'text-blue-400' },
-          { label: 'Success Rate', value: `${successRate}%`, icon: CheckCircle2, color: 'text-emerald-400' },
-          { label: 'Unique Users', value: uniqueUsers, icon: Filter, color: 'text-purple-400' },
-          { label: 'Exports This Month', value: 7, icon: Download, color: 'text-orange-400' },
-        ].map((stat) => {
+          { label: 'Total Events',   value: loading ? '…' : logs.length,    icon: Shield,       color: 'text-blue-400'   },
+          { label: 'Success Rate',   value: loading ? '…' : `${successRate}%`, icon: CheckCircle2, color: 'text-emerald-400' },
+          { label: 'Unique Users',   value: loading ? '…' : uniqueUsers,    icon: Filter,       color: 'text-purple-400' },
+          { label: 'Filtered Events',value: loading ? '…' : filtered.length, icon: Search,       color: 'text-orange-400' },
+        ].map(stat => {
           const Icon = stat.icon
           return (
-            <div
-              key={stat.label}
-              className="flex items-center gap-3 px-4 py-3 bg-white/3 rounded-xl border border-white/8"
-            >
+            <div key={stat.label} className="flex items-center gap-3 px-4 py-3 tl-card rounded-xl">
               <Icon className={cn('w-4 h-4 flex-shrink-0', stat.color)} />
               <div>
-                <p className="text-black font-semibold text-base leading-tight">{stat.value}</p>
-                <p className="text-black/40 text-xs">{stat.label}</p>
+                <p className="text-tl-text-primary font-semibold text-base leading-tight">{stat.value}</p>
+                <p className="text-tl-text-secondary text-xs">{stat.label}</p>
               </div>
             </div>
           )
@@ -458,62 +250,41 @@ export default function AuditLogPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tl-text-secondary" />
           <Input
             placeholder="Search by user, action, resource…"
             value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-9 bg-white/5 border-white/10 text-black placeholder:text-black/30 focus:border-blue-500/50"
+            onChange={e => handleSearch(e.target.value)}
+            className="pl-9 bg-tl-bg-elevated border-tl-border-default text-tl-text-primary placeholder:text-tl-text-secondary"
           />
         </div>
-
-        {/* Status filter */}
-        <div className="flex gap-1.5 p-1 bg-white/5 border border-white/10 rounded-lg">
-          {(['all', 'success', 'warning', 'error'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => handleStatusFilter(s)}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all duration-150',
+        <div className="flex gap-1 p-1 bg-tl-bg-elevated border border-tl-border-default rounded-lg">
+          {(['all', 'success', 'error'] as const).map(s => (
+            <button key={s} onClick={() => handleStatus(s)}
+              className={cn('px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all duration-150',
                 statusFilter === s
-                  ? s === 'all'
-                    ? 'bg-white/15 text-black'
-                    : s === 'success'
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : s === 'warning'
-                    ? 'bg-amber-500/20 text-amber-400'
+                  ? s === 'all' ? 'bg-tl-bg-surface text-tl-text-primary'
+                    : s === 'success' ? 'bg-emerald-500/20 text-emerald-400'
                     : 'bg-red-500/20 text-red-400'
-                  : 'text-black/40 hover:text-black/70'
-              )}
-            >
+                  : 'text-tl-text-secondary hover:text-tl-text-primary'
+              )}>
               {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
-
-        {/* Action category dropdown */}
         <div className="relative">
-          <select
-            value={actionCategory}
-            onChange={(e) => handleCategory(e.target.value)}
-            className="appearance-none bg-white/5 border border-white/10 text-black/70 text-sm rounded-lg px-3 py-2 pr-8 cursor-pointer focus:outline-none focus:border-blue-500/50 hover:bg-white/8 transition-colors"
-          >
-            {ACTION_CATEGORIES.map((c) => (
-              <option key={c} value={c} className="bg-[#0f0f1a] text-black">
-                {c}
-              </option>
-            ))}
+          <select value={actionCategory} onChange={e => handleCategory(e.target.value)}
+            className="appearance-none bg-tl-bg-elevated border border-tl-border-default text-tl-text-primary text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:border-tl-gold/50 hover:bg-tl-bg-surface transition-colors">
+            {ACTION_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30 pointer-events-none" />
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tl-text-secondary pointer-events-none" />
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.02]">
-        {/* Table header */}
-        <div className="grid grid-cols-[1.6fr_1.4fr_1.4fr_1fr_1fr_0.8fr] gap-3 px-4 py-3 bg-white/5 border-b border-white/10 text-xs font-semibold text-black/40 uppercase tracking-wider">
+      <div className="rounded-xl border border-tl-border-subtle overflow-hidden bg-tl-bg-surface">
+        <div className="hidden md:grid grid-cols-[1.6fr_1.4fr_1.4fr_1fr_1fr_0.8fr] gap-3 px-4 py-3 bg-tl-bg-elevated border-b border-tl-border-subtle text-xs font-semibold text-tl-text-secondary uppercase tracking-wider">
           <span>Timestamp</span>
           <span>User</span>
           <span>Action</span>
@@ -522,19 +293,21 @@ export default function AuditLogPage() {
           <span>Status</span>
         </div>
 
-        {/* Table rows */}
-        <div className="divide-y divide-white/5">
-          {paginated.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-black/30 gap-3">
-              <Search className="w-8 h-8 opacity-50" />
-              <p className="text-sm">No entries match your filters</p>
+        <div className="divide-y divide-tl-border-subtle">
+          {loading ? (
+            <div className="flex items-center justify-center py-16 gap-3 text-tl-text-secondary">
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading audit log…</span>
+            </div>
+          ) : paginated.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-tl-text-secondary gap-3">
+              <Shield className="w-8 h-8 opacity-30" />
+              <p className="text-sm">{logs.length === 0 ? 'No audit events recorded yet.' : 'No entries match your filters.'}</p>
             </div>
           ) : (
             paginated.map((entry, i) => {
               const isExpanded = expandedRow === entry.id
               const sc = statusConfig(entry.status)
-              const StatusIcon = sc.icon
-
               return (
                 <div key={entry.id}>
                   <motion.div
@@ -543,99 +316,88 @@ export default function AuditLogPage() {
                     transition={{ delay: i * 0.03 }}
                     onClick={() => setExpandedRow(isExpanded ? null : entry.id)}
                     className={cn(
-                      'grid grid-cols-[1.6fr_1.4fr_1.4fr_1fr_1fr_0.8fr] gap-3 px-4 py-3.5 cursor-pointer transition-colors duration-150',
-                      isExpanded ? 'bg-white/5' : 'hover:bg-white/[0.035]'
+                      'grid grid-cols-1 md:grid-cols-[1.6fr_1.4fr_1.4fr_1fr_1fr_0.8fr] gap-2 md:gap-3 px-4 py-3.5 cursor-pointer transition-colors duration-150',
+                      isExpanded ? 'bg-tl-bg-elevated' : 'hover:bg-tl-bg-elevated/50'
                     )}
                   >
                     {/* Timestamp */}
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-black/50 text-xs font-mono truncate">
+                      <span className="text-tl-text-secondary text-xs font-mono truncate">
                         {formatTimestamp(entry.timestamp)}
                       </span>
                     </div>
-
                     {/* User */}
                     <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className={cn(
-                          'w-6 h-6 rounded-full bg-gradient-to-br flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-black',
-                          getAvatarColor(entry.user)
-                        )}
-                      >
+                      <div className={cn('w-6 h-6 rounded-full bg-gradient-to-br flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white', getAvatarColor(entry.user))}>
                         {getInitials(entry.user)}
                       </div>
-                      <span className="text-black/80 text-sm truncate">{entry.user}</span>
+                      <span className="text-tl-text-primary text-sm truncate">{entry.user}</span>
                     </div>
-
                     {/* Action */}
                     <div className="flex items-center min-w-0">
-                      <span
-                        className={cn(
-                          'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono border truncate',
-                          actionBadgeStyle(entry.action)
-                        )}
-                      >
+                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono border truncate', actionBadgeStyle(entry.action))}>
                         {entry.action}
                       </span>
                     </div>
-
                     {/* Resource */}
                     <div className="flex items-center min-w-0">
-                      <span className="text-black/60 text-sm truncate">{entry.resource}</span>
+                      <span className="text-tl-text-secondary text-sm truncate capitalize">{entry.resource}</span>
                     </div>
-
                     {/* IP */}
                     <div className="flex items-center min-w-0">
-                      <span className="text-black/40 text-xs font-mono truncate">{entry.ip}</span>
+                      <span className="text-tl-text-secondary text-xs font-mono truncate">{entry.ip}</span>
                     </div>
-
-                    {/* Status */}
+                    {/* Status + chevron */}
                     <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium',
-                          sc.bg,
-                          sc.text
-                        )}
-                      >
+                      <span className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium', sc.bg, sc.text)}>
                         <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', sc.dot)} />
                         {sc.label}
                       </span>
-                      {isExpanded ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-black/30 flex-shrink-0 ml-auto" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5 text-black/20 flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100" />
-                      )}
+                      {isExpanded
+                        ? <ChevronUp className="w-3.5 h-3.5 text-tl-text-secondary flex-shrink-0 ml-auto" />
+                        : <ChevronDown className="w-3.5 h-3.5 text-tl-text-secondary/40 flex-shrink-0 ml-auto" />
+                      }
                     </div>
                   </motion.div>
 
-                  {/* Expanded row */}
+                  {/* Expanded detail */}
                   {isExpanded && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="px-4 pb-4 bg-white/[0.03] border-t border-white/5"
+                      className="px-4 pb-4 bg-tl-bg-elevated border-t border-tl-border-subtle"
                     >
-                      <div className="mt-3 grid sm:grid-cols-3 gap-4 p-4 rounded-xl bg-white/5 border border-white/8">
+                      <div className="mt-3 grid sm:grid-cols-3 gap-4 p-4 rounded-xl bg-tl-bg-surface border border-tl-border-default">
                         <div className="sm:col-span-2 space-y-1">
-                          <p className="text-black/40 text-xs font-semibold uppercase tracking-wider">Details</p>
-                          <p className="text-black/70 text-sm leading-relaxed">{entry.details}</p>
+                          <p className="text-tl-text-secondary text-xs font-semibold uppercase tracking-wider">Details</p>
+                          <p className="text-tl-text-primary text-sm leading-relaxed">{entry.details}</p>
+                          {entry.newValue && Object.keys(entry.newValue).length > 0 && (
+                            <pre className="mt-2 text-[11px] text-tl-text-secondary bg-tl-bg-base rounded-lg p-2 overflow-x-auto">
+                              {JSON.stringify(entry.newValue, null, 2)}
+                            </pre>
+                          )}
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <p className="text-black/40 text-xs font-semibold uppercase tracking-wider mb-1">Full Timestamp</p>
-                            <p className="text-black/60 text-xs font-mono">{entry.timestamp}</p>
+                            <p className="text-tl-text-secondary text-xs font-semibold uppercase tracking-wider mb-1">Full Timestamp</p>
+                            <p className="text-tl-text-secondary text-xs font-mono">{entry.timestamp}</p>
                           </div>
                           <div>
-                            <p className="text-black/40 text-xs font-semibold uppercase tracking-wider mb-1">Request ID</p>
-                            <p className="text-black/60 text-xs font-mono">{fakeRequestId(entry.id)}</p>
+                            <p className="text-tl-text-secondary text-xs font-semibold uppercase tracking-wider mb-1">IP Address</p>
+                            <p className="text-tl-text-secondary text-xs font-mono">{entry.ip}</p>
                           </div>
                           <div>
-                            <p className="text-black/40 text-xs font-semibold uppercase tracking-wider mb-1">Resource ID</p>
-                            <p className="text-black/60 text-xs font-mono">{entry.resourceId}</p>
+                            <p className="text-tl-text-secondary text-xs font-semibold uppercase tracking-wider mb-1">Event ID</p>
+                            <p className="text-tl-text-secondary text-xs font-mono break-all">{entry.id}</p>
                           </div>
+                          {entry.resourceId && (
+                            <div>
+                              <p className="text-tl-text-secondary text-xs font-semibold uppercase tracking-wider mb-1">Resource ID</p>
+                              <p className="text-tl-text-secondary text-xs font-mono break-all">{entry.resourceId}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -648,72 +410,48 @@ export default function AuditLogPage() {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-black/40 text-sm">
-          Showing{' '}
-          <span className="text-black/70 font-medium">
-            {filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–
-            {Math.min(safePage * PAGE_SIZE, filtered.length)}
-          </span>{' '}
-          of <span className="text-black/70 font-medium">{filtered.length}</span> events
-        </p>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-            className="border-white/10 text-black/60 hover:bg-white/10 hover:text-black disabled:opacity-30 gap-1"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Prev
-          </Button>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
-              .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) {
-                  acc.push('...')
-                }
-                acc.push(p)
-                return acc
-              }, [])
-              .map((item, idx) =>
-                item === '...' ? (
-                  <span key={`ellipsis-${idx}`} className="text-black/30 text-sm px-1">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={item}
-                    onClick={() => setCurrentPage(item as number)}
-                    className={cn(
-                      'w-8 h-8 rounded-lg text-sm font-medium transition-all duration-150',
-                      safePage === item
-                        ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20'
-                        : 'text-black/50 hover:bg-white/10 hover:text-black'
-                    )}
-                  >
-                    {item}
-                  </button>
-                )
-              )}
+      {!loading && filtered.length > 0 && (
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <p className="text-tl-text-secondary text-sm">
+            Showing{' '}
+            <span className="text-tl-text-primary font-medium">
+              {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)}
+            </span>{' '}
+            of <span className="text-tl-text-primary font-medium">{filtered.length}</span> events
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={safePage <= 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+              className="gap-1 text-xs">
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...')
+                  acc.push(p)
+                  return acc
+                }, [])
+                .map((item, idx) =>
+                  item === '...'
+                    ? <span key={`e${idx}`} className="text-tl-text-secondary text-sm px-1">…</span>
+                    : <button key={item} onClick={() => setCurrentPage(item as number)}
+                        className={cn('w-8 h-8 rounded-lg text-sm font-medium transition-all',
+                          safePage === item ? 'bg-tl-gold text-tl-bg-base shadow-sm' : 'text-tl-text-secondary hover:bg-tl-bg-elevated hover:text-tl-text-primary'
+                        )}>
+                        {item}
+                      </button>
+                )}
+            </div>
+            <Button variant="outline" size="sm" disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              className="gap-1 text-xs">
+              Next <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-            className="border-white/10 text-black/60 hover:bg-white/10 hover:text-black disabled:opacity-30 gap-1"
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </Button>
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -32,7 +32,7 @@ import {
 import type { WorkMode, JobType, ExperienceLevel } from '@/lib/types'
 import { WORK_MODE_LABELS, JOB_TYPE_LABELS, EXPERIENCE_LABELS } from '@/lib/constants'
 
-// ─── Deterministic match score ────────────────────────────────────────────────
+// â”€â”€â”€ Deterministic match score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getMatchScore(id: string): number {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff
@@ -40,7 +40,7 @@ function getMatchScore(id: string): number {
 }
 
 
-// ─── Filter Pill ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Filter Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -57,7 +57,7 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
   )
 }
 
-// ─── Checkbox row (for sidebar) ───────────────────────────────────────────────
+// â”€â”€â”€ Checkbox row (for sidebar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CheckboxRow({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
   return (
     <label className="flex items-center gap-2.5 cursor-pointer group py-0.5">
@@ -89,7 +89,7 @@ function CheckboxRow({ checked, onChange, label }: { checked: boolean; onChange:
   )
 }
 
-// ─── Toggle Switch ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Toggle Switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <label className="flex items-center gap-2.5 cursor-pointer group">
@@ -115,11 +115,11 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
   )
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type SortBy = 'match' | 'newest' | 'salary'
 const ITEMS = 10
 
-// ─── Job Card ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Job Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: boolean; onSave: () => void }) {
   const isNew = (Date.now() - new Date(job.postedAt).getTime()) < 1000 * 60 * 60 * 48
 
@@ -128,7 +128,7 @@ function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: 
       <div className="flex items-start gap-3 sm:gap-4">
         {/* Left: avatar + featured badge */}
         <div className="relative shrink-0">
-          <img src={companyAvatarUrl(job.company.name)} alt={job.company.name} className="w-14 h-14 rounded-2xl object-cover" />
+          <img src={companyAvatarUrl(job.company?.name ?? job.title ?? 'company')} alt={job.company?.name ?? ''} className="w-14 h-14 rounded-2xl object-cover" />
           {job.featured && (
             <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-tl-gold flex items-center justify-center">
               <Star className="w-2.5 h-2.5 text-tl-bg-base fill-current" />
@@ -161,8 +161,8 @@ function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: 
           {/* Row 2: company + location + salary */}
           <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 mb-2 text-sm text-tl-text-secondary">
             <span className="flex items-center gap-1 font-medium">
-              {job.company.name}
-              {job.company.verified && <CheckCircle2 className="w-3.5 h-3.5 text-tl-teal" />}
+              {job.company?.name}
+              {job.company?.verified && <CheckCircle2 className="w-3.5 h-3.5 text-tl-teal" />}
             </span>
             <span className="flex items-center gap-1 text-xs">
               <MapPin className="w-3 h-3 shrink-0" />{job.location}
@@ -233,7 +233,7 @@ function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: 
   )
 }
 
-// ─── Filter sidebar content (shared between desktop sidebar + mobile drawer) ──
+// â”€â”€â”€ Filter sidebar content (shared between desktop sidebar + mobile drawer) â”€â”€
 function FilterSidebarContent({
   search,
   setSearch,
@@ -295,7 +295,7 @@ function FilterSidebarContent({
       <div className="relative bg-tl-bg-surface border border-tl-border-default focus-within:border-tl-gold rounded-xl transition-colors">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tl-text-secondary" />
         <input
-          placeholder="Job title or company…"
+          placeholder="Job title or companyâ€¦"
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
           className="w-full bg-transparent pl-9 pr-4 py-2.5 text-sm text-tl-text-primary placeholder:text-tl-text-secondary focus:outline-none rounded-xl"
@@ -399,7 +399,7 @@ function FilterSidebarContent({
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function JobsPage() {
   const [search, setSearch]                   = useState('')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -518,7 +518,7 @@ export default function JobsPage() {
   return (
     <div className="h-full flex overflow-hidden">
 
-      {/* ── DESKTOP FILTER SIDEBAR — fixed beside main sidebar ─────────────── */}
+      {/* â”€â”€ DESKTOP FILTER SIDEBAR â€” fixed beside main sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.aside
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
@@ -530,7 +530,7 @@ export default function JobsPage() {
         </div>
       </motion.aside>
 
-      {/* ── RIGHT: scrollable jobs column ───────────────────────────────────── */}
+      {/* â”€â”€ RIGHT: scrollable jobs column â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 max-w-3xl mx-auto">
 
@@ -644,7 +644,7 @@ export default function JobsPage() {
               ))}
               {(salaryMin || salaryMax) && (
                 <span className="inline-flex items-center gap-1 tl-tag-gold">
-                  {salaryMin && salaryMax ? `$${salaryMin}–$${salaryMax}` : salaryMin ? `Min $${salaryMin}` : `Max $${salaryMax}`}
+                  {salaryMin && salaryMax ? `$${salaryMin}â€“$${salaryMax}` : salaryMin ? `Min $${salaryMin}` : `Max $${salaryMax}`}
                   <button onClick={() => { setSalaryMin(''); setSalaryMax(''); setPage(1) }} className="hover:text-tl-rose ml-0.5">
                     <X className="w-2.5 h-2.5" />
                   </button>
@@ -741,13 +741,13 @@ export default function JobsPage() {
 
           {filtered.length > 0 && (
             <p className="text-center text-xs text-tl-text-secondary mt-3 font-mono">
-              Showing {(page - 1) * ITEMS + 1}–{Math.min(page * ITEMS, filtered.length)} of {filtered.length} jobs
+              Showing {(page - 1) * ITEMS + 1}â€“{Math.min(page * ITEMS, filtered.length)} of {filtered.length} jobs
             </p>
           )}
         </div>
       </div>
 
-      {/* ── MOBILE FILTER DRAWER ─────────────────────────────────────────────── */}
+      {/* â”€â”€ MOBILE FILTER DRAWER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {showMobileFilters && (
           <>

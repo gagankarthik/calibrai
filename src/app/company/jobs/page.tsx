@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { getJobs } from '@/lib/api'
+import { getCompanyJobs } from '@/lib/api'
 import type { Job } from '@/lib/types'
 import { formatSalary, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,8 @@ import {
   ChevronRight,
   Layers,
   PackageOpen,
+  Copy,
+  Check,
 } from 'lucide-react'
 
 const PAGE_SIZE = 6
@@ -78,6 +80,26 @@ function daysActive(postedAt: string): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24))
 }
 
+function CopyId({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false)
+  const short = id.slice(0, 10)
+  const copy = () => {
+    navigator.clipboard.writeText(id).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); copy() }}
+      title={id}
+      className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.10] text-muted-foreground hover:text-foreground hover:border-white/20 transition-all"
+    >
+      {short}…
+      {copied ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+    </button>
+  )
+}
+
 export default function JobsPage() {
   const [allJobs, setAllJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -89,7 +111,7 @@ export default function JobsPage() {
 
   useEffect(() => {
     async function load() {
-      const res = await getJobs()
+      const res = await getCompanyJobs({ limit: 100 })
       if (res.data) setAllJobs(res.data)
       setLoading(false)
     }
@@ -114,19 +136,20 @@ export default function JobsPage() {
   }
 
   const filtered = useMemo(() => {
+    const q = search.toLowerCase()
     return allJobs.filter((job) => {
       const effectiveStatus = pausedJobs.has(job.id) ? 'paused' : job.status
       const matchesSearch =
-        !search ||
-        job.title.toLowerCase().includes(search.toLowerCase()) ||
-        job.department.toLowerCase().includes(search.toLowerCase()) ||
-        job.location.toLowerCase().includes(search.toLowerCase())
+        !q ||
+        (job.title ?? '').toLowerCase().includes(q) ||
+        (job.department ?? '').toLowerCase().includes(q) ||
+        (job.location ?? '').toLowerCase().includes(q)
       const matchesStatus = statusFilter === 'all' || effectiveStatus === statusFilter
       const matchesWorkMode = workModeFilter === 'all' || job.workMode === workModeFilter
       const matchesLevel = levelFilter === 'all' || job.level === levelFilter
       return matchesSearch && matchesStatus && matchesWorkMode && matchesLevel
     })
-  }, [search, statusFilter, workModeFilter, levelFilter, pausedJobs])
+  }, [allJobs, search, statusFilter, workModeFilter, levelFilter, pausedJobs])
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -148,7 +171,7 @@ export default function JobsPage() {
   )
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-screen-xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-screen">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -287,9 +310,9 @@ export default function JobsPage() {
           {paginated.map((job, idx) => {
             const effectiveStatus = getEffectiveStatus(job)
             const isPaused = pausedJobs.has(job.id)
-            const wm = workModeStyles[job.workMode]
-            const active = daysActive(job.postedAt)
-            const applicantPct = Math.min((job.applicantCount / 500) * 100, 100)
+            const wm = workModeStyles[job.workMode] ?? { icon: <Wifi className="w-3 h-3" />, label: job.workMode ?? '—', className: 'text-tl-text-secondary' }
+            const active = job.postedAt ? daysActive(job.postedAt) : 0
+            const applicantPct = Math.min(((job.applicantCount ?? 0) / 500) * 100, 100)
 
             return (
               <motion.div
@@ -297,21 +320,23 @@ export default function JobsPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: idx * 0.04 }}
-                className="glass-card p-4 hover:border-white/[0.15] transition-all duration-200 group"
+                onClick={() => { window.location.href = `/company/jobs/${job.id}` }}
+                className="glass-card p-4 hover:border-white/[0.15] transition-all duration-200 group cursor-pointer"
               >
                 <div className="flex flex-col md:flex-row md:items-center gap-4">
                   {/* Company + Title */}
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/10">
-                      <img
-                        src={job.company.logo}
-                        alt={job.company.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const el = e.currentTarget as HTMLImageElement
-                          el.style.display = 'none'
-                        }}
-                      />
+                      {job.company?.logo ? (
+                        <img
+                          src={job.company.logo}
+                          alt={job.company?.name ?? ''}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                        />
+                      ) : (
+                        <Briefcase className="w-4 h-4 text-muted-foreground/40" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -328,7 +353,7 @@ export default function JobsPage() {
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <MapPin className="w-3 h-3" />
-                          {job.location}
+                          {job.location || 'Remote'}
                         </span>
                         <span className={cn('flex items-center gap-1 text-xs font-medium', wm.className)}>
                           {wm.icon}
@@ -338,6 +363,7 @@ export default function JobsPage() {
                           <Layers className="w-3 h-3" />
                           {levelLabels[job.level]}
                         </span>
+                        <CopyId id={job.id} />
                       </div>
                     </div>
                   </div>
@@ -382,14 +408,17 @@ export default function JobsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <Button
+                      asChild
                       variant="ghost"
                       size="icon"
                       className="w-8 h-8 rounded-lg hover:bg-white/[0.08]"
                       title="Edit Job"
                     >
-                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Link href={`/company/jobs/${job.id}?edit=1`}>
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Link>
                     </Button>
                     <Button
                       variant="ghost"
@@ -411,7 +440,7 @@ export default function JobsPage() {
                       className="w-8 h-8 rounded-lg hover:bg-white/[0.08]"
                       title="View Applications"
                     >
-                      <Link href="/company/pipeline">
+                      <Link href={`/company/jobs/${job.id}?tab=applicants`}>
                         <Eye className="w-3.5 h-3.5 text-blue-400" />
                       </Link>
                     </Button>

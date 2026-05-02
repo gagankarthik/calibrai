@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
@@ -9,8 +9,9 @@ import {
   Banknote, CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LandingNav } from '@/components/landing/landing-nav'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface JobCompany {
   name?: string
   verified?: boolean
@@ -18,7 +19,8 @@ interface JobCompany {
 }
 
 interface Job {
-  jobId: string
+  id: string
+  jobId?: string
   title: string
   company?: JobCompany | string
   location?: string
@@ -41,7 +43,7 @@ interface Job {
 function getCompanyName(job: Job): string {
   if (!job.company) return 'Unknown Company'
   if (typeof job.company === 'string') return job.company
-  return job.company.name ?? 'Unknown Company'
+  return job.company?.name ?? 'Unknown Company'
 }
 
 function isVerified(job: Job): boolean {
@@ -52,7 +54,7 @@ function isVerified(job: Job): boolean {
 function formatSalary(min?: number, max?: number, currency = 'USD'): string {
   if (!min && !max) return ''
   const sym = currency === 'USD' ? '$' : currency
-  if (min && max) return `${sym}${Math.round(min / 1000)}K–${sym}${Math.round(max / 1000)}K`
+  if (min && max) return `${sym}${Math.round(min / 1000)}Kâ€“${sym}${Math.round(max / 1000)}K`
   if (max) return `Up to ${sym}${Math.round(max / 1000)}K`
   return `${sym}${Math.round((min ?? 0) / 1000)}K+`
 }
@@ -81,7 +83,7 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   internship: 'Internship', freelance: 'Freelance',
 }
 
-// ─── Job Card ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Job Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function JobCard({ job }: { job: Job }) {
   const companyName = getCompanyName(job)
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency)
@@ -91,16 +93,16 @@ function JobCard({ job }: { job: Job }) {
   function handleApply(e: React.MouseEvent) {
     e.preventDefault()
     if (isLoggedInAsTalent()) {
-      window.location.href = `/talent/jobs/${job.jobId}`
+      window.location.href = `/talent/jobs/${job.id ?? job.jobId}`
     } else if (isScraped && job.sourceUrl) {
       window.location.href = `/auth/login?next=${encodeURIComponent(job.sourceUrl)}`
     } else {
-      window.location.href = `/auth/login?next=${encodeURIComponent(`/talent/jobs/${job.jobId}`)}`
+      window.location.href = `/auth/login?next=${encodeURIComponent(`/talent/jobs/${job.id ?? job.jobId}`)}`
     }
   }
 
   return (
-    <Link href={`/jobs/${job.jobId}`} className="block group">
+    <Link href={`/jobs/${job.id ?? job.jobId}`} className="block group">
       <div className="tl-card p-4 sm:p-5 hover:border-tl-gold/40 transition-all duration-300 cursor-pointer">
         <div className="flex items-start gap-4">
           {/* Company avatar */}
@@ -204,7 +206,7 @@ function JobCard({ job }: { job: Job }) {
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ITEMS_PER_PAGE = 12
 
 export default function PublicJobsPage() {
@@ -258,25 +260,9 @@ export default function PublicJobsPage() {
   return (
     <div className="min-h-screen bg-[var(--tl-bg-base)]">
       {/* Header / Navbar */}
-      <header className="sticky top-0 z-50 bg-[var(--tl-bg-surface)]/95 backdrop-blur-xl border-b border-[var(--tl-border-subtle)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-              <Briefcase className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="text-sm font-semibold text-[var(--tl-text-primary)] tracking-tight">TalentBridge</span>
-          </Link>
+      <LandingNav />
 
-          <div className="flex items-center gap-2">
-            <Link href="/auth/login" className="btn-ghost text-sm hidden sm:block">Sign in</Link>
-            <Link href="/auth/register?role=talent" className="btn-gold text-sm">
-              Join as Talent
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pt-32">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
@@ -287,7 +273,7 @@ export default function PublicJobsPage() {
             Find Your Next Role
           </h1>
           <p className="text-[var(--tl-text-secondary)] text-base">
-            {loading ? 'Loading jobs…' : `${allJobs.length} open positions · Browse freely, login to apply`}
+            {loading ? 'Loading jobsâ€¦' : `${allJobs.length} open positions Â· Browse freely, login to apply`}
           </p>
         </motion.div>
 
@@ -302,7 +288,7 @@ export default function PublicJobsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--tl-text-secondary)]" />
             <input
               type="text"
-              placeholder="Search roles, companies, skills…"
+              placeholder="Search roles, companies, skillsâ€¦"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               className="input-field pl-10 py-3 w-full text-sm"
@@ -434,7 +420,7 @@ export default function PublicJobsPage() {
               className="space-y-3"
             >
               {paginated.map(job => (
-                <JobCard key={job.jobId} job={job} />
+                <JobCard key={job.id ?? job.jobId} job={job} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -478,7 +464,7 @@ export default function PublicJobsPage() {
 
         {filtered.length > 0 && !loading && (
           <p className="text-center text-xs text-[var(--tl-text-secondary)] mt-3 font-mono">
-            Showing {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
+            Showing {(page - 1) * ITEMS_PER_PAGE + 1}â€“{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
           </p>
         )}
       </div>

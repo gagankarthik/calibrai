@@ -35,10 +35,17 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     fetch('/api/auth/me')
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (r.status === 401) {
+          const next = encodeURIComponent(window.location.pathname + window.location.search)
+          router.replace(`/auth/login?role=company&redirect=${next}`)
+          return null
+        }
+        return r.ok ? r.json() : null
+      })
       .then(data => { if (data && !data.error) setUser(data) })
       .catch(() => {})
-  }, [])
+  }, [router])
 
   function handleSignOut() {
     document.cookie = 'tb-company-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
@@ -56,7 +63,7 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
         onMobileClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex-1 md:pl-64 flex flex-col min-h-0">
+      <div className="flex-1 md:pl-64 flex flex-col min-h-0 min-w-0">
         {/* Top Bar */}
         <header className="sticky top-0 z-30 flex items-center justify-between px-3 md:px-6 py-3 border-b border-tl-border-subtle bg-tl-bg-surface/80 backdrop-blur-xl shrink-0">
           {/* Left: hamburger (mobile) + search (desktop) */}
@@ -154,7 +161,7 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
           </div>
         </header>
 
-        <main className="flex-1 min-h-0 overflow-y-auto">
+        <main className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>

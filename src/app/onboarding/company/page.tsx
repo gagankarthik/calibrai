@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -122,6 +122,26 @@ export default function CompanyOnboardingPage() {
 
   const totalSteps = 3
 
+  // Auth guard + pre-fill company name from registration
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => {
+        if (!r.ok) { router.replace('/auth/login?role=company&redirect=/onboarding/company'); return null }
+        return r.json()
+      })
+      .then((user: { companyName?: string } | null) => {
+        if (!user) return
+        // Pre-fill the company name that was entered at registration
+        if (user.companyName) setForm(prev => ({ ...prev, companyName: user.companyName! }))
+        // Also try the profile API in case it has a more up-to-date name
+        return fetch('/api/company/profile').then(r => r.ok ? r.json() : null)
+      })
+      .then((profile: { name?: string } | null | undefined) => {
+        if (profile?.name) setForm(prev => ({ ...prev, companyName: profile.name! }))
+      })
+      .catch(() => router.replace('/auth/login?role=company&redirect=/onboarding/company'))
+  }, [router])
+
   const update = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }))
 
@@ -134,7 +154,32 @@ export default function CompanyOnboardingPage() {
     }))
   }
 
-  const goNext = () => { setDirection(1); setStep((s) => Math.min(s + 1, totalSteps)) }
+  const saveProfile = async (data: FormData) => {
+    try {
+      await fetch('/api/company/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.companyName,
+          industry: data.industry,
+          size: data.companySize,
+          website: data.website,
+          hq: data.headquarters,
+          description: data.culture,
+        }),
+      })
+    } catch {
+      // Non-fatal — user can update from Settings
+    }
+  }
+
+  const goNext = () => {
+    setDirection(1)
+    const nextStep = Math.min(step + 1, totalSteps)
+    // Save profile data when completing Step 2 → Step 3
+    if (step === 2) saveProfile(form)
+    setStep(nextStep)
+  }
   const goBack = () => { setDirection(-1); setStep((s) => Math.max(s - 1, 1)) }
 
   return (
@@ -209,6 +254,9 @@ function Step1({
             value={form.companyName}
             onChange={(e) => update('companyName', e.target.value)}
           />
+          <p className="text-[11px] text-tl-text-secondary mt-1">
+            From your registration — feel free to update it
+          </p>
         </Field>
 
         <div className="grid grid-cols-2 gap-3">

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,7 +24,7 @@ import type { ApplicationStatus, PipelineStage } from '@/lib/types'
 import { STAGE_LABELS } from '@/lib/constants'
 
 
-// ─── Status config ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Status config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; badgeClass: string; dotClass: string; tabClass: string }> = {
   applied:   { label: 'Applied',       badgeClass: 'tl-tag-blue',   dotClass: 'bg-tl-blue',   tabClass: 'text-tl-blue' },
   screening: { label: 'Screening',     badgeClass: 'bg-violet-500/15 text-violet-400 border border-violet-500/30', dotClass: 'bg-violet-400',  tabClass: 'text-violet-400' },
@@ -35,11 +35,11 @@ const STATUS_CONFIG: Record<ApplicationStatus, { label: string; badgeClass: stri
   rejected:  { label: 'Not Selected',  badgeClass: 'tl-tag-rose',   dotClass: 'bg-tl-rose',   tabClass: 'text-tl-rose' },
 }
 
-// ─── Pipeline stages (excluding rejected) for timeline ───────────────────────
+// â”€â”€â”€ Pipeline stages (excluding rejected) for timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type NonRejectedStage = 'new' | 'screening' | 'phone_screen' | 'technical' | 'onsite' | 'offer' | 'hired'
 const STAGES: NonRejectedStage[] = ['new', 'screening', 'phone_screen', 'technical', 'onsite', 'offer', 'hired']
 
-// ─── Stage Timeline ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Stage Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StageTimeline({ currentStage }: { currentStage: PipelineStage }) {
   const displayStages = STAGES
   const safeStage: NonRejectedStage = (currentStage === 'rejected' ? 'new' : currentStage) as NonRejectedStage
@@ -67,7 +67,7 @@ function StageTimeline({ currentStage }: { currentStage: PipelineStage }) {
   )
 }
 
-// ─── Filter type ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Filter type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type FilterStatus = ApplicationStatus | 'all'
 
 const FILTER_TABS: Array<{ value: FilterStatus; label: string }> = [
@@ -81,7 +81,7 @@ const FILTER_TABS: Array<{ value: FilterStatus; label: string }> = [
   { value: 'rejected',  label: 'Rejected' },
 ]
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function ApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [applications, setApplications] = useState<Application[]>([])
@@ -132,7 +132,7 @@ export default function ApplicationsPage() {
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto">
 
-      {/* ── HEADER ──────────────────────────────────────────────────────────── */}
+      {/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -148,7 +148,7 @@ export default function ApplicationsPage() {
         </button>
       </motion.div>
 
-      {/* ── STATS ROW ───────────────────────────────────────────────────────── */}
+      {/* â”€â”€ STATS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -171,7 +171,7 @@ export default function ApplicationsPage() {
         ))}
       </motion.div>
 
-      {/* ── STATUS FILTER TABS ───────────────────────────────────────────────── */}
+      {/* â”€â”€ STATUS FILTER TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -205,7 +205,7 @@ export default function ApplicationsPage() {
         })}
       </motion.div>
 
-      {/* ── APPLICATION LIST ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ APPLICATION LIST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence mode="wait">
         {filtered.length === 0 ? (
           <motion.div
@@ -257,7 +257,7 @@ export default function ApplicationsPage() {
                   <div className="p-5 flex items-start gap-4">
                     {/* Avatar + status dot */}
                     <div className="relative shrink-0">
-                      <img src={companyAvatarUrl(app.job.company.name)} alt={app.job.company.name} className="w-12 h-12 rounded-xl object-cover" />
+                      <img src={companyAvatarUrl(app.job?.company?.name)} alt={app.job?.company?.name} className="w-12 h-12 rounded-xl object-cover" />
                       <div className={cn('absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-tl-bg-base', cfg.dotClass)} />
                     </div>
 
@@ -265,7 +265,7 @@ export default function ApplicationsPage() {
                     <div className="flex-1 min-w-0">
                       {/* Title + status pill */}
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-lg text-tl-text-primary leading-tight truncate">{app.job.title}</h3>
+                        <h3 className="font-semibold text-lg text-tl-text-primary leading-tight truncate">{app.job?.title}</h3>
                         <span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shrink-0', cfg.badgeClass)}>
                           {cfg.label}
                         </span>
@@ -274,12 +274,12 @@ export default function ApplicationsPage() {
                       {/* Meta */}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-tl-text-secondary mb-1">
                         <span className="flex items-center gap-1 font-medium">
-                          {app.job.company.name}
-                          {app.job.company.verified && <BadgeCheck className="w-3.5 h-3.5 text-tl-teal" />}
+                          {app.job?.company?.name}
+                          {app.job?.company?.verified && <BadgeCheck className="w-3.5 h-3.5 text-tl-teal" />}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] capitalize">{app.job.workMode}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] capitalize">{app.job?.workMode}</span>
                         <span className="flex items-center gap-1 text-xs">
-                          <MapPin className="w-3 h-3" />{app.job.location}
+                          <MapPin className="w-3 h-3" />{app.job?.location}
                         </span>
                         <span className="text-xs text-tl-teal font-mono font-semibold">
                           {formatSalary(app.job.salaryMin, app.job.salaryMax)}
@@ -303,7 +303,7 @@ export default function ApplicationsPage() {
                       {/* Interview upcoming highlight */}
                       {isInterview && (
                         <p className="mt-2 text-xs text-tl-gold font-semibold flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> Interview upcoming — check your email for details
+                          <Calendar className="w-3 h-3" /> Interview upcoming â€” check your email for details
                         </p>
                       )}
 
@@ -311,7 +311,7 @@ export default function ApplicationsPage() {
                       {isRejected && (
                         <p className="mt-2 text-xs text-tl-text-secondary">
                           <span className="text-tl-rose font-semibold">Not Selected</span>
-                          {' '}· The team decided to move forward with other candidates.
+                          {' '}Â· The team decided to move forward with other candidates.
                         </p>
                       )}
                     </div>

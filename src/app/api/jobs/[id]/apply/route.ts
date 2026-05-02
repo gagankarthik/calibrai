@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { db, Tables, ScanCommand, PutCommand, UpdateCommand } from '@/lib/aws/dynamodb'
+import { db, Tables, GetCommand, PutCommand, UpdateCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken } from '@/lib/aws/cognito'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -45,23 +45,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const coverLetter = parsed.data.coverLetter ? sanitizeText(parsed.data.coverLetter) : ''
 
   try {
-    const jobScan = await db.send(
-      new ScanCommand({
-        TableName: Tables.Jobs,
-        FilterExpression: 'jobId = :id',
-        ExpressionAttributeValues: { ':id': jobId },
-      }),
-    )
-    const job = jobScan.Items?.[0]
+    const jobResult = await db.send(new GetCommand({ TableName: Tables.Jobs, Key: { id: jobId } }))
+    const job = jobResult.Item
     if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
 
     const applicationId = `app-${uuidv4()}`
     const now = new Date().toISOString()
 
     const application = {
-      applicationId,
+      id: applicationId,
       jobId,
       candidateId,
+      companyId: job.companyId,
       status: 'applied',
       stage: 'new',
       appliedAt: now,
@@ -75,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await db.send(
       new UpdateCommand({
         TableName: Tables.Jobs,
-        Key: { companyId: job.companyId, jobId },
+        Key: { id: jobId },
         UpdateExpression: 'SET applicantCount = if_not_exists(applicantCount, :zero) + :one',
         ExpressionAttributeValues: { ':zero': 0, ':one': 1 },
       }),
