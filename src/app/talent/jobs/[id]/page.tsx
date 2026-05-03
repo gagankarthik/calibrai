@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { getJob, getJobs, getTalentProfile, applyToJob } from '@/lib/api'
 import type { Job } from '@/lib/types'
-import { formatSalary, timeAgo, cn } from '@/lib/utils'
+import { formatSalary, timeAgo, cn, companyLogoSrc } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,11 +35,16 @@ import {
 } from 'lucide-react'
 import { WORK_MODE_LABELS, JOB_TYPE_LABELS, EXPERIENCE_LABELS } from '@/lib/constants'
 
-// â”€â”€â”€ Deterministic match score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Deterministic match score (fallback only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getMatchScore(id: string): number {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff
-  return 70 + (Math.abs(hash) % 28)
+  return 70 + (Math.abs(hash) % 25)
+}
+
+interface MatchInfo {
+  score: number
+  reason: string
 }
 
 // â”€â”€â”€ Avatar color hash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -119,6 +124,9 @@ export default function JobDetailPage() {
   const [saved, setSaved]               = useState(false)
   const [applied, setApplied]           = useState(false)
   const [alertOn, setAlertOn]           = useState(false)
+  const [match, setMatch]               = useState<MatchInfo | null>(null)
+  const [matchLoading, setMatchLoading] = useState(false)
+  const [shareCopied, setShareCopied]   = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -151,6 +159,26 @@ export default function JobDetailPage() {
     load()
   }, [jobId])
 
+  useEffect(() => {
+    if (!job || job.external) return
+    let cancelled = false
+    setMatchLoading(true)
+    fetch('/api/talent/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobIds: [job.id] }),
+    })
+      .then(async r => (r.ok ? r.json() as Promise<{ results: Array<{ jobId: string; score: number; reason: string }> }> : null))
+      .then(data => {
+        if (cancelled || !data?.results?.[0]) return
+        const r = data.results[0]
+        setMatch({ score: r.score, reason: r.reason })
+      })
+      .catch(() => { /* fall back to deterministic */ })
+      .finally(() => { if (!cancelled) setMatchLoading(false) })
+    return () => { cancelled = true }
+  }, [job])
+
   // hasSkill is only meaningful once userSkills is loaded (not null).
   // Returns null while loading so callers can treat skills as "unknown".
   function hasSkill(skill: string): boolean | null {
@@ -165,7 +193,8 @@ export default function JobDetailPage() {
     if (res.data || res.status === 201) setApplied(true)
   }
 
-  const score = job ? getMatchScore(job.id) : 0
+  const score = match?.score ?? (job ? getMatchScore(job.id) : 0)
+  const matchReason = match?.reason ?? ''
 
   const matchedSkills = useMemo(() => {
     if (!job || userSkills === null) return []
@@ -181,15 +210,55 @@ export default function JobDetailPage() {
 
   const topThree = matchedSkills.slice(0, 3)
 
-  const similarJobs = useMemo(() =>
-    job
-      ? allJobs
-          .filter(j => j.id !== job.id && j.company.industry === job.company?.industry)
-          .slice(0, 3)
-          .map(j => ({ ...j, score: getMatchScore(j.id) }))
-      : [],
-    [job, allJobs]
-  )
+  const similarJobs = useMemo(() => {
+    if (!job) return []
+    const targetSkills = new Set((job.skills ?? []).map(s => s.toLowerCase()))
+    const targetIndustry = job.company?.industry?.toLowerCase()
+
+    const scored = allJobs
+      .filter(j => j.id !== job.id)
+      .map(j => {
+        let signal = 0
+        if (targetIndustry && j.company?.industry?.toLowerCase() === targetIndustry) signal += 3
+        if (j.workMode === job.workMode) signal += 1
+        if (j.level === job.level) signal += 1
+        const overlap = (j.skills ?? []).reduce(
+          (acc, s) => acc + (targetSkills.has(s.toLowerCase()) ? 1 : 0),
+          0,
+        )
+        signal += overlap
+        return { job: j, signal }
+      })
+      .sort((a, b) => {
+        if (b.signal !== a.signal) return b.signal - a.signal
+        return new Date(b.job.postedAt).getTime() - new Date(a.job.postedAt).getTime()
+      })
+      .slice(0, 4)
+      .map(({ job: j }) => ({ ...j, score: getMatchScore(j.id) }))
+
+    return scored
+  }, [job, allJobs])
+
+  async function handleShare() {
+    if (typeof window === 'undefined' || !job) return
+    const url = window.location.href
+    const text = `${job.title} at ${job.company?.name ?? 'Company'}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: text, text, url })
+        return
+      } catch {
+        /* user dismissed — fall through to clipboard */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      window.prompt('Copy this job link:', url)
+    }
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -204,7 +273,9 @@ export default function JobDetailPage() {
   )
 
   const daysPosted = Math.floor((Date.now() - new Date(job.postedAt).getTime()) / 86400000)
-  const daysLeft   = Math.max(0, Math.ceil((new Date(job.expiresAt).getTime() - Date.now()) / 86400000))
+  const daysLeft   = job.expiresAt
+    ? Math.max(0, Math.ceil((new Date(job.expiresAt).getTime() - Date.now()) / 86400000))
+    : 0
 
   // While profile is still loading, skills are "unknown" â€” show a neutral state
   const skillsLoaded = userSkills !== null
@@ -304,9 +375,11 @@ export default function JobDetailPage() {
           <span className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4" />Posted {daysPosted}d ago
           </span>
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-4 h-4" />Expires in {daysLeft}d
-          </span>
+          {job.expiresAt && daysLeft > 0 && (
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />Expires in {daysLeft}d
+            </span>
+          )}
         </div>
       </motion.div>
 
@@ -336,11 +409,11 @@ export default function JobDetailPage() {
           </motion.div>
 
           {/* Nice to Have */}
-          {job.niceToHave.length > 0 && (
+          {(job.niceToHave?.length ?? 0) > 0 && (
             <motion.div {...fadeUp(0.17)} className="tl-card p-6">
               <h3 className="text-lg font-display font-semibold text-tl-text-primary mb-4">Nice to Have</h3>
               <ul className="space-y-3">
-                {job.niceToHave.map((item, i) => (
+                {(job.niceToHave ?? []).map((item, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-tl-text-secondary">
                     <Plus className="w-4 h-4 text-tl-text-secondary mt-0.5 shrink-0" />
                     {item}
@@ -351,11 +424,11 @@ export default function JobDetailPage() {
           )}
 
           {/* What We Offer */}
-          {job.benefits.length > 0 && (
+          {(job.benefits?.length ?? 0) > 0 && (
             <motion.div {...fadeUp(0.2)} className="tl-card p-6">
               <h3 className="text-lg font-display font-semibold text-tl-text-primary mb-4">What We Offer</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {job.benefits.map(b => (
+                {(job.benefits ?? []).map(b => (
                   <div key={b} className="flex items-center gap-3 text-sm text-tl-text-secondary">
                     {benefitIcon(b)}
                     <span>{b}</span>
@@ -367,73 +440,116 @@ export default function JobDetailPage() {
 
           {/* About Company */}
           <motion.div {...fadeUp(0.23)} className="tl-card p-6">
-            <h3 className="text-lg font-display font-semibold text-tl-text-primary mb-4">About {job.company?.name}</h3>
-            <div className="flex items-center gap-3 mb-4">
-              <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0', avatarColor(job.company?.name ?? job.title ?? 'C'))}>
-                {(job.company?.name ?? job.title ?? 'C')[0]}
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-display font-semibold text-tl-text-primary">
+                About {job.company?.name ?? 'this company'}
+              </h3>
+              {job.company?.website && (
+                <a
+                  href={job.company.website.startsWith('http') ? job.company.website : `https://${job.company.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tl-gold/10 border border-tl-gold/30 text-xs font-semibold text-tl-gold hover:bg-tl-gold/15 transition-colors"
+                >
+                  <Globe className="w-3.5 h-3.5" /> Visit Website
+                </a>
+              )}
+            </div>
+
+            <div className="flex items-start gap-4 mb-5">
+              <img
+                src={companyLogoSrc(job.company, job.title)}
+                alt={job.company?.name ?? job.title}
+                className="w-14 h-14 rounded-xl object-cover shrink-0 border border-tl-border-subtle bg-tl-bg-elevated"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-tl-text-primary text-base">
+                  {job.company?.name ?? 'External Employer'}
+                </p>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {job.company?.verified && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-tl-teal bg-tl-teal/10 border border-tl-teal/20 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> Verified Employer
+                    </span>
+                  )}
+                  {job.external && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">
+                      <ExternalLink className="w-2.5 h-2.5" /> {job.source ?? 'Partner'}
+                    </span>
+                  )}
+                  {job.company?.website && (
+                    <span className="text-[11px] text-tl-text-secondary truncate">
+                      {job.company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-tl-text-primary">{job.company?.name}</p>
-                {job.company?.verified && (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-tl-teal">
-                    <CheckCircle2 className="w-2.5 h-2.5" /> Verified Company
-                  </span>
+            </div>
+
+            {(job.company?.industry || job.company?.size || job.company?.hq || job.company?.location || job.company?.founded) && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+                {job.company?.industry && (
+                  <div className="rounded-xl bg-tl-bg-elevated border border-tl-border-subtle p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tl-text-secondary font-semibold mb-1">Industry</p>
+                    <p className="text-xs font-medium text-tl-text-primary truncate">{job.company.industry}</p>
+                  </div>
+                )}
+                {job.company?.size && (
+                  <div className="rounded-xl bg-tl-bg-elevated border border-tl-border-subtle p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tl-text-secondary font-semibold mb-1">Company Size</p>
+                    <p className="text-xs font-medium text-tl-text-primary truncate">
+                      {job.company.size}{/^\d/.test(job.company.size) ? ' employees' : ''}
+                    </p>
+                  </div>
+                )}
+                {(job.company?.hq || job.company?.location) && (
+                  <div className="rounded-xl bg-tl-bg-elevated border border-tl-border-subtle p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tl-text-secondary font-semibold mb-1">HQ</p>
+                    <p className="text-xs font-medium text-tl-text-primary truncate flex items-center gap-1">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      {job.company?.hq ?? job.company?.location}
+                    </p>
+                  </div>
+                )}
+                {job.company?.founded && (
+                  <div className="rounded-xl bg-tl-bg-elevated border border-tl-border-subtle p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tl-text-secondary font-semibold mb-1">Founded</p>
+                    <p className="text-xs font-medium text-tl-text-primary truncate">{job.company.founded}</p>
+                  </div>
                 )}
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary">{job.company?.industry}</span>
-              <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary">{job.company?.size} employees</span>
-              <span className="px-2.5 py-1 rounded-full bg-tl-bg-elevated border border-tl-border-default text-xs text-tl-text-secondary flex items-center gap-1">
-                <MapPin className="w-3 h-3" />{job.company?.location}
-              </span>
-            </div>
-            <p className="text-sm text-tl-text-secondary leading-relaxed mb-4">{job.company?.description}</p>
-            <a
-              href={`https://${job.company?.website}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-tl-gold hover:underline"
-            >
-              <ExternalLink className="w-3.5 h-3.5" /> Visit Website
-            </a>
+            )}
+
+            {job.company?.description ? (
+              <p className="text-sm text-tl-text-secondary leading-relaxed whitespace-pre-line">
+                {job.company.description}
+              </p>
+            ) : job.external ? (
+              <p className="text-sm text-tl-text-secondary leading-relaxed">
+                This role is sourced from {job.source ?? 'a partner job board'}. Apply on the original posting to start the conversation with the hiring team.
+              </p>
+            ) : (
+              <p className="text-sm text-tl-text-secondary/70 italic">
+                The company hasn&apos;t added a description yet — visit their website to learn more.
+              </p>
+            )}
           </motion.div>
 
-          {/* Similar Jobs */}
-          {similarJobs.length > 0 && (
-            <motion.div {...fadeUp(0.26)} className="tl-card p-6">
-              <h3 className="text-lg font-display font-semibold text-tl-text-primary mb-4">Similar Jobs</h3>
-              <div className="space-y-1">
-                {similarJobs.map(sj => (
-                  <div key={sj.id} className="tl-card flex items-center gap-3 py-3 px-3 hover:border-tl-gold/30 transition-colors">
-                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0', avatarColor(sj.company.name))}>
-                      {sj.company.name[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-tl-text-primary truncate">{sj.title}</p>
-                      <p className="text-xs text-tl-text-secondary">{sj.company.name}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs font-mono font-semibold text-tl-gold">{sj.score}%</span>
-                      <Link href={`/talent/jobs/${sj.id}`} className="text-xs text-tl-gold hover:underline flex items-center gap-1">
-                        View <ChevronRight className="w-3 h-3" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
         </div>
 
         {/* â”€â”€ RIGHT STICKY COLUMN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div className="lg:col-span-1 space-y-4 sticky top-24 self-start">
+        <div className="lg:col-span-1 space-y-4">
 
           {/* Match Analysis â€” gold card */}
           <motion.div {...fadeUp(0.1)} className="tl-card-gold p-5">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold text-tl-text-primary">Why You&apos;re a Strong Match</h4>
-              <span className="text-3xl font-mono font-bold text-tl-gold">{score}%</span>
+              <div className="flex items-center gap-2">
+                {matchLoading && (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-tl-gold/30 border-t-tl-gold animate-spin" />
+                )}
+                <span className="text-3xl font-mono font-bold text-tl-gold">{score}%</span>
+              </div>
             </div>
             {!skillsLoaded ? (
               <div className="space-y-2.5">
@@ -455,9 +571,16 @@ export default function JobDetailPage() {
             ) : (
               <p className="text-xs text-tl-text-secondary">Build your skills to improve your match score.</p>
             )}
-            <p className="mt-3 text-[10px] text-tl-text-secondary italic bg-tl-bg-elevated rounded-lg p-2.5 leading-relaxed border border-tl-border-subtle">
-              AI Analysis: Strong technical alignment based on your profile and this role&apos;s requirements.
-            </p>
+            {(matchReason || matchLoading) && (
+              <p className="mt-3 text-[11px] text-tl-text-secondary italic bg-tl-bg-elevated rounded-lg p-2.5 leading-relaxed border border-tl-border-subtle">
+                <span className="not-italic font-semibold text-tl-gold">AI:</span>{' '}
+                {matchReason
+                  ? matchReason
+                  : matchLoading
+                    ? 'Analyzing your profile against this role…'
+                    : 'Strong technical alignment based on your profile and this role’s requirements.'}
+              </p>
+            )}
           </motion.div>
 
           {/* Skills Breakdown */}
@@ -526,13 +649,71 @@ export default function JobDetailPage() {
 
           {/* Share */}
           <motion.div {...fadeUp(0.21)}>
-            <button className="btn-ghost w-full gap-2 flex items-center justify-center text-tl-text-secondary hover:text-tl-text-primary">
-              <Share2 className="w-4 h-4" /> Share This Job
+            <button
+              type="button"
+              onClick={handleShare}
+              className="btn-ghost w-full gap-2 flex items-center justify-center text-tl-text-secondary hover:text-tl-text-primary"
+            >
+              {shareCopied ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-tl-teal" /> Link copied
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4" /> Share This Job
+                </>
+              )}
             </button>
           </motion.div>
 
+          {/* Similar Jobs */}
+          {similarJobs.length > 0 && (
+            <motion.div {...fadeUp(0.24)} className="tl-card p-5">
+              <h4 className="text-sm font-semibold text-tl-text-primary mb-3">Similar Jobs</h4>
+              <div className="space-y-2">
+                {similarJobs.map(sj => {
+                  const externalUrl = (sj.external && sj.applyUrl) || ''
+                  const inner = (
+                    <>
+                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0', avatarColor(sj.company?.name ?? sj.title))}>
+                        {(sj.company?.name ?? sj.title)[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-tl-text-primary truncate group-hover:text-tl-gold transition-colors">{sj.title}</p>
+                        <p className="text-xs text-tl-text-secondary truncate">
+                          {sj.company?.name}
+                          {sj.location ? ` · ${sj.location}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-mono font-semibold text-tl-gold shrink-0">{sj.score}%</span>
+                    </>
+                  )
+                  return externalUrl ? (
+                    <a
+                      key={sj.id}
+                      href={externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex items-center gap-3 p-2.5 rounded-xl border border-tl-border-subtle hover:border-tl-gold/30 hover:bg-tl-bg-elevated/40 transition-all"
+                    >
+                      {inner}
+                    </a>
+                  ) : (
+                    <Link
+                      key={sj.id}
+                      href={`/talent/jobs/${sj.id}`}
+                      className="group flex items-center gap-3 p-2.5 rounded-xl border border-tl-border-subtle hover:border-tl-gold/30 hover:bg-tl-bg-elevated/40 transition-all"
+                    >
+                      {inner}
+                    </Link>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+
           {/* Report */}
-          <motion.div {...fadeUp(0.23)} className="text-center">
+          <motion.div {...fadeUp(0.27)} className="text-center">
             <button className="text-xs text-tl-text-secondary/60 hover:text-tl-text-secondary transition-colors underline underline-offset-2">
               Report listing
             </button>

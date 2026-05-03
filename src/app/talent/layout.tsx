@@ -465,7 +465,8 @@ export default function TalentLayout({ children }: { children: React.ReactNode }
     } catch {
       // proceed regardless
     }
-    router.push('/auth/login')
+    // Hard reload — clears Next's router cache so back-button can't restore protected pages.
+    window.location.replace('/auth/login')
   }
 
   // ⌘K shortcut

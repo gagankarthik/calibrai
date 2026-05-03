@@ -33,6 +33,8 @@ const educationSchema = z.object({
 })
 
 const updateProfileSchema = z.object({
+  name: z.string().min(1).max(120).trim().optional(),
+  title: z.string().max(200).trim().optional(),
   headline: z.string().max(200).trim().optional(),
   bio: z.string().max(2000).trim().optional(),
   location: z.string().max(200).trim().optional(),
@@ -130,7 +132,7 @@ export async function PATCH(req: NextRequest) {
     const updates = parsed.data as Record<string, unknown>
 
     const updatable = [
-      'headline', 'bio', 'location', 'phone', 'salaryExpectation', 'availability',
+      'name', 'title', 'headline', 'bio', 'location', 'phone', 'salaryExpectation', 'availability',
       'workPreference', 'github', 'linkedin', 'portfolio', 'languages',
       'skills', 'experience', 'education', 'jobTypes', 'industries',
       'noticePeriod', 'resumeUrl', 'avatarUrl',

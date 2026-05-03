@@ -90,6 +90,8 @@ export interface CreateJobInput {
 }
 
 export interface UpdateTalentProfileInput {
+  name?: string
+  title?: string
   headline?: string
   bio?: string
   location?: string

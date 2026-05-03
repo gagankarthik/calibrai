@@ -482,19 +482,29 @@ export default function JobDetailPage() {
                   const profileHref = app.candidateId
                     ? `/company/candidates/${app.candidateId}?jobId=${id}`
                     : null
-                  const Wrapper: React.ElementType = profileHref ? Link : 'div'
-                  const wrapperProps = profileHref
-                    ? { href: profileHref }
-                    : {}
+
+                  const onRowClick = () => {
+                    if (profileHref) router.push(profileHref)
+                  }
+                  const onRowKey = (e: React.KeyboardEvent) => {
+                    if (!profileHref) return
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      router.push(profileHref)
+                    }
+                  }
 
                   return (
-                    <Wrapper
+                    <div
                       key={app.id}
-                      {...wrapperProps}
+                      role={profileHref ? 'link' : undefined}
+                      tabIndex={profileHref ? 0 : undefined}
+                      onClick={onRowClick}
+                      onKeyDown={onRowKey}
                       className={cn(
                         'tl-card p-4 flex items-center gap-4 transition-colors',
                         profileHref
-                          ? 'hover:border-tl-gold/40 hover:bg-tl-bg-elevated/30 cursor-pointer'
+                          ? 'hover:border-tl-gold/40 hover:bg-tl-bg-elevated/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-tl-gold/40'
                           : 'hover:border-tl-gold/30',
                       )}
                     >
@@ -534,7 +544,7 @@ export default function JobDetailPage() {
                           </Link>
                         </Button>
                       </div>
-                    </Wrapper>
+                    </div>
                   )
                 })}
               </div>

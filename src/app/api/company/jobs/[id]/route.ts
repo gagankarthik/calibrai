@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db, Tables, GetCommand, UpdateCommand } from '@/lib/aws/dynamodb'
 import { extractBearerToken, verifyCognitoToken } from '@/lib/aws/cognito'
 import { logAuditEvent } from '@/lib/audit'
+import { hydrateJobWithCompany } from '@/lib/server/jobs'
 
 const updateJobSchema = z.object({
   title: z.string().min(1).max(200).trim().optional(),
@@ -32,7 +33,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const result = await db.send(new GetCommand({ TableName: Tables.Jobs, Key: { id } }))
     if (!result.Item) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
-    return NextResponse.json(result.Item)
+    const hydrated = await hydrateJobWithCompany(result.Item)
+    return NextResponse.json(hydrated)
   } catch (err) {
     console.error('[company/jobs/[id] GET]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

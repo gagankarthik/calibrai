@@ -126,7 +126,8 @@ export function LandingNav() {
       await fetch('/api/auth/signout', { method: 'POST' })
     } catch { /* ignore */ }
     setUser(null)
-    router.refresh()
+    // Hard reload to flush Next's router cache and any auth-derived UI.
+    window.location.assign('/')
   }
 
   return (

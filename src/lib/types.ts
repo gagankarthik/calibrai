@@ -19,22 +19,24 @@ export interface Company {
   industry: string
   size: string
   location: string
+  hq?: string
+  founded?: string
   website: string
   description: string
-  culture: string[]
-  benefits: string[]
-  rating: number
-  reviewCount: number
+  culture?: string[]
+  benefits?: string[]
+  rating?: number
+  reviewCount?: number
   verified: boolean
-  plan: 'starter' | 'growth' | 'enterprise'
+  plan?: 'starter' | 'growth' | 'enterprise'
 }
 
 export interface Job {
   id: string
-  companyId: string
+  companyId?: string
   company: Company
   title: string
-  department: string
+  department?: string
   type: JobType
   workMode: WorkMode
   level: ExperienceLevel
@@ -44,15 +46,19 @@ export interface Job {
   currency: string
   description: string
   requirements: string[]
-  niceToHave: string[]
+  niceToHave?: string[]
   skills: string[]
-  benefits: string[]
+  benefits?: string[]
   postedAt: string
-  expiresAt: string
+  expiresAt?: string
   applicantCount: number
-  viewCount: number
+  viewCount?: number
   status: 'active' | 'paused' | 'closed'
   featured: boolean
+  // External (scraped) jobs from talentbridge-crm-jobs table redirect on apply.
+  external?: boolean
+  applyUrl?: string
+  source?: string
 }
 
 export interface Candidate {

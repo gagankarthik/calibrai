@@ -12,12 +12,14 @@ export async function GET(req: NextRequest) {
   const talentToken = req.cookies.get('tb-talent-token')?.value
 
   let candidateId: string | null = null
+  let companyId: string | null = null
   let isCompany = false
 
   if (companyToken) {
     try {
-      await verifyCognitoToken(companyToken, 'company')
+      const payload = await verifyCognitoToken(companyToken, 'company')
       isCompany = true
+      companyId = (payload['custom:companyId'] as string) ?? payload.sub
     } catch { /* try talent */ }
   }
 
@@ -38,12 +40,29 @@ export async function GET(req: NextRequest) {
     let items: DynamoItem[] = []
 
     if (isCompany && jobId) {
+      // Specific job under this company — also enforce ownership in filter.
       const result = await db.send(
         new QueryCommand({
           TableName: Tables.Applications,
           IndexName: 'jobId-index',
           KeyConditionExpression: 'jobId = :jid',
-          ExpressionAttributeValues: { ':jid': jobId },
+          FilterExpression: companyId ? 'companyId = :cid' : undefined,
+          ExpressionAttributeValues: companyId
+            ? { ':jid': jobId, ':cid': companyId }
+            : { ':jid': jobId },
+        }),
+      )
+      items = (result.Items as DynamoItem[]) ?? []
+    } else if (isCompany) {
+      // Whole-company view: only this company's applications, never other companies'.
+      if (!companyId) {
+        return NextResponse.json({ error: 'Missing companyId on token' }, { status: 403 })
+      }
+      const result = await db.send(
+        new ScanCommand({
+          TableName: Tables.Applications,
+          FilterExpression: 'companyId = :cid',
+          ExpressionAttributeValues: { ':cid': companyId },
         }),
       )
       items = (result.Items as DynamoItem[]) ?? []
@@ -55,11 +74,6 @@ export async function GET(req: NextRequest) {
           KeyConditionExpression: 'candidateId = :cid',
           ExpressionAttributeValues: { ':cid': candidateId },
         }),
-      )
-      items = (result.Items as DynamoItem[]) ?? []
-    } else {
-      const result = await db.send(
-        new ScanCommand({ TableName: Tables.Applications, Limit: 100 }),
       )
       items = (result.Items as DynamoItem[]) ?? []
     }

@@ -36,6 +36,8 @@ interface Job {
   status?: string
   source?: string
   sourceUrl?: string
+  applyUrl?: string
+  external?: boolean
   featured?: boolean
   description?: string
 }
@@ -88,21 +90,34 @@ function JobCard({ job }: { job: Job }) {
   const companyName = getCompanyName(job)
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency)
   const isNew = job.postedAt && (Date.now() - new Date(job.postedAt).getTime()) < 1000 * 60 * 60 * 48
-  const isScraped = job.source === 'hiring_cafe'
+  const externalUrl = job.applyUrl || job.sourceUrl || ''
+  const isExternal = !!job.external || !!externalUrl
 
   function handleApply(e: React.MouseEvent) {
     e.preventDefault()
+    e.stopPropagation()
+    if (isExternal && externalUrl) {
+      window.open(externalUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
     if (isLoggedInAsTalent()) {
       window.location.href = `/talent/jobs/${job.id ?? job.jobId}`
-    } else if (isScraped && job.sourceUrl) {
-      window.location.href = `/auth/login?next=${encodeURIComponent(job.sourceUrl)}`
     } else {
-      window.location.href = `/auth/login?next=${encodeURIComponent(`/talent/jobs/${job.id ?? job.jobId}`)}`
+      window.location.href = `/auth/login?role=talent&redirect=${encodeURIComponent(`/talent/jobs/${job.id ?? job.jobId}`)}`
     }
   }
 
+  const cardHref = isExternal && externalUrl
+    ? externalUrl
+    : `/jobs/${job.id ?? job.jobId}`
+
   return (
-    <Link href={`/jobs/${job.id ?? job.jobId}`} className="block group">
+    <a
+      href={cardHref}
+      target={isExternal ? '_blank' : undefined}
+      rel={isExternal ? 'noopener noreferrer' : undefined}
+      className="block group"
+    >
       <div className="tl-card p-4 sm:p-5 hover:border-tl-gold/40 transition-all duration-300 cursor-pointer">
         <div className="flex items-start gap-4">
           {/* Company avatar */}
@@ -125,9 +140,9 @@ function JobCard({ job }: { job: Job }) {
                   Featured
                 </span>
               )}
-              {isScraped && (
+              {isExternal && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center gap-0.5">
-                  <Globe className="w-2.5 h-2.5" />via hiring.cafe
+                  <Globe className="w-2.5 h-2.5" />External · {job.source ?? 'partner'}
                 </span>
               )}
             </div>
@@ -202,7 +217,7 @@ function JobCard({ job }: { job: Job }) {
           </div>
         </div>
       </div>
-    </Link>
+    </a>
   )
 }
 

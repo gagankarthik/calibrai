@@ -101,6 +101,7 @@ export default function TalentDashboardPage() {
   const [profile, setProfile] = useState<ExtendedCandidate | null>(null)
   const [user, setUser] = useState<{ name?: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [matchMap, setMatchMap] = useState<Map<string, { score: number; reason: string }>>(new Map())
 
   useEffect(() => {
     async function load() {
@@ -116,16 +117,41 @@ export default function TalentDashboardPage() {
     }
     load()
 
-    // Fetch logged-in user name from session
     fetch('/api/auth/me')
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setUser(data) })
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (jobs.length === 0) return
+    let cancelled = false
+    const ids = jobs.slice(0, 30).map(j => j.id)
+    fetch('/api/talent/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobIds: ids }),
+    })
+      .then(async r => (r.ok ? r.json() as Promise<{ results: Array<{ jobId: string; score: number; reason: string }> }> : null))
+      .then(data => {
+        if (cancelled || !data?.results) return
+        const next = new Map<string, { score: number; reason: string }>()
+        for (const r of data.results) next.set(r.jobId, { score: r.score, reason: r.reason })
+        setMatchMap(next)
+      })
+      .catch(() => { /* fall back to deterministic */ })
+    return () => { cancelled = true }
+  }, [jobs])
+
+  const scoreFor = (id: string) => matchMap.get(id)?.score ?? getMatchScore(id)
+  const reasonFor = (id: string) => matchMap.get(id)?.reason ?? ''
+
   const topMatches = useMemo(
-    () => jobs.slice(0, 4).map(j => ({ ...j, score: getMatchScore(j.id) })),
-    [jobs]
+    () => [...jobs]
+      .map(j => ({ ...j, score: scoreFor(j.id), reason: reasonFor(j.id) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4),
+    [jobs, matchMap], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const newlyPosted = useMemo(() => {
@@ -134,8 +160,8 @@ export default function TalentDashboardPage() {
       .filter(j => new Date(j.postedAt).getTime() > cutoff)
       .sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime())
       .slice(0, 6)
-      .map(j => ({ ...j, score: getMatchScore(j.id) }))
-  }, [jobs])
+      .map(j => ({ ...j, score: scoreFor(j.id) }))
+  }, [jobs, matchMap]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const recentApps = applications.slice(0, 5)
 
@@ -295,16 +321,22 @@ export default function TalentDashboardPage() {
                 <span className="text-xs font-mono text-tl-gold font-semibold">{job.score}% match</span>
               </div>
 
-              {/* Why you match — skill tags */}
+              {/* Why you match */}
               <div>
                 <p className="text-[10px] text-tl-text-secondary uppercase tracking-wider font-semibold mb-1.5">Why you match</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {job.skills.slice(0, 3).map(s => (
-                    <span key={s} className="tl-tag-gold text-[11px]">
-                      {s}
-                    </span>
-                  ))}
-                </div>
+                {job.reason ? (
+                  <p className="text-[11px] text-tl-text-secondary leading-snug line-clamp-3" title={job.reason}>
+                    {job.reason}
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.skills.slice(0, 3).map(s => (
+                      <span key={s} className="tl-tag-gold text-[11px]">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* CTA */}

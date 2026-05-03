@@ -28,6 +28,7 @@ import {
   Banknote,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react'
 import type { WorkMode, JobType, ExperienceLevel } from '@/lib/types'
 import { WORK_MODE_LABELS, JOB_TYPE_LABELS, EXPERIENCE_LABELS } from '@/lib/constants'
@@ -145,12 +146,23 @@ function JobCard({ job, saved, onSave, matchReason, matchLoading }: { job: Job &
         <div className="flex-1 min-w-0">
           {/* Row 1: title + NEW badge */}
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <Link
-              href={`/talent/jobs/${job.id}`}
-              className="text-lg font-bold text-tl-text-primary hover:text-tl-gold transition-colors leading-tight"
-            >
-              {job.title}
-            </Link>
+            {job.external && job.applyUrl ? (
+              <a
+                href={job.applyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lg font-bold text-tl-text-primary hover:text-tl-gold transition-colors leading-tight"
+              >
+                {job.title}
+              </a>
+            ) : (
+              <Link
+                href={`/talent/jobs/${job.id}`}
+                className="text-lg font-bold text-tl-text-primary hover:text-tl-gold transition-colors leading-tight"
+              >
+                {job.title}
+              </Link>
+            )}
             {isNew && (
               <span className="tl-tag-teal text-[10px] font-bold leading-none">
                 NEW
@@ -159,6 +171,11 @@ function JobCard({ job, saved, onSave, matchReason, matchLoading }: { job: Job &
             {job.featured && (
               <span className="tl-tag-gold text-[10px] font-semibold">
                 Featured
+              </span>
+            )}
+            {job.external && (
+              <span className="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-[10px] font-semibold text-violet-400 inline-flex items-center gap-1">
+                External · {job.source ?? 'partner'}
               </span>
             )}
           </div>
@@ -236,9 +253,20 @@ function JobCard({ job, saved, onSave, matchReason, matchLoading }: { job: Job &
               {matchReason}
             </p>
           )}
-          <Link href={`/talent/jobs/${job.id}`}>
-            <button className="btn-gold h-12 text-xs p-4">Apply</button>
-          </Link>
+          {job.external && job.applyUrl ? (
+            <a
+              href={job.applyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-gold h-12 text-xs p-4 inline-flex items-center justify-center gap-1.5"
+            >
+              Apply <span aria-hidden>↗</span>
+            </a>
+          ) : (
+            <Link href={`/talent/jobs/${job.id}`}>
+              <button className="btn-gold h-12 text-xs p-4">Apply</button>
+            </Link>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -436,6 +464,7 @@ export default function JobsPage() {
   const [loading, setLoading]                 = useState(true)
   const [matchMap, setMatchMap]               = useState<Map<string, MatchInfo>>(new Map())
   const [matchLoading, setMatchLoading]       = useState(false)
+  const [aiCurated, setAiCurated]             = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -503,6 +532,7 @@ export default function JobsPage() {
 
   const filtered = useMemo(() => {
     let result = jobsWithScore
+    if (aiCurated) result = result.filter(j => matchMap.has(j.id) && j.score >= 70)
     if (search) result = result.filter(j =>
       j.title.toLowerCase().includes(search.toLowerCase()) ||
       j.company.name.toLowerCase().includes(search.toLowerCase())
@@ -517,7 +547,7 @@ export default function JobsPage() {
     if (sortBy === 'newest') result = [...result].sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime())
     if (sortBy === 'salary') result = [...result].sort((a, b) => b.salaryMax - a.salaryMax)
     return result
-  }, [jobsWithScore, search, workModes, jobTypes, experienceLevels, salaryMinNum, salaryMaxNum, minMatch, sortBy])
+  }, [jobsWithScore, search, workModes, jobTypes, experienceLevels, salaryMinNum, salaryMaxNum, minMatch, sortBy, aiCurated, matchMap])
 
   const paginated      = filtered.slice((page - 1) * ITEMS, page * ITEMS)
   const totalPages     = Math.ceil(filtered.length / ITEMS)
@@ -598,6 +628,63 @@ export default function JobsPage() {
               <span className="text-tl-teal font-semibold font-mono">{highMatchCount} match 80%+</span>
             </p>
           </motion.div>
+
+          {/* AI curation toggle */}
+          <motion.button
+            type="button"
+            onClick={() => { setAiCurated(v => !v); setPage(1) }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.04 }}
+            className={cn(
+              'w-full mb-4 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-all',
+              aiCurated
+                ? 'border-tl-gold/40 bg-gradient-to-r from-tl-gold/12 via-tl-gold/8 to-transparent shadow-[0_0_0_1px_rgba(201,168,76,0.15)]'
+                : 'border-tl-border-default bg-tl-bg-surface hover:border-tl-gold/30',
+            )}
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <span className={cn(
+                'mt-0.5 inline-flex items-center justify-center w-8 h-8 rounded-xl border shrink-0',
+                aiCurated
+                  ? 'bg-tl-gold/15 border-tl-gold/40 text-tl-gold'
+                  : 'bg-tl-bg-elevated border-tl-border-default text-tl-text-secondary',
+              )}>
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-tl-text-primary">AI-recommended jobs</span>
+                  {aiCurated && matchLoading && (
+                    <span className="text-[10px] uppercase tracking-wider text-tl-text-secondary inline-flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-full border-2 border-tl-gold/30 border-t-tl-gold animate-spin" />
+                      Scoring
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-tl-text-secondary mt-0.5 line-clamp-2">
+                  {aiCurated
+                    ? 'Showing only roles matched to your profile and GitHub. Toggle off to browse every job.'
+                    : 'Showing every available job. Toggle on for AI-curated picks based on your skills and experience.'}
+                </p>
+              </div>
+            </div>
+            <span
+              role="switch"
+              aria-checked={aiCurated}
+              className={cn(
+                'relative w-11 h-6 rounded-full shrink-0 transition-colors',
+                aiCurated ? 'bg-tl-gold' : 'bg-tl-bg-elevated border border-tl-border-default',
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
+                  aiCurated && 'translate-x-5',
+                )}
+              />
+            </span>
+          </motion.button>
 
           {/* Mobile filter + sort bar */}
           <motion.div
@@ -723,17 +810,34 @@ export default function JobsPage() {
                 className="tl-card p-12 flex flex-col items-center text-center gap-4"
               >
                 <div className="w-14 h-14 rounded-2xl bg-tl-bg-elevated flex items-center justify-center">
-                  <Search className="w-7 h-7 text-tl-text-secondary/40" />
+                  {aiCurated
+                    ? <Sparkles className="w-7 h-7 text-tl-gold/50" />
+                    : <Search className="w-7 h-7 text-tl-text-secondary/40" />}
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-tl-text-primary mb-1">No jobs found</h3>
+                  <h3 className="text-base font-semibold text-tl-text-primary mb-1">
+                    {aiCurated ? 'No AI-recommended matches yet' : 'No jobs found'}
+                  </h3>
                   <p className="text-sm text-tl-text-secondary max-w-xs">
-                    Try adjusting your filters or search terms.
+                    {aiCurated
+                      ? matchLoading
+                        ? 'Scoring jobs against your profile…'
+                        : 'Either your profile needs more skills/experience, or the available roles aren\'t a strong fit. Toggle AI off to browse all jobs.'
+                      : 'Try adjusting your filters or search terms.'}
                   </p>
                 </div>
-                <button className="btn-ghost" onClick={clearAll}>
-                  <X className="w-4 h-4 mr-2" /> Clear Filters
-                </button>
+                {aiCurated ? (
+                  <button
+                    className="btn-ghost"
+                    onClick={() => { setAiCurated(false); setPage(1) }}
+                  >
+                    Show all jobs
+                  </button>
+                ) : (
+                  <button className="btn-ghost" onClick={clearAll}>
+                    <X className="w-4 h-4 mr-2" /> Clear Filters
+                  </button>
+                )}
               </motion.div>
             ) : (
               <motion.div

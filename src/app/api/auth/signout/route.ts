@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
   })
 
   const response = NextResponse.json({ ok: true })
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
   response.cookies.set('tb-company-token', '', {
     maxAge: 0,
     path: '/',

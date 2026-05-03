@@ -472,8 +472,21 @@ export default function ProfilePage() {
 
   // ── Section save handlers ──────────────────────────────────────────────────
   async function savePersonal() {
+    if (!name.trim()) {
+      toast.error('Please enter your full name so companies can see who applied.')
+      return
+    }
     setSavingPersonal(true)
-    const res = await updateTalentProfile({ headline, bio, location, phone, languages })
+    const res = await updateTalentProfile({
+      name: name.trim(),
+      // Mirror headline into title so company-facing views (applicants, pipeline) show it.
+      title: headline.trim(),
+      headline,
+      bio,
+      location,
+      phone,
+      languages,
+    })
     setSavingPersonal(false)
     if (res.error) toast.error(res.error)
     else toast.success('Personal info saved')

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -12,11 +12,11 @@ import {
 import { getCompanyJobs, getApplications } from '@/lib/api'
 import { STAGE_LABELS, PIPELINE_STAGES } from '@/lib/constants'
 import type { Job, PipelineStage, Application } from '@/lib/types'
-import { cn, timeAgo, candidateAvatarSrc } from '@/lib/utils'
+import { cn, timeAgo, candidateAvatarSrc, candidateDisplayName } from '@/lib/utils'
 import {
   Plus, ChevronDown, Calendar, MessageSquare, ChevronRight,
   Kanban, LayoutList, Search, MoreHorizontal, Users, Clock,
-  ChevronsLeft,
+  ChevronsLeft, Eye, ArrowRight, CheckCircle2, XCircle,
 } from 'lucide-react'
 
 // ─── Stage palette ────────────────────────────────────────────────────────────
@@ -64,80 +64,189 @@ function matchColor(score: number) {
 }
 
 function fallbackName(app: Application): string {
-  return (app.candidate?.name as string) || `Candidate ${String(app.candidateId ?? '').slice(-4)}`
+  return candidateDisplayName({
+    name: app.candidate?.name,
+    email: app.candidate?.email,
+    id: app.candidateId,
+  })
 }
 
 // ─── Candidate Card ───────────────────────────────────────────────────────────
 
-function CandidateCard({ app, dragging = false }: { app: Application; dragging?: boolean }) {
+const NEXT_STAGE: Partial<Record<PipelineStage, PipelineStage>> = {
+  new: 'screening',
+  screening: 'phone_screen',
+  phone_screen: 'technical',
+  technical: 'onsite',
+  onsite: 'offer',
+  offer: 'hired',
+}
+
+const STAGE_TO_STATUS: Record<PipelineStage, string> = {
+  new: 'applied',
+  screening: 'screening',
+  phone_screen: 'interview',
+  technical: 'technical',
+  onsite: 'interview',
+  offer: 'offer',
+  hired: 'hired',
+  rejected: 'rejected',
+}
+
+function CandidateCard({
+  app,
+  dragging = false,
+  onAction,
+}: {
+  app: Application
+  dragging?: boolean
+  onAction?: (action: 'view' | 'message' | 'next' | 'hire' | 'reject', app: Application) => void
+}) {
   const candidate = app.candidate
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: app.id })
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function onDoc(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [menuOpen])
 
   const daysInStage = Math.max(1, Math.floor((Date.now() - new Date(app.updatedAt).getTime()) / 86_400_000))
   const isStale = daysInStage > 7
   const displayName = candidate?.name || fallbackName(app)
   const displayTitle = candidate?.title || 'Candidate'
   const avatar = candidateAvatarSrc(candidate, displayName)
+  const stage = app.stage as PipelineStage
+  const nextStage = NEXT_STAGE[stage]
+  const isFinal = stage === 'hired' || stage === 'rejected'
+
+  // Stop drag listeners from intercepting clicks on the menu/buttons.
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation()
 
   return (
     <motion.div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: isDragging ? 0.4 : 1, y: 0 }}
       transition={{ duration: 0.18 }}
       className={cn(
-        'tl-card p-3.5 cursor-grab active:cursor-grabbing hover:border-tl-gold/40 transition-all group touch-none',
-        dragging && 'shadow-2xl border-tl-gold rotate-2 scale-105 cursor-grabbing'
+        'relative tl-card p-3.5 hover:border-tl-gold/40 transition-all group touch-none',
+        dragging && 'shadow-2xl border-tl-gold rotate-2 scale-105'
       )}
     >
-      <div className="flex items-start gap-2.5 mb-2">
-        <img
-          src={avatar}
-          alt={displayName}
-          className="w-8 h-8 rounded-full object-cover shrink-0 border border-tl-border-subtle bg-tl-bg-elevated"
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-tl-text-primary truncate leading-tight">{displayName}</p>
-          <p className="text-[11px] text-tl-text-secondary truncate mt-0.5">{displayTitle}</p>
+      {/* Drag/click region */}
+      <div
+        {...attributes}
+        {...listeners}
+        onClick={() => onAction?.('view', app)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onAction?.('view', app)
+          }
+        }}
+        className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-tl-gold/40 rounded-lg -m-1 p-1"
+      >
+        <div className="flex items-start gap-2.5 mb-2">
+          <img
+            src={avatar}
+            alt={displayName}
+            className="w-8 h-8 rounded-full object-cover shrink-0 border border-tl-border-subtle bg-tl-bg-elevated"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-tl-text-primary truncate leading-tight">{displayName}</p>
+            <p className="text-[11px] text-tl-text-secondary truncate mt-0.5">{displayTitle}</p>
+          </div>
         </div>
-        <button className="hidden group-hover:flex p-1 rounded-lg hover:bg-tl-bg-elevated text-tl-text-secondary shrink-0">
+
+        <div className="flex items-center justify-between mb-2">
+          <span className={cn('text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border', matchColor(app.matchScore))}>
+            {app.matchScore}% match
+          </span>
+          <span className={cn(
+            'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+            isStale
+              ? 'bg-tl-rose/10 text-tl-rose border border-tl-rose/20'
+              : 'bg-tl-bg-elevated text-tl-text-secondary'
+          )}>
+            {daysInStage}d
+          </span>
+        </div>
+
+        <p className="text-[11px] text-tl-text-secondary truncate">
+          {app.job?.title ?? 'Unknown Role'}
+        </p>
+      </div>
+
+      {/* Three-dot menu (above drag listeners) */}
+      <div ref={menuRef} className="absolute top-2 right-2" onMouseDown={stop} onClick={stop}>
+        <button
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v) }}
+          className={cn(
+            'p-1 rounded-lg hover:bg-tl-bg-elevated text-tl-text-secondary',
+            menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+          )}
+          aria-label="Card actions"
+          aria-expanded={menuOpen}
+        >
           <MoreHorizontal className="w-3.5 h-3.5" />
         </button>
-      </div>
-
-      <div className="flex items-center justify-between mb-2">
-        <span className={cn('text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border', matchColor(app.matchScore))}>
-          {app.matchScore}% match
-        </span>
-        <span className={cn(
-          'text-[10px] font-semibold px-2 py-0.5 rounded-full',
-          isStale
-            ? 'bg-tl-rose/10 text-tl-rose border border-tl-rose/20'
-            : 'bg-tl-bg-elevated text-tl-text-secondary'
-        )}>
-          {daysInStage}d
-        </span>
-      </div>
-
-      <p className="text-[11px] text-tl-text-secondary truncate mb-2.5">
-        {app.job?.title ?? 'Unknown Role'}
-      </p>
-
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-        <button className="flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-gold/10 text-tl-text-secondary hover:text-tl-gold transition-colors flex-1">
-          <Calendar className="w-3 h-3" />
-          <span>Schedule</span>
-        </button>
-        <button className="flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 rounded-lg bg-tl-bg-elevated hover:bg-tl-teal/10 text-tl-text-secondary hover:text-tl-teal transition-colors flex-1">
-          <MessageSquare className="w-3 h-3" />
-          <span>Message</span>
-        </button>
-        <button className="p-1.5 rounded-lg bg-tl-gold/10 hover:bg-tl-gold/20 text-tl-gold transition-colors shrink-0">
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.96 }}
+              transition={{ duration: 0.12 }}
+              className="absolute right-0 mt-1 w-48 rounded-xl border border-tl-border-default bg-tl-bg-base/95 backdrop-blur-xl shadow-xl overflow-hidden z-30"
+            >
+              <button
+                onClick={() => { setMenuOpen(false); onAction?.('view', app) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tl-text-primary hover:bg-tl-bg-elevated transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5 text-tl-text-secondary" /> View profile
+              </button>
+              <button
+                onClick={() => { setMenuOpen(false); onAction?.('message', app) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tl-text-primary hover:bg-tl-bg-elevated transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-tl-text-secondary" /> Message
+              </button>
+              {!isFinal && nextStage && (
+                <button
+                  onClick={() => { setMenuOpen(false); onAction?.('next', app) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tl-text-primary hover:bg-tl-bg-elevated transition-colors border-t border-tl-border-subtle"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 text-tl-gold" /> Move to {STAGE_LABELS[nextStage]}
+                </button>
+              )}
+              {!isFinal && (
+                <button
+                  onClick={() => { setMenuOpen(false); onAction?.('hire', app) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tl-text-primary hover:bg-tl-bg-elevated transition-colors"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-tl-teal" /> Mark as hired
+                </button>
+              )}
+              {stage !== 'rejected' && (
+                <button
+                  onClick={() => { setMenuOpen(false); onAction?.('reject', app) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tl-rose hover:bg-tl-rose/10 transition-colors border-t border-tl-border-subtle"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Reject
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   )
@@ -146,12 +255,13 @@ function CandidateCard({ app, dragging = false }: { app: Application; dragging?:
 // ─── Kanban Column ────────────────────────────────────────────────────────────
 
 function KanbanColumn({
-  stage, cards, collapsed, onToggle,
+  stage, cards, collapsed, onToggle, onCardAction,
 }: {
   stage: PipelineStage
   cards: Application[]
   collapsed: boolean
   onToggle: () => void
+  onCardAction?: (action: 'view' | 'message' | 'next' | 'hire' | 'reject', app: Application) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `col-${stage}` })
 
@@ -222,7 +332,7 @@ function KanbanColumn({
               </p>
             </div>
           ) : (
-            cards.map(app => <CandidateCard key={app.id} app={app} />)
+            cards.map(app => <CandidateCard key={app.id} app={app} onAction={onCardAction} />)
           )}
         </div>
       )}
@@ -295,8 +405,10 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
       </td>
       <td className="px-4 py-3">
         {candidate?.id ? (
-          <Link href={`/company/candidates/${candidate.id}`}
-            className="text-xs font-medium text-tl-gold hover:text-tl-gold/80 opacity-0 group-hover:opacity-100 transition-all">
+          <Link
+            href={`/company/candidates/${candidate.id}${app.jobId ? `?jobId=${app.jobId}` : ''}`}
+            className="text-xs font-medium text-tl-gold hover:text-tl-gold/80 opacity-0 group-hover:opacity-100 transition-all"
+          >
             View →
           </Link>
         ) : null}
@@ -325,6 +437,50 @@ export default function PipelinePage() {
     setActiveApp(app ?? null)
   }
 
+  const router = useRouter()
+
+  function persistStageChange(appId: string, newStage: PipelineStage, label = STAGE_LABELS[newStage]) {
+    setApplications(prev => prev.map(a =>
+      a.id === appId ? { ...a, stage: newStage, updatedAt: new Date().toISOString() } : a
+    ))
+    fetch(`/api/company/applications/${appId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: STAGE_TO_STATUS[newStage] }),
+    })
+      .then(r => r.ok ? toast.success(`Moved to ${label}`) : toast.error('Failed to update'))
+      .catch(() => toast.error('Failed to update'))
+  }
+
+  const handleCardAction = (
+    action: 'view' | 'message' | 'next' | 'hire' | 'reject',
+    app: Application,
+  ) => {
+    if (action === 'view') {
+      const qs = app.jobId ? `?jobId=${encodeURIComponent(app.jobId)}` : ''
+      router.push(`/company/candidates/${app.candidateId}${qs}`)
+      return
+    }
+    if (action === 'message') {
+      router.push(`/company/messages?candidate=${app.candidateId}`)
+      return
+    }
+    if (action === 'next') {
+      const nextStage = NEXT_STAGE[app.stage as PipelineStage]
+      if (!nextStage) return
+      persistStageChange(app.id, nextStage)
+      return
+    }
+    if (action === 'hire') {
+      persistStageChange(app.id, 'hired')
+      return
+    }
+    if (action === 'reject') {
+      persistStageChange(app.id, 'rejected')
+      return
+    }
+  }
+
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveApp(null)
     if (!e.over) return
@@ -332,23 +488,7 @@ export default function PipelinePage() {
     const appId = String(e.active.id)
     const app = applications.find(a => a.id === appId)
     if (!app || app.stage === newStage) return
-
-    setApplications(prev => prev.map(a =>
-      a.id === appId ? { ...a, stage: newStage, updatedAt: new Date().toISOString() } : a
-    ))
-
-    const stageToStatus: Record<PipelineStage, string> = {
-      new: 'applied', screening: 'screening', phone_screen: 'interview',
-      technical: 'technical', onsite: 'interview', offer: 'offer',
-      hired: 'hired', rejected: 'rejected',
-    }
-    fetch(`/api/company/applications/${appId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: stageToStatus[newStage] }),
-    })
-      .then(r => r.ok ? toast.success(`Moved to ${STAGE_LABELS[newStage]}`) : toast.error('Failed to update'))
-      .catch(() => toast.error('Failed to update'))
+    persistStageChange(appId, newStage)
   }
 
   useEffect(() => {
@@ -539,6 +679,7 @@ export default function PipelinePage() {
                     cards={cards}
                     collapsed={collapsed.has(stage)}
                     onToggle={() => toggleCollapse(stage)}
+                    onCardAction={handleCardAction}
                   />
                 ))}
               </motion.div>

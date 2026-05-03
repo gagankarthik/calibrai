@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { getJobs, getApplications } from '@/lib/api'
+import { getCompanyJobs, getApplications } from '@/lib/api'
 import type { Job, Application } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
 import { STAGE_LABELS } from '@/lib/constants'
@@ -76,7 +76,7 @@ export default function CompanyDashboard() {
   useEffect(() => {
     async function load() {
       const [jobsRes, appsRes, userRes] = await Promise.all([
-        getJobs(),
+        getCompanyJobs({ limit: 100 }),
         getApplications(),
         fetch('/api/auth/me').then(r => r.ok ? r.json() : null).catch(() => null),
       ])

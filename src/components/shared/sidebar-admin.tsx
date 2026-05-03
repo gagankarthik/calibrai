@@ -15,6 +15,7 @@ import {
   Zap,
   ChevronRight,
 } from 'lucide-react'
+import { TBLogo } from '../landing/landing-logo'
 
 const navItems = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -39,26 +40,14 @@ export function SidebarAdmin() {
       aria-label="Admin sidebar navigation"
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-[var(--tl-border-subtle)]">
-        <div className="w-8 h-8 rounded-lg bg-tl-rose/10 border border-tl-rose/30 flex items-center justify-center">
-          <Shield className="w-4 h-4 text-tl-rose" />
+      <div className="flex items-center gap-2.5 px-5 py-2 border-b border-[var(--tl-border-subtle)]">
+        <div className="w-8 h-8 flex items-center justify-center">
+        <TBLogo/>
         </div>
         <div>
           <span className="font-display text-sm font-bold text-tl-text-primary">
             TalentBridge
           </span>
-          <span className="block text-[10px] text-tl-text-secondary font-medium tracking-wider uppercase">
-            Admin Panel
-          </span>
-        </div>
-      </div>
-
-      {/* Zap badge */}
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tl-rose/5 border border-tl-rose/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-tl-rose animate-pulse" />
-          <span className="text-[11px] font-semibold text-tl-rose">Owner Access</span>
-          <Zap className="w-3 h-3 text-tl-rose ml-auto" />
         </div>
       </div>
 

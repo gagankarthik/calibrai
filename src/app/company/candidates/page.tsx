@@ -3,9 +3,9 @@
 import { useState, useMemo, useEffect, KeyboardEvent } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getCandidates } from '@/lib/api'
+import { getCandidates, getCompanyJobs } from '@/lib/api'
 import { EXPERIENCE_LABELS, WORK_MODE_LABELS } from '@/lib/constants'
-import type { Candidate, ExperienceLevel, WorkMode } from '@/lib/types'
+import type { Candidate, ExperienceLevel, WorkMode, Job } from '@/lib/types'
 import { cn, formatSalary } from '@/lib/utils'
 import {
   Search,
@@ -21,6 +21,8 @@ import {
   SlidersHorizontal,
   Zap,
   Star,
+  Sparkles,
+  Loader2,
 } from 'lucide-react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -93,10 +95,23 @@ function Toggle({ value, onChange, gold = false }: { value: boolean; onChange: (
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
 
-function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: number }) {
+function CandidateGridCard({
+  candidate,
+  idx,
+  aiScore,
+  aiReason,
+  jobIdForLink,
+}: {
+  candidate: Candidate
+  idx: number
+  aiScore?: number
+  aiReason?: string
+  jobIdForLink?: string
+}) {
   const [saved, setSaved] = useState(false)
   const topSkills = candidate.skills.slice(0, 4)
   const extraCount = candidate.skills.length - topSkills.length
+  const displayScore = aiScore ?? candidate.matchScore
 
   return (
     <motion.div
@@ -156,7 +171,7 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
 
       {/* Match ring */}
       <div className="flex justify-center my-3">
-        <MatchRingSvg score={candidate.matchScore} size={64} />
+        <MatchRingSvg score={displayScore} size={64} />
       </div>
 
       {/* Skills */}
@@ -181,14 +196,26 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
       </div>
 
       {/* Salary */}
-      <p className="font-mono text-sm text-tl-gold font-semibold mb-4 mt-auto">
+      <p className="font-mono text-sm text-tl-gold font-semibold mb-2 mt-auto">
         ${Math.round(candidate.salaryExpectation / 1000)}K / yr
       </p>
+
+      {/* AI reason snippet */}
+      {aiReason && (
+        <p
+          className="text-[11px] text-tl-text-secondary leading-snug line-clamp-2 mb-3 italic"
+          title={aiReason}
+        >
+          <span className="not-italic font-semibold text-tl-gold">AI:</span> {aiReason}
+        </p>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">
         <Link
-          href={`/company/candidates/${candidate.id}`}
+          href={jobIdForLink
+            ? `/company/candidates/${candidate.id}?jobId=${jobIdForLink}`
+            : `/company/candidates/${candidate.id}`}
           className="flex-1 text-sm font-semibold py-2 px-3 rounded-xl border border-tl-border-subtle hover:border-tl-gold/40 hover:text-tl-gold text-tl-text-primary text-center transition-all"
         >
           View Profile
@@ -211,8 +238,21 @@ function CandidateGridCard({ candidate, idx }: { candidate: Candidate; idx: numb
 
 // ─── List Row ─────────────────────────────────────────────────────────────────
 
-function CandidateListRow({ candidate, idx }: { candidate: Candidate; idx: number }) {
+function CandidateListRow({
+  candidate,
+  idx,
+  aiScore,
+  aiReason,
+  jobIdForLink,
+}: {
+  candidate: Candidate
+  idx: number
+  aiScore?: number
+  aiReason?: string
+  jobIdForLink?: string
+}) {
   const [saved, setSaved] = useState(false)
+  const displayScore = aiScore ?? candidate.matchScore
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -230,6 +270,14 @@ function CandidateListRow({ candidate, idx }: { candidate: Candidate; idx: numbe
           {candidate.premium && <Star className="w-3.5 h-3.5 text-tl-gold shrink-0 fill-current" />}
         </div>
         <p className="text-sm text-tl-text-secondary">{candidate.title} · {candidate.location}</p>
+        {aiReason && (
+          <p
+            className="text-[11px] text-tl-text-secondary mt-1 line-clamp-1 italic"
+            title={aiReason}
+          >
+            <span className="not-italic font-semibold text-tl-gold">AI:</span> {aiReason}
+          </p>
+        )}
       </div>
       <div className="hidden md:flex gap-1.5 flex-wrap max-w-[180px]">
         {candidate.skills.slice(0, 2).map((s) => (
@@ -242,10 +290,12 @@ function CandidateListRow({ candidate, idx }: { candidate: Candidate; idx: numbe
         ${Math.round(candidate.salaryExpectation / 1000)}K
       </span>
       <div className="shrink-0">
-        <MatchRingSvg score={candidate.matchScore} size={44} />
+        <MatchRingSvg score={displayScore} size={44} />
       </div>
       <Link
-        href={`/company/candidates/${candidate.id}`}
+        href={jobIdForLink
+          ? `/company/candidates/${candidate.id}?jobId=${jobIdForLink}`
+          : `/company/candidates/${candidate.id}`}
         className="text-xs font-medium px-3 py-1.5 rounded-lg bg-tl-gold/10 border border-tl-gold/20 text-tl-gold hover:bg-tl-gold/20 transition-all shrink-0"
       >
         View
@@ -261,6 +311,12 @@ function CandidateListRow({ candidate, idx }: { candidate: Candidate; idx: numbe
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
+interface FindTalentMatch {
+  candidateId: string
+  score: number
+  reason: string
+}
 
 export default function CandidatesPage() {
   const [allCandidates, setAllCandidates] = useState<Candidate[]>([])
@@ -279,6 +335,17 @@ export default function CandidatesPage() {
   const [skillTags, setSkillTags] = useState<string[]>([])
   const [skillInput, setSkillInput] = useState('')
 
+  // Find Talent (AI)
+  const [findOpen, setFindOpen] = useState(false)
+  const [companyJobs, setCompanyJobs] = useState<Job[]>([])
+  const [jobsLoading, setJobsLoading] = useState(false)
+  const [selectedJobId, setSelectedJobId] = useState<string>('')
+  const [finding, setFinding] = useState(false)
+  const [findError, setFindError] = useState<string | null>(null)
+  const [aiMatches, setAiMatches] = useState<Map<string, FindTalentMatch> | null>(null)
+  const [aiJob, setAiJob] = useState<Job | null>(null)
+  const [aiSource, setAiSource] = useState<'openai' | 'fallback' | null>(null)
+
   useEffect(() => {
     async function load() {
       const res = await getCandidates()
@@ -287,6 +354,56 @@ export default function CandidatesPage() {
     }
     load()
   }, [])
+
+  function openFind() {
+    setFindError(null)
+    setFindOpen(true)
+    if (companyJobs.length === 0) {
+      setJobsLoading(true)
+      getCompanyJobs({ status: 'active', limit: 50 })
+        .then(r => { if (r.data) setCompanyJobs(r.data) })
+        .finally(() => setJobsLoading(false))
+    }
+  }
+
+  async function runFind() {
+    if (!selectedJobId) return
+    setFinding(true)
+    setFindError(null)
+    try {
+      const res = await fetch(`/api/company/jobs/${selectedJobId}/match-candidates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error || 'Find Talent failed')
+      }
+      const data = await res.json() as {
+        results: FindTalentMatch[]
+        source: 'openai' | 'fallback'
+      }
+      const map = new Map<string, FindTalentMatch>()
+      for (const r of data.results) map.set(r.candidateId, r)
+      setAiMatches(map)
+      setAiSource(data.source)
+      setAiJob(companyJobs.find(j => j.id === selectedJobId) ?? null)
+      setSortBy('match')
+      setPage(1)
+      setFindOpen(false)
+    } catch (e) {
+      setFindError(e instanceof Error ? e.message : 'Failed to find talent')
+    } finally {
+      setFinding(false)
+    }
+  }
+
+  function clearAiMatches() {
+    setAiMatches(null)
+    setAiJob(null)
+    setAiSource(null)
+  }
 
   const activeFilters =
     experienceFilter.length +
@@ -366,10 +483,16 @@ export default function CandidatesPage() {
     if (availabilityFilter) {
       list = list.filter((c) => c.availability.toLowerCase().includes(availabilityFilter.toLowerCase().split(' ')[0]))
     }
+    // When AI Find Talent ran, restrict to scored candidates and sort by AI score.
+    if (aiMatches) {
+      list = list.filter((c) => aiMatches.has(c.id))
+      list.sort((a, b) => (aiMatches.get(b.id)?.score ?? 0) - (aiMatches.get(a.id)?.score ?? 0))
+      return list
+    }
     if (sortBy === 'match') list.sort((a, b) => b.matchScore - a.matchScore)
     else if (sortBy === 'salary') list.sort((a, b) => a.salaryExpectation - b.salaryExpectation)
     return list
-  }, [allCandidates, search, experienceFilter, workModeFilter, salaryMin, skillTags, verifiedOnly, premiumOnly, availabilityFilter, sortBy])
+  }, [allCandidates, search, experienceFilter, workModeFilter, salaryMin, skillTags, verifiedOnly, premiumOnly, availabilityFilter, sortBy, aiMatches])
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
@@ -585,13 +708,23 @@ export default function CandidatesPage() {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
+              {/* Find Talent (AI) */}
+              <button
+                onClick={openFind}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-tl-gold to-tl-gold/80 text-tl-bg-base text-sm font-semibold hover:shadow-gold transition-all"
+              >
+                <Sparkles className="w-4 h-4" />
+                Find Talent
+              </button>
+
               {/* Sort */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-tl-text-secondary hidden sm:block">Sort:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'match' | 'recent' | 'salary')}
-                  className="bg-tl-bg-surface border border-tl-border-subtle rounded-xl px-3 py-2 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all"
+                  disabled={!!aiMatches}
+                  className="bg-tl-bg-surface border border-tl-border-subtle rounded-xl px-3 py-2 text-sm text-tl-text-primary focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all disabled:opacity-50"
                 >
                   <option value="match">Best Match</option>
                   <option value="recent">Most Recent</option>
@@ -618,6 +751,39 @@ export default function CandidatesPage() {
           </div>
         </div>
 
+        {/* AI Results banner */}
+        {aiMatches && aiJob && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-6 mt-4 rounded-2xl border border-tl-gold/30 bg-gradient-to-r from-tl-gold/12 via-tl-gold/8 to-transparent p-4 flex items-center gap-3"
+          >
+            <div className="w-9 h-9 rounded-xl bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-tl-gold" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-tl-text-primary">
+                AI-ranked candidates for{' '}
+                <span className="text-tl-gold">{aiJob.title}</span>
+              </p>
+              <p className="text-xs text-tl-text-secondary mt-0.5">
+                {aiMatches.size} candidate{aiMatches.size !== 1 ? 's' : ''} scored against this role
+                {aiSource === 'fallback' && (
+                  <span className="ml-1 text-[10px] uppercase tracking-wider border border-tl-border-subtle rounded-full px-1.5 py-0.5 ml-2">
+                    Heuristic
+                  </span>
+                )}
+              </p>
+            </div>
+            <button
+              onClick={clearAiMatches}
+              className="text-xs font-semibold text-tl-text-secondary hover:text-tl-rose transition-colors flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> Clear
+            </button>
+          </motion.div>
+        )}
+
         {/* Candidates */}
         <div className="flex-1 overflow-y-auto p-6">
           <AnimatePresence mode="wait">
@@ -630,10 +796,17 @@ export default function CandidatesPage() {
                 className="flex flex-col items-center justify-center h-64 text-center"
               >
                 <Search className="w-12 h-12 text-tl-text-secondary/20 mb-4" />
-                <p className="text-sm font-medium text-tl-text-primary">No candidates found</p>
-                <p className="text-xs text-tl-text-secondary mt-1">Try adjusting your search or filters</p>
-                <button onClick={clearFilters} className="mt-4 text-xs text-tl-gold hover:text-tl-gold/80 transition-colors">
-                  Clear all filters
+                <p className="text-sm font-medium text-tl-text-primary">
+                  {aiMatches ? 'No AI matches yet — make sure candidates have completed profiles.' : 'No candidates found'}
+                </p>
+                <p className="text-xs text-tl-text-secondary mt-1">
+                  {aiMatches ? 'Clear AI results to see all candidates.' : 'Try adjusting your search or filters'}
+                </p>
+                <button
+                  onClick={() => (aiMatches ? clearAiMatches() : clearFilters())}
+                  className="mt-4 text-xs text-tl-gold hover:text-tl-gold/80 transition-colors"
+                >
+                  {aiMatches ? 'Clear AI results' : 'Clear all filters'}
                 </button>
               </motion.div>
             ) : viewMode === 'grid' ? (
@@ -645,7 +818,14 @@ export default function CandidatesPage() {
                 className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
               >
                 {paginated.map((c, i) => (
-                  <CandidateGridCard key={c.id} candidate={c} idx={i} />
+                  <CandidateGridCard
+                    key={c.id}
+                    candidate={c}
+                    idx={i}
+                    aiScore={aiMatches?.get(c.id)?.score}
+                    aiReason={aiMatches?.get(c.id)?.reason}
+                    jobIdForLink={aiJob?.id}
+                  />
                 ))}
               </motion.div>
             ) : (
@@ -657,7 +837,14 @@ export default function CandidatesPage() {
                 className="flex flex-col gap-3"
               >
                 {paginated.map((c, i) => (
-                  <CandidateListRow key={c.id} candidate={c} idx={i} />
+                  <CandidateListRow
+                    key={c.id}
+                    candidate={c}
+                    idx={i}
+                    aiScore={aiMatches?.get(c.id)?.score}
+                    aiReason={aiMatches?.get(c.id)?.reason}
+                    jobIdForLink={aiJob?.id}
+                  />
                 ))}
               </motion.div>
             )}
@@ -710,6 +897,136 @@ export default function CandidatesPage() {
           </div>
         )}
       </main>
+
+      {/* ── FIND TALENT MODAL ──────────────────────────────────────────── */}
+      <AnimatePresence>
+        {findOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => !finding && setFindOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-tl-border-default bg-tl-bg-surface shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-tl-border-subtle">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-tl-gold" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-tl-text-primary">Find Talent with AI</h2>
+                    <p className="text-[11px] text-tl-text-secondary">Pick a job — AI will rank your talent pool</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => !finding && setFindOpen(false)}
+                  className="text-tl-text-secondary hover:text-tl-text-primary p-1"
+                  disabled={finding}
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-tl-text-secondary uppercase tracking-wider">
+                    Select a Job
+                  </label>
+                  {jobsLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-tl-text-secondary py-3">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your jobs…
+                    </div>
+                  ) : companyJobs.length === 0 ? (
+                    <div className="rounded-xl border border-tl-border-subtle bg-tl-bg-base p-4 text-center">
+                      <p className="text-sm text-tl-text-primary">No active jobs yet.</p>
+                      <Link
+                        href="/company/jobs/new"
+                        className="text-xs text-tl-gold hover:underline mt-1.5 inline-block"
+                      >
+                        Post a job first →
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto space-y-1.5 rounded-xl border border-tl-border-subtle bg-tl-bg-base p-1">
+                      {companyJobs.map((j) => (
+                        <button
+                          key={j.id}
+                          onClick={() => setSelectedJobId(j.id)}
+                          className={cn(
+                            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
+                            selectedJobId === j.id
+                              ? 'bg-tl-gold/12 border border-tl-gold/40'
+                              : 'border border-transparent hover:bg-tl-bg-elevated',
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'w-3.5 h-3.5 rounded-full border-2 shrink-0 transition-colors',
+                              selectedJobId === j.id ? 'bg-tl-gold border-tl-gold' : 'border-tl-border-default',
+                            )}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-tl-text-primary truncate">{j.title}</p>
+                            <p className="text-[11px] text-tl-text-secondary truncate">
+                              {j.location || 'Remote'}
+                              {j.workMode ? ` · ${WORK_MODE_LABELS[j.workMode] ?? j.workMode}` : ''}
+                              {j.applicantCount != null ? ` · ${j.applicantCount} applicant${j.applicantCount === 1 ? '' : 's'}` : ''}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {findError && (
+                  <p className="text-xs text-tl-rose bg-tl-rose/10 border border-tl-rose/20 rounded-lg p-2.5">
+                    {findError}
+                  </p>
+                )}
+
+                <p className="text-[11px] text-tl-text-secondary leading-relaxed">
+                  AI will score candidates on skills overlap, seniority, work mode &amp; salary fit, and recent experience relevance — then return them ranked.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-tl-border-subtle bg-tl-bg-base/60">
+                <button
+                  onClick={() => setFindOpen(false)}
+                  disabled={finding}
+                  className="px-4 py-2 text-sm font-medium text-tl-text-secondary hover:text-tl-text-primary disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={runFind}
+                  disabled={finding || !selectedJobId || companyJobs.length === 0}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-tl-gold to-tl-gold/80 text-tl-bg-base text-sm font-semibold hover:shadow-gold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {finding ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Finding…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" /> Find
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

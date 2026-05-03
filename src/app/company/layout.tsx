@@ -47,9 +47,14 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
       .catch(() => {})
   }, [router])
 
-  function handleSignOut() {
-    document.cookie = 'tb-company-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
-    router.push('/auth/login')
+  async function handleSignOut() {
+    try {
+      await fetch('/api/auth/signout', { method: 'POST' })
+    } catch {
+      // even if the network fails, fall through to a hard reload
+    }
+    // Hard reload — discards Next's router cache so protected pages can't come back via the back button.
+    window.location.replace('/auth/login')
   }
 
   const displayName = user?.companyName ?? user?.name ?? 'Your Company'

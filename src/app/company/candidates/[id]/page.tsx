@@ -248,7 +248,7 @@ export default function CandidateDetailPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-auto mx-auto">
 
       {/* Back nav */}
       <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="mb-5 sm:mb-6">
