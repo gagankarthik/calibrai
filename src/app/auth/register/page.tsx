@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { TBLogo } from '@/components/landing/landing-logo'
 
 type Role = 'company' | 'talent'
 
@@ -55,8 +56,8 @@ function LeftPanel() {
       <div className="absolute bottom-0 right-0 w-72 h-72 rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
 
       <Link href="/" className="relative z-10 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-indigo-300" />
+        <div className="w-8 h-8 flex items-center justify-center">
+          <TBLogo />
         </div>
         <span className="text-white font-bold text-[15px] tracking-tight">TalentBridge</span>
       </Link>
@@ -142,7 +143,7 @@ export default function RegisterPage() {
     }
   }
 
-  const inputCls = "w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+  const inputCls = "w-full bg-tl-bg-elevated border border-white/[0.08] text-primary placeholder:text-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
 
   return (
     <div className="min-h-screen flex bg-tl-bg-base">
@@ -154,8 +155,8 @@ export default function RegisterPage() {
 
           {/* Mobile logo */}
           <Link href="/" className="flex lg:hidden items-center gap-2.5 mb-8">
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="w-7 h-7 flex items-center justify-center">
+              <TBLogo />
             </div>
             <span className="text-white font-bold text-[15px]">TalentBridge</span>
           </Link>
@@ -169,7 +170,7 @@ export default function RegisterPage() {
                 exit={{ opacity: 0, x: -32 }} transition={{ duration: 0.26 }}
                 className="space-y-6">
                 <div className="text-center">
-                  <h1 className="text-[26px] font-bold text-white tracking-tight">Create your account</h1>
+                  <h1 className="text-[26px] font-bold text-primary tracking-tight">Create your account</h1>
                   <p className="text-slate-400 text-sm mt-1">Who are you joining as?</p>
                 </div>
 
@@ -193,7 +194,7 @@ export default function RegisterPage() {
                         <r.icon className={cn('w-5 h-5', role === r.id ? 'text-indigo-400' : 'text-slate-500')} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={cn('text-[14px] font-semibold', role === r.id ? 'text-white' : 'text-slate-400')}>
+                        <p className={cn('text-[14px] font-semibold', role === r.id ? 'text-primary' : 'text-slate-400')}>
                           {r.label}
                         </p>
                         <p className="text-[12px] text-slate-500 mt-1 leading-relaxed">{r.desc}</p>
@@ -231,7 +232,7 @@ export default function RegisterPage() {
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <div>
-                    <h1 className="text-[22px] font-bold text-white tracking-tight">Your details</h1>
+                    <h1 className="text-[22px] font-bold text-primary tracking-tight">Your details</h1>
                     <p className="text-slate-400 text-[13px]">
                       {role === 'company' ? 'Company account' : 'Job seeker account'}
                     </p>

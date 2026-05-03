@@ -12,7 +12,7 @@ import {
 import { getCompanyJobs, getApplications } from '@/lib/api'
 import { STAGE_LABELS, PIPELINE_STAGES } from '@/lib/constants'
 import type { Job, PipelineStage, Application } from '@/lib/types'
-import { cn, timeAgo } from '@/lib/utils'
+import { cn, timeAgo, candidateAvatarSrc } from '@/lib/utils'
 import {
   Plus, ChevronDown, Calendar, MessageSquare, ChevronRight,
   Kanban, LayoutList, Search, MoreHorizontal, Users, Clock,
@@ -63,18 +63,8 @@ function matchColor(score: number) {
   return 'bg-tl-rose/15 text-tl-rose border-tl-rose/25'
 }
 
-function avatarColor(name: string): string {
-  const colors = [
-    'bg-tl-blue/20 text-tl-blue',
-    'bg-tl-gold/20 text-tl-gold',
-    'bg-tl-teal/20 text-tl-teal',
-    'bg-tl-rose/20 text-tl-rose',
-    'bg-tl-blue/15 text-tl-blue',
-    'bg-tl-gold/15 text-tl-gold',
-  ]
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff
-  return colors[Math.abs(hash) % colors.length]
+function fallbackName(app: Application): string {
+  return (app.candidate?.name as string) || `Candidate ${String(app.candidateId ?? '').slice(-4)}`
 }
 
 // ─── Candidate Card ───────────────────────────────────────────────────────────
@@ -83,11 +73,11 @@ function CandidateCard({ app, dragging = false }: { app: Application; dragging?:
   const candidate = app.candidate
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: app.id })
 
-  if (!candidate) return null
-
   const daysInStage = Math.max(1, Math.floor((Date.now() - new Date(app.updatedAt).getTime()) / 86_400_000))
   const isStale = daysInStage > 7
-  const initials = candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  const displayName = candidate?.name || fallbackName(app)
+  const displayTitle = candidate?.title || 'Candidate'
+  const avatar = candidateAvatarSrc(candidate, displayName)
 
   return (
     <motion.div
@@ -104,12 +94,14 @@ function CandidateCard({ app, dragging = false }: { app: Application; dragging?:
       )}
     >
       <div className="flex items-start gap-2.5 mb-2">
-        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarColor(candidate.name))}>
-          {initials}
-        </div>
+        <img
+          src={avatar}
+          alt={displayName}
+          className="w-8 h-8 rounded-full object-cover shrink-0 border border-tl-border-subtle bg-tl-bg-elevated"
+        />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-tl-text-primary truncate leading-tight">{candidate.name}</p>
-          <p className="text-[11px] text-tl-text-secondary truncate mt-0.5">{candidate.title}</p>
+          <p className="text-sm font-semibold text-tl-text-primary truncate leading-tight">{displayName}</p>
+          <p className="text-[11px] text-tl-text-secondary truncate mt-0.5">{displayTitle}</p>
         </div>
         <button className="hidden group-hover:flex p-1 rounded-lg hover:bg-tl-bg-elevated text-tl-text-secondary shrink-0">
           <MoreHorizontal className="w-3.5 h-3.5" />
@@ -251,9 +243,10 @@ function KanbanColumn({
 
 function ListRow({ app, idx }: { app: Application; idx: number }) {
   const candidate = app.candidate
-  if (!candidate) return null
   const daysInStage = Math.max(1, Math.floor((Date.now() - new Date(app.updatedAt).getTime()) / 86_400_000))
-  const initials = candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  const displayName = candidate?.name || fallbackName(app)
+  const displayTitle = candidate?.title || 'Candidate'
+  const avatar = candidateAvatarSrc(candidate, displayName)
 
   return (
     <motion.tr
@@ -264,12 +257,14 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarColor(candidate.name))}>
-            {initials}
-          </div>
+          <img
+            src={avatar}
+            alt={displayName}
+            className="w-8 h-8 rounded-full object-cover shrink-0 border border-tl-border-subtle bg-tl-bg-elevated"
+          />
           <div>
-            <p className="text-sm font-semibold text-tl-text-primary">{candidate.name}</p>
-            <p className="text-xs text-tl-text-secondary">{candidate.title}</p>
+            <p className="text-sm font-semibold text-tl-text-primary">{displayName}</p>
+            <p className="text-xs text-tl-text-secondary">{displayTitle}</p>
           </div>
         </div>
       </td>
@@ -299,10 +294,12 @@ function ListRow({ app, idx }: { app: Application; idx: number }) {
         </span>
       </td>
       <td className="px-4 py-3">
-        <Link href={`/company/candidates/${candidate.id}`}
-          className="text-xs font-medium text-tl-gold hover:text-tl-gold/80 opacity-0 group-hover:opacity-100 transition-all">
-          View →
-        </Link>
+        {candidate?.id ? (
+          <Link href={`/company/candidates/${candidate.id}`}
+            className="text-xs font-medium text-tl-gold hover:text-tl-gold/80 opacity-0 group-hover:opacity-100 transition-all">
+            View →
+          </Link>
+        ) : null}
       </td>
     </motion.tr>
   )
@@ -355,13 +352,31 @@ export default function PipelinePage() {
   }
 
   useEffect(() => {
-    async function load() {
+    let cancelled = false
+
+    async function load(initial = false) {
       const [jobsRes, appsRes] = await Promise.all([getCompanyJobs({ limit: 100 }), getApplications()])
+      if (cancelled) return
       if (jobsRes.data) setJobs(jobsRes.data)
       if (appsRes.data) setApplications(appsRes.data)
-      setLoading(false)
+      if (initial) setLoading(false)
     }
-    load()
+
+    load(true)
+
+    const interval = setInterval(() => load(false), 30_000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load(false)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
   }, [])
 
   const toggleCollapse = (stage: PipelineStage) => {

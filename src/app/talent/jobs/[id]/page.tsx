@@ -281,7 +281,7 @@ export default function JobDetailPage() {
               className="btn-gold h-12 w-48 text-base font-semibold"
               onClick={handleApply}
             >
-              {applied ? 'âœ“ Applied!' : 'Apply Now â†’'}
+              {applied ? ' Applied!' : 'Apply Now'}
             </button>
             <button
               className={cn('btn-ghost w-48 gap-2 flex items-center justify-center', saved && 'text-tl-gold')}
@@ -498,9 +498,9 @@ export default function JobDetailPage() {
                 {missingSkills.length > 0 && (
                   <div>
                     <p className="text-[10px] uppercase tracking-wider font-semibold text-tl-gold mb-2">To Learn</p>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1.5 border border-tl-gold/30 p-3 rounded-lg">
                       {missingSkills.slice(0, 5).map(s => (
-                        <span key={s} className="tl-tag-gold inline-flex items-center gap-1">
+                        <span key={s} className="tl-tag-gold inline-flex items-center gap-1 border rounded-lg border-tl-gold/30 bg-tl-gold/10 text-[10px] p-1">
                           <Info className="w-3 h-3 shrink-0" />{s}
                         </span>
                       ))}

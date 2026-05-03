@@ -7,7 +7,7 @@ import { getJobs, getApplications, getTalentProfile } from '@/lib/api'
 import type { Job, Application, Candidate } from '@/lib/types'
 
 type ExtendedCandidate = Candidate & { resumeUrl?: string; headline?: string; workPreference: string[] }
-import { formatSalary, timeAgo, cn, companyAvatarUrl, userAvatarUrl } from '@/lib/utils'
+import { formatSalary, timeAgo, cn, companyLogoSrc, userAvatarUrl } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
 import {
@@ -259,7 +259,7 @@ export default function TalentDashboardPage() {
               {/* Company row */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <img src={companyAvatarUrl(job.company?.name ?? job.title ?? 'company')} alt={job.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                  <img src={companyLogoSrc(job.company, job.title)} alt={job.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
                   {job.company?.verified && (
                     <span className="tl-tag-teal inline-flex items-center gap-1">
                       <CheckCircle2 className="w-2.5 h-2.5" /> Verified
@@ -342,7 +342,7 @@ export default function TalentDashboardPage() {
                   transition={{ delay: i * 0.05, duration: 0.3 }}
                   className="flex items-center gap-3 p-3.5 hover:bg-tl-bg-elevated/40 transition-colors"
                 >
-                  <img src={companyAvatarUrl(job.company?.name ?? job.title ?? 'company')} alt={job.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                  <img src={companyLogoSrc(job.company, job.title)} alt={job.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <Link href={`/talent/jobs/${job.id}`} className="text-sm font-semibold text-tl-text-primary hover:text-tl-gold transition-colors truncate">
@@ -410,7 +410,7 @@ export default function TalentDashboardPage() {
                     transition={{ delay: i * 0.06 }}
                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-tl-bg-elevated transition-colors cursor-pointer"
                   >
-                    <img src={companyAvatarUrl(app.job?.company?.name ?? app.job?.title ?? 'company')} alt={app.job?.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                    <img src={companyLogoSrc(app.job?.company, app.job?.title)} alt={app.job?.company?.name ?? ''} className="w-10 h-10 rounded-xl object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm text-tl-text-primary truncate">{app.job?.title ?? '—'}</p>
                       <p className="text-xs text-tl-text-secondary truncate">{app.job?.company?.name ?? '—'}</p>

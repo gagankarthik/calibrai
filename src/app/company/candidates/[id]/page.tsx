@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { getCandidate, getApplications } from '@/lib/api'
 import { STAGE_LABELS } from '@/lib/constants'
 import type { Candidate, Application } from '@/lib/types'
-import { cn, timeAgo } from '@/lib/utils'
+import { cn, timeAgo, candidateDisplayName } from '@/lib/utils'
 import {
   ArrowLeft,
   MapPin,
@@ -30,6 +30,8 @@ import {
   GraduationCap,
   RefreshCw,
   User,
+  ChevronDown,
+  TrendingUp,
 } from 'lucide-react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -93,16 +95,43 @@ function MatchRing({ score, size = 80 }: { score: number; size?: number }) {
 
 type Tab = 'overview' | 'experience' | 'skills' | 'assessments' | 'notes'
 
+interface AnalysisResponse {
+  overall: number
+  skillsMatch: number
+  cultureFit: number
+  experienceAlignment: number
+  recommendation: 'strong_yes' | 'yes' | 'maybe' | 'no'
+  summary: string
+  reasons: string[]
+  risks: Array<{ text: string; severity: 'low' | 'medium' | 'high' }>
+  source: 'openai' | 'fallback'
+  github?: { username: string; topLanguages: string[] } | null
+}
+
+const RECOMMENDATION_META: Record<AnalysisResponse['recommendation'], { label: string; cls: string; icon: typeof CheckCircle2 }> = {
+  strong_yes: { label: 'Strong Yes', cls: 'bg-tl-teal/15 text-tl-teal border-tl-teal/30', icon: TrendingUp },
+  yes:        { label: 'Move Forward', cls: 'bg-tl-gold/15 text-tl-gold border-tl-gold/30', icon: CheckCircle2 },
+  maybe:      { label: 'Maybe — Interview', cls: 'bg-tl-blue/15 text-tl-blue border-tl-blue/30', icon: Sparkles },
+  no:         { label: 'Not a Fit', cls: 'bg-tl-rose/15 text-tl-rose border-tl-rose/30', icon: XCircle },
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CandidateDetailPage() {
   const params = useParams()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : ''
+  const initialJobId = searchParams.get('jobId') ?? ''
 
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [candidateApplications, setCandidateApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [activeJobId, setActiveJobId] = useState<string>(initialJobId)
+  const [showJobPicker, setShowJobPicker] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -113,17 +142,39 @@ export default function CandidateDetailPage() {
         setNotFound(true)
       }
       if (appsRes.data) {
-        setCandidateApplications(appsRes.data.filter((a) => a.candidateId === id))
+        const mine = appsRes.data.filter((a) => a.candidateId === id)
+        setCandidateApplications(mine)
+        if (!initialJobId && mine.length > 0) {
+          setActiveJobId(mine[0].jobId)
+        }
       }
       setLoading(false)
     }
     load()
-  }, [id])
+  }, [id, initialJobId])
+
+  useEffect(() => {
+    if (!candidate) return
+    let cancelled = false
+    setAnalysisLoading(true)
+    const qs = activeJobId ? `?jobId=${encodeURIComponent(activeJobId)}` : ''
+    fetch(`/api/company/candidates/${candidate.id}/analysis${qs}`, { cache: 'no-store' })
+      .then(async r => (r.ok ? r.json() as Promise<AnalysisResponse> : null))
+      .then(data => { if (!cancelled) setAnalysis(data) })
+      .catch(() => { if (!cancelled) setAnalysis(null) })
+      .finally(() => { if (!cancelled) setAnalysisLoading(false) })
+    return () => { cancelled = true }
+  }, [candidate, activeJobId])
 
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [noteInput, setNoteInput] = useState('')
   const [notes, setNotes] = useState<{ text: string; date: string }[]>([])
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+
+  const activeJobApplication = useMemo(
+    () => candidateApplications.find((a) => a.jobId === activeJobId),
+    [candidateApplications, activeJobId],
+  )
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -145,7 +196,11 @@ export default function CandidateDetailPage() {
   )
 
   // ── Safe accessors with fallbacks ──────────────────────────────────────────
-  const matchScore = candidate.matchScore || deterministicScore(candidate.id)
+  const displayName = candidateDisplayName({
+    name: candidate.name,
+    email: candidate.email,
+    id: candidate.id,
+  })
   const skills = candidate.skills ?? []
   const experience = candidate.experience ?? []
   const education = candidate.education ?? []
@@ -153,28 +208,30 @@ export default function CandidateDetailPage() {
   const assessmentEntries = Object.entries(assessmentScores)
   const verifiedSkills = skills.filter((s) => s.verified)
   const selfReportedSkills = skills.filter((s) => !s.verified)
-  const bgGrad = avatarBg(candidate.name || 'U')
-  const initials = (candidate.name || '??').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const bgGrad = avatarBg(displayName)
+  const initials = displayName.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
-  const matchBreakdown = [
-    { label: 'Overall Match', value: matchScore },
-    { label: 'Skills Match', value: Math.min(100, Math.round(matchScore * 0.97)) },
-    { label: 'Culture Fit', value: Math.min(100, Math.round(matchScore * 0.93)) },
-    { label: 'Experience Alignment', value: Math.min(100, Math.round(matchScore * 1.02)) },
-  ]
+  const matchScore = analysis?.overall
+    ?? candidate.matchScore
+    ?? deterministicScore(candidate.id)
 
-  const aiReasons = [
-    verifiedSkills[0] ? `${verifiedSkills[0].name} verified at ${verifiedSkills[0].score ?? 90}% — top 5% of candidates` : 'Strong verified skill portfolio',
-    experience[0] ? `Current role at ${experience[0].company} with directly relevant experience` : 'Relevant professional background',
-    candidate.salaryExpectation > 0 ? `Salary expectation of $${Math.round(candidate.salaryExpectation / 1000)}K aligns with budget range` : 'Competitive salary expectations',
-    candidate.workPreference?.length ? `${candidate.workPreference.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' / ')} preference matches posting` : 'Flexible work arrangement',
-    education[0] ? `${education[0].degree ?? 'Degree'} from ${education[0].institution ?? 'university'}` : 'Strong educational background',
-  ]
+  const matchBreakdown = analysis
+    ? [
+        { label: 'Overall Match', value: analysis.overall },
+        { label: 'Skills Match', value: analysis.skillsMatch },
+        { label: 'Culture Fit', value: analysis.cultureFit },
+        { label: 'Experience Alignment', value: analysis.experienceAlignment },
+      ]
+    : [
+        { label: 'Overall Match', value: matchScore },
+        { label: 'Skills Match', value: Math.min(100, Math.round(matchScore * 0.97)) },
+        { label: 'Culture Fit', value: Math.min(100, Math.round(matchScore * 0.93)) },
+        { label: 'Experience Alignment', value: Math.min(100, Math.round(matchScore * 1.02)) },
+      ]
 
-  const riskSignals = [
-    { text: 'Verify relevant industry-specific experience for the role', severity: 'medium' },
-    { text: 'Review tenure at previous positions before extending offer', severity: 'low' },
-  ]
+  const aiReasons = analysis?.reasons?.length ? analysis.reasons : []
+  const riskSignals = analysis?.risks?.length ? analysis.risks : []
+  const recommendationMeta = analysis ? RECOMMENDATION_META[analysis.recommendation] : null
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
@@ -219,7 +276,7 @@ export default function CandidateDetailPage() {
               {candidate.avatar ? (
                 <img
                   src={candidate.avatar}
-                  alt={candidate.name}
+                  alt={displayName}
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
@@ -236,8 +293,8 @@ export default function CandidateDetailPage() {
             {candidate.premium && (
               <span className="tl-tag-gold text-[10px] mb-2">Premium</span>
             )}
-            <h1 className="font-display text-lg sm:text-xl text-tl-text-primary">{candidate.name || '—'}</h1>
-            <p className="text-sm text-tl-text-secondary mt-0.5">{candidate.title || 'No title set'}</p>
+            <h1 className="font-display text-lg sm:text-xl text-tl-text-primary">{displayName}</h1>
+            <p className="text-sm text-tl-text-secondary mt-0.5">{candidate.title || candidate.email || 'No title set'}</p>
             {candidate.location && (
               <div className="flex items-center gap-1.5 mt-2 text-xs text-tl-text-secondary">
                 <MapPin className="w-3.5 h-3.5" />
@@ -427,6 +484,108 @@ export default function CandidateDetailPage() {
           transition={{ duration: 0.4, delay: 0.08 }}
           className="space-y-5 sm:space-y-6"
         >
+          {/* AI Verdict Hero */}
+          <div className="tl-card-gold p-5 sm:p-6 relative overflow-hidden">
+            <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-tl-gold/10 blur-3xl pointer-events-none" />
+            <div className="relative flex flex-col gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4.5 h-4.5 text-tl-gold" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-tl-gold">AI Verdict</p>
+                    {analysis?.source === 'fallback' && (
+                      <span className="text-[10px] uppercase tracking-wider text-tl-text-secondary border border-tl-border-subtle px-1.5 py-0.5 rounded-full">
+                        Heuristic
+                      </span>
+                    )}
+                    {recommendationMeta && (
+                      <span className={cn('inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border', recommendationMeta.cls)}>
+                        <recommendationMeta.icon className="w-3 h-3" />
+                        {recommendationMeta.label}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-tl-text-primary leading-relaxed">
+                    {analysisLoading && !analysis
+                      ? 'Analyzing this candidate against the role…'
+                      : analysis?.summary
+                          ? analysis.summary
+                          : 'No analysis available yet.'}
+                  </p>
+                  {analysis?.github && (
+                    <p className="mt-1.5 text-xs text-tl-text-secondary inline-flex items-center gap-1.5">
+                      <Github className="w-3 h-3" />
+                      <span>@{analysis.github.username}</span>
+                      {analysis.github.topLanguages.length > 0 && (
+                        <span className="text-tl-text-secondary/70">· {analysis.github.topLanguages.slice(0, 4).join(' · ')}</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <div className="hidden sm:block">
+                  <MatchRing score={matchScore} size={72} />
+                </div>
+              </div>
+
+              {/* Job context picker */}
+              {candidateApplications.length > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-tl-border-subtle">
+                  <div className="text-xs text-tl-text-secondary">
+                    Analysis for:
+                  </div>
+                  {candidateApplications.length === 1 ? (
+                    <span className="text-xs font-semibold text-tl-text-primary truncate">
+                      {activeJobApplication?.job?.title ?? 'Application'}
+                    </span>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowJobPicker((v) => !v)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-tl-border-default bg-tl-bg-base hover:border-tl-gold/40 transition-colors max-w-[260px]"
+                      >
+                        <span className="truncate">{activeJobApplication?.job?.title ?? 'Pick a role'}</span>
+                        <ChevronDown className={cn('w-3 h-3 transition-transform', showJobPicker && 'rotate-180')} />
+                      </button>
+                      <AnimatePresence>
+                        {showJobPicker && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.12 }}
+                            className="absolute right-0 mt-1 w-72 rounded-2xl border border-tl-border-default bg-tl-bg-base shadow-xl z-20 overflow-hidden"
+                          >
+                            {candidateApplications.map((app) => (
+                              <button
+                                key={app.id}
+                                onClick={() => {
+                                  setActiveJobId(app.jobId)
+                                  setShowJobPicker(false)
+                                  router.replace(`/company/candidates/${candidate.id}?jobId=${app.jobId}`)
+                                }}
+                                className={cn(
+                                  'w-full text-left px-3.5 py-2.5 hover:bg-tl-bg-elevated transition-colors',
+                                  app.jobId === activeJobId && 'bg-tl-bg-elevated/60',
+                                )}
+                              >
+                                <p className="text-sm font-medium text-tl-text-primary truncate">{app.job?.title ?? app.jobId}</p>
+                                <p className="text-[11px] text-tl-text-secondary">
+                                  {STAGE_LABELS[app.stage]} · {timeAgo(app.appliedAt)}
+                                </p>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Tab nav */}
           <div className="flex gap-0 border-b border-tl-border-subtle overflow-x-auto scrollbar-hide">
             {tabs.map((t) => (
@@ -481,18 +640,22 @@ export default function CandidateDetailPage() {
                 )}
 
                 {/* AI Match Analysis */}
-                <div className="tl-card-gold p-5 sm:p-6">
+                <div className="tl-card p-5 sm:p-6">
                   <div className="flex items-center gap-3 mb-5">
                     <div className="w-9 h-9 rounded-xl bg-tl-gold/20 border border-tl-gold/30 flex items-center justify-center shrink-0">
                       <Sparkles className="w-4 h-4 text-tl-gold" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-base font-semibold text-tl-text-primary">AI Match Analysis</h3>
-                      <p className="text-xs text-tl-text-secondary">TalentBridge intelligence score breakdown</p>
+                      <p className="text-xs text-tl-text-secondary">
+                        {activeJobApplication?.job?.title
+                          ? `Scoring this candidate against ${activeJobApplication.job.title}`
+                          : 'Profile-strength scoring (no specific role selected)'}
+                      </p>
                     </div>
-                    <div className="ml-auto">
-                      <MatchRing score={matchScore} size={64} />
-                    </div>
+                    {analysisLoading && (
+                      <span className="w-4 h-4 rounded-full border-2 border-tl-gold/30 border-t-tl-gold animate-spin" />
+                    )}
                   </div>
                   <div className="space-y-4">
                     {matchBreakdown.map((item) => (
@@ -503,9 +666,10 @@ export default function CandidateDetailPage() {
                         </div>
                         <div className="h-2 rounded-full bg-tl-bg-base overflow-hidden">
                           <motion.div
+                            key={`${item.label}-${item.value}`}
                             initial={{ width: 0 }}
                             animate={{ width: `${item.value}%` }}
-                            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                            transition={{ duration: 0.7, ease: 'easeOut' }}
                             className="h-full rounded-full bg-gradient-to-r from-tl-gold to-tl-gold/60"
                           />
                         </div>
@@ -517,20 +681,32 @@ export default function CandidateDetailPage() {
                 {/* Why this candidate */}
                 <div className="tl-card p-5 sm:p-6">
                   <h3 className="text-base font-semibold text-tl-text-primary mb-4">Why this candidate?</h3>
-                  <ul className="space-y-3">
-                    {aiReasons.map((reason, i) => (
-                      <motion.li
-                        key={i}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.06 }}
-                        className="flex items-start gap-3 text-sm text-tl-text-secondary"
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-tl-teal mt-0.5 shrink-0" />
-                        {reason}
-                      </motion.li>
-                    ))}
-                  </ul>
+                  {analysisLoading && aiReasons.length === 0 ? (
+                    <div className="space-y-3">
+                      {[0, 1, 2].map((i) => (
+                        <div key={i} className="h-4 rounded-full bg-tl-bg-elevated animate-pulse" style={{ width: `${85 - i * 8}%` }} />
+                      ))}
+                    </div>
+                  ) : aiReasons.length === 0 ? (
+                    <p className="text-sm text-tl-text-secondary/70 italic">
+                      No positive signals identified yet. Once the candidate fills in skills, experience, or a GitHub link, AI will surface them here.
+                    </p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {aiReasons.map((reason, i) => (
+                        <motion.li
+                          key={`${reason}-${i}`}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-start gap-3 text-sm text-tl-text-secondary"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-tl-teal mt-0.5 shrink-0" />
+                          <span>{reason}</span>
+                        </motion.li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 {/* Risk Signals */}
@@ -539,22 +715,44 @@ export default function CandidateDetailPage() {
                     <AlertCircle className="w-4 h-4 text-tl-gold" />
                     <h3 className="text-base font-semibold text-tl-text-primary">Risk Signals</h3>
                   </div>
-                  <div className="space-y-3">
-                    {riskSignals.map((signal, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          'flex items-start gap-3 p-3.5 rounded-xl border text-sm',
-                          signal.severity === 'medium'
-                            ? 'bg-tl-gold/[0.06] border-tl-gold/20 text-tl-gold'
-                            : 'bg-tl-gold/[0.04] border-tl-gold/15 text-tl-gold/80'
-                        )}
-                      >
-                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                        {signal.text}
-                      </div>
-                    ))}
-                  </div>
+                  {analysisLoading && riskSignals.length === 0 ? (
+                    <div className="space-y-3">
+                      {[0, 1].map((i) => (
+                        <div key={i} className="h-12 rounded-xl bg-tl-bg-elevated animate-pulse" />
+                      ))}
+                    </div>
+                  ) : riskSignals.length === 0 ? (
+                    <p className="text-sm text-tl-text-secondary/70 italic">
+                      No notable risks flagged.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {riskSignals.map((signal, i) => (
+                        <motion.div
+                          key={`${signal.text}-${i}`}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className={cn(
+                            'flex items-start gap-3 p-3.5 rounded-xl border text-sm',
+                            signal.severity === 'high'
+                              ? 'bg-tl-rose/[0.06] border-tl-rose/20 text-tl-rose'
+                              : signal.severity === 'medium'
+                              ? 'bg-tl-gold/[0.06] border-tl-gold/20 text-tl-gold'
+                              : 'bg-tl-blue/[0.06] border-tl-blue/20 text-tl-blue',
+                          )}
+                        >
+                          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                          <div className="flex-1">
+                            <span>{signal.text}</span>
+                            <span className="ml-2 text-[10px] uppercase tracking-wider opacity-70">
+                              {signal.severity}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

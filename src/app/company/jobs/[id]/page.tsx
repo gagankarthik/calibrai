@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { cn, formatSalary, timeAgo } from '@/lib/utils'
+import { cn, formatSalary, timeAgo, candidateAvatarSrc, candidateDisplayName } from '@/lib/utils'
 import { STAGE_LABELS } from '@/lib/constants'
 import {
   ArrowLeft, Pencil, Save, X, MapPin, Briefcase, Wifi, Building2,
@@ -45,6 +45,7 @@ interface Applicant {
   candidateName?: string
   candidateEmail?: string
   candidateTitle?: string
+  candidateAvatar?: string
   matchScore?: number
   status?: string
   stage?: string
@@ -82,10 +83,6 @@ const STAGE_DOT: Record<string, string> = {
 function daysAgo(iso?: string) {
   if (!iso) return 0
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000))
-}
-
-function getInitials(name: string) {
-  return name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
 function matchColor(score: number) {
@@ -475,13 +472,37 @@ export default function JobDetailPage() {
             ) : (
               <div className="space-y-2">
                 {applicants.map(app => {
-                  const name = app.candidateName ?? 'Candidate'
+                  const name = candidateDisplayName({
+                    name: app.candidateName,
+                    email: app.candidateEmail,
+                    id: app.candidateId,
+                  })
                   const stage = (app.stage ?? 'new') as keyof typeof STAGE_LABELS
+                  const avatar = candidateAvatarSrc({ avatar: app.candidateAvatar, name }, name)
+                  const profileHref = app.candidateId
+                    ? `/company/candidates/${app.candidateId}?jobId=${id}`
+                    : null
+                  const Wrapper: React.ElementType = profileHref ? Link : 'div'
+                  const wrapperProps = profileHref
+                    ? { href: profileHref }
+                    : {}
+
                   return (
-                    <div key={app.id} className="tl-card p-4 flex items-center gap-4 hover:border-tl-gold/30 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-tl-gold/15 border border-tl-gold/30 flex items-center justify-center text-xs font-bold text-tl-gold shrink-0">
-                        {getInitials(name)}
-                      </div>
+                    <Wrapper
+                      key={app.id}
+                      {...wrapperProps}
+                      className={cn(
+                        'tl-card p-4 flex items-center gap-4 transition-colors',
+                        profileHref
+                          ? 'hover:border-tl-gold/40 hover:bg-tl-bg-elevated/30 cursor-pointer'
+                          : 'hover:border-tl-gold/30',
+                      )}
+                    >
+                      <img
+                        src={avatar}
+                        alt={name}
+                        className="w-10 h-10 rounded-full object-cover shrink-0 border border-tl-border-subtle bg-tl-bg-elevated"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-tl-text-primary">{name}</span>
@@ -493,6 +514,7 @@ export default function JobDetailPage() {
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-tl-text-secondary">
                           {app.candidateTitle && <span>{app.candidateTitle}</span>}
+                          {app.candidateEmail && <span className="truncate max-w-[180px]">{app.candidateEmail}</span>}
                           {app.appliedAt && <span>· {timeAgo(app.appliedAt)}</span>}
                         </div>
                       </div>
@@ -500,7 +522,7 @@ export default function JobDetailPage() {
                         <span className={cn('w-1.5 h-1.5 rounded-full', STAGE_DOT[stage] ?? 'bg-tl-text-secondary')} />
                         <span className="text-xs text-tl-text-secondary">{STAGE_LABELS[stage] ?? stage}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                         {app.candidateEmail && (
                           <Button asChild variant="ghost" size="icon" className="w-8 h-8" title="Email">
                             <a href={`mailto:${app.candidateEmail}`}><Mail className="w-3.5 h-3.5" /></a>
@@ -511,13 +533,8 @@ export default function JobDetailPage() {
                             <MessageSquare className="w-3.5 h-3.5" />
                           </Link>
                         </Button>
-                        {app.candidateId && (
-                          <Button asChild variant="outline" size="sm" className="gap-1 text-xs h-8">
-                            <Link href={`/company/candidates/${app.candidateId}`}>View</Link>
-                          </Button>
-                        )}
                       </div>
-                    </div>
+                    </Wrapper>
                   )
                 })}
               </div>

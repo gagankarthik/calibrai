@@ -112,7 +112,7 @@ export interface Education {
 export interface Application {
   id: string
   jobId: string
-  job: Job
+  job?: Job | null
   candidateId: string
   candidate?: Candidate
   status: ApplicationStatus

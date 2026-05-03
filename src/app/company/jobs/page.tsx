@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { getCompanyJobs } from '@/lib/api'
 import type { Job } from '@/lib/types'
-import { formatSalary, cn } from '@/lib/utils'
+import { formatSalary, cn, companyLogoSrc } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -327,16 +327,11 @@ export default function JobsPage() {
                   {/* Company + Title */}
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/10">
-                      {job.company?.logo ? (
-                        <img
-                          src={job.company.logo}
-                          alt={job.company?.name ?? ''}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                        />
-                      ) : (
-                        <Briefcase className="w-4 h-4 text-muted-foreground/40" />
-                      )}
+                      <img
+                        src={companyLogoSrc(job.company, job.title)}
+                        alt={job.company?.name ?? job.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

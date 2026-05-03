@@ -14,6 +14,7 @@ import {
   ChevronLeft,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TBLogo } from '../landing/landing-logo'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -189,13 +190,14 @@ export function SidebarTalent() {
           )}
         >
           {collapsed ? (
-            <div className="w-8 h-8 rounded-lg bg-tl-gold/10 border border-tl-gold/30 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-tl-gold" />
+            <div className="w-8 h-8 flex items-center justify-center">
+              <TBLogo />
             </div>
           ) : (
             <>
-              <div className="w-8 h-8 rounded-lg bg-tl-gold/10 border border-tl-gold/30 flex items-center justify-center shrink-0">
-                <Zap className="w-4 h-4 text-tl-gold" />
+              <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                <TBLogo />
+
               </div>
               <span className="font-display text-sm font-bold text-tl-text-primary flex-1">
                 TalentBridge

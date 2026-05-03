@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { getApplications } from '@/lib/api'
 import type { Application } from '@/lib/types'
-import { formatSalary, timeAgo, cn, companyAvatarUrl } from '@/lib/utils'
+import { formatSalary, timeAgo, cn, companyLogoSrc } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Download,
@@ -88,12 +88,30 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function load() {
+    let cancelled = false
+
+    async function load(initial = false) {
       const res = await getApplications()
+      if (cancelled) return
       if (res.data) setApplications(res.data)
-      setLoading(false)
+      if (initial) setLoading(false)
     }
-    load()
+
+    load(true)
+
+    const interval = setInterval(() => load(false), 30_000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load(false)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
   }, [])
 
   const filtered = statusFilter === 'all'
@@ -237,9 +255,13 @@ export default function ApplicationsPage() {
             className="space-y-4"
           >
             {filtered.map(app => {
-              const cfg        = STATUS_CONFIG[app.status]
+              const cfg        = STATUS_CONFIG[app.status] ?? STATUS_CONFIG.applied
               const isRejected = app.status === 'rejected'
               const isInterview = app.status === 'interview'
+              const job        = app.job
+              const company    = job?.company
+              const jobTitle   = job?.title ?? 'Job no longer available'
+              const companyName = company?.name ?? 'Unknown company'
 
               return (
                 <motion.div
@@ -257,7 +279,7 @@ export default function ApplicationsPage() {
                   <div className="p-5 flex items-start gap-4">
                     {/* Avatar + status dot */}
                     <div className="relative shrink-0">
-                      <img src={companyAvatarUrl(app.job?.company?.name)} alt={app.job?.company?.name} className="w-12 h-12 rounded-xl object-cover" />
+                      <img src={companyLogoSrc(company, companyName)} alt={companyName} className="w-12 h-12 rounded-xl object-cover" />
                       <div className={cn('absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-tl-bg-base', cfg.dotClass)} />
                     </div>
 
@@ -265,7 +287,7 @@ export default function ApplicationsPage() {
                     <div className="flex-1 min-w-0">
                       {/* Title + status pill */}
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-lg text-tl-text-primary leading-tight truncate">{app.job?.title}</h3>
+                        <h3 className="font-semibold text-lg text-tl-text-primary leading-tight truncate">{jobTitle}</h3>
                         <span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shrink-0', cfg.badgeClass)}>
                           {cfg.label}
                         </span>
@@ -274,15 +296,19 @@ export default function ApplicationsPage() {
                       {/* Meta */}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-tl-text-secondary mb-1">
                         <span className="flex items-center gap-1 font-medium">
-                          {app.job?.company?.name}
-                          {app.job?.company?.verified && <BadgeCheck className="w-3.5 h-3.5 text-tl-teal" />}
+                          {companyName}
+                          {company?.verified && <BadgeCheck className="w-3.5 h-3.5 text-tl-teal" />}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] capitalize">{app.job?.workMode}</span>
-                        <span className="flex items-center gap-1 text-xs">
-                          <MapPin className="w-3 h-3" />{app.job?.location}
-                        </span>
+                        {job?.workMode && (
+                          <span className="px-2 py-0.5 rounded-full bg-tl-bg-elevated border border-tl-border-default text-[10px] capitalize">{job.workMode}</span>
+                        )}
+                        {job?.location && (
+                          <span className="flex items-center gap-1 text-xs">
+                            <MapPin className="w-3 h-3" />{job.location}
+                          </span>
+                        )}
                         <span className="text-xs text-tl-teal font-mono font-semibold">
-                          {formatSalary(app.job.salaryMin, app.job.salaryMax)}
+                          {formatSalary(job?.salaryMin, job?.salaryMax)}
                         </span>
                       </div>
 

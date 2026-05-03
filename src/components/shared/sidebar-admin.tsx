@@ -20,7 +20,6 @@ const navItems = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Companies', href: '/admin/companies', icon: Building2 },
   { label: 'Talents', href: '/admin/talents', icon: Users },
-  { label: 'Jobs Board', href: '/admin/jobs', icon: Briefcase },
   { label: 'CRM Jobs', href: '/admin/crm/jobs', icon: Briefcase },
   { label: 'CRM Candidates', href: '/admin/crm/candidates', icon: UserRound },
   { label: 'SaaS Metrics', href: '/admin/saas-metrics', icon: BarChart3 },

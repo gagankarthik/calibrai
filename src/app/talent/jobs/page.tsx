@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { getJobs } from '@/lib/api'
 import type { Job } from '@/lib/types'
-import { formatSalary, timeAgo, cn, companyAvatarUrl } from '@/lib/utils'
+import { formatSalary, timeAgo, cn, companyLogoSrc } from '@/lib/utils'
 import { MatchRing } from '@/components/shared/match-score'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,11 +32,16 @@ import {
 import type { WorkMode, JobType, ExperienceLevel } from '@/lib/types'
 import { WORK_MODE_LABELS, JOB_TYPE_LABELS, EXPERIENCE_LABELS } from '@/lib/constants'
 
-// â”€â”€â”€ Deterministic match score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Match score helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getMatchScore(id: string): number {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff
-  return 70 + (Math.abs(hash) % 28)
+  return 70 + (Math.abs(hash) % 25)
+}
+
+interface MatchInfo {
+  score: number
+  reason: string
 }
 
 
@@ -120,7 +125,7 @@ type SortBy = 'match' | 'newest' | 'salary'
 const ITEMS = 10
 
 // â”€â”€â”€ Job Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: boolean; onSave: () => void }) {
+function JobCard({ job, saved, onSave, matchReason, matchLoading }: { job: Job & { score: number }; saved: boolean; onSave: () => void; matchReason?: string; matchLoading?: boolean }) {
   const isNew = (Date.now() - new Date(job.postedAt).getTime()) < 1000 * 60 * 60 * 48
 
   return (
@@ -128,7 +133,7 @@ function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: 
       <div className="flex items-start gap-3 sm:gap-4">
         {/* Left: avatar + featured badge */}
         <div className="relative shrink-0">
-          <img src={companyAvatarUrl(job.company?.name ?? job.title ?? 'company')} alt={job.company?.name ?? ''} className="w-14 h-14 rounded-2xl object-cover" />
+          <img src={companyLogoSrc(job.company, job.title)} alt={job.company?.name ?? ''} className="w-14 h-14 rounded-2xl object-cover" />
           {job.featured && (
             <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-tl-gold flex items-center justify-center">
               <Star className="w-2.5 h-2.5 text-tl-bg-base fill-current" />
@@ -213,11 +218,26 @@ function JobCard({ job, saved, onSave }: { job: Job & { score: number }; saved: 
         </div>
 
         {/* Right: match ring + actions */}
-        <div className="shrink-0 flex flex-col items-center gap-2">
-          <MatchRing score={job.score} size={72} />
+        <div className="shrink-0 flex flex-col items-center gap-2 max-w-[140px]">
+          <div className="relative">
+            <MatchRing score={job.score} size={72} />
+            {matchLoading && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full border-2 border-tl-gold/30 border-t-tl-gold animate-spin" />
+              </span>
+            )}
+          </div>
           <span className="text-xs text-center font-mono text-tl-gold font-semibold">{job.score}%</span>
+          {matchReason && (
+            <p
+              title={matchReason}
+              className="text-[10px] text-tl-text-secondary leading-snug text-center line-clamp-3"
+            >
+              {matchReason}
+            </p>
+          )}
           <Link href={`/talent/jobs/${job.id}`}>
-            <button className="btn-gold h-8 text-xs px-4">Apply</button>
+            <button className="btn-gold h-12 text-xs p-4">Apply</button>
           </Link>
           <Button
             variant="ghost"
@@ -295,7 +315,7 @@ function FilterSidebarContent({
       <div className="relative bg-tl-bg-surface border border-tl-border-default focus-within:border-tl-gold rounded-xl transition-colors">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tl-text-secondary" />
         <input
-          placeholder="Job title or companyâ€¦"
+          placeholder="Job title or company"
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
           className="w-full bg-transparent pl-9 pr-4 py-2.5 text-sm text-tl-text-primary placeholder:text-tl-text-secondary focus:outline-none rounded-xl"
@@ -414,6 +434,8 @@ export default function JobsPage() {
   const [savedIds, setSavedIds]               = useState<Set<string>>(new Set())
   const [allJobs, setAllJobs]                 = useState<Job[]>([])
   const [loading, setLoading]                 = useState(true)
+  const [matchMap, setMatchMap]               = useState<Map<string, MatchInfo>>(new Map())
+  const [matchLoading, setMatchLoading]       = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -424,6 +446,32 @@ export default function JobsPage() {
     }
     load()
   }, [])
+
+  useEffect(() => {
+    if (allJobs.length === 0) return
+    let cancelled = false
+    setMatchLoading(true)
+
+    const ids = allJobs.slice(0, 30).map(j => j.id)
+    fetch('/api/talent/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobIds: ids }),
+    })
+      .then(async r => (r.ok ? r.json() as Promise<{ results: Array<{ jobId: string; score: number; reason: string }> }> : null))
+      .then(data => {
+        if (cancelled || !data?.results) return
+        const next = new Map<string, MatchInfo>()
+        for (const r of data.results) {
+          next.set(r.jobId, { score: r.score, reason: r.reason })
+        }
+        setMatchMap(next)
+      })
+      .catch(() => { /* fall back to deterministic */ })
+      .finally(() => { if (!cancelled) setMatchLoading(false) })
+
+    return () => { cancelled = true }
+  }, [allJobs])
 
   // Close mobile drawer on resize to desktop
   useEffect(() => {
@@ -443,8 +491,11 @@ export default function JobsPage() {
   }
 
   const jobsWithScore = useMemo(
-    () => allJobs.map(j => ({ ...j, score: getMatchScore(j.id) })),
-    [allJobs]
+    () => allJobs.map(j => ({
+      ...j,
+      score: matchMap.get(j.id)?.score ?? getMatchScore(j.id),
+    })),
+    [allJobs, matchMap]
   )
 
   const salaryMinNum = salaryMin ? parseInt(salaryMin, 10) : undefined
@@ -698,6 +749,8 @@ export default function JobsPage() {
                       job={job}
                       saved={savedIds.has(job.id)}
                       onSave={() => toggleSave(job.id)}
+                      matchReason={matchMap.get(job.id)?.reason}
+                      matchLoading={matchLoading && !matchMap.has(job.id)}
                     />
                   </motion.div>
                 ))}

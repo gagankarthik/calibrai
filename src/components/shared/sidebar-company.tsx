@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Shield,
 } from 'lucide-react'
+import { TBLogo } from '../landing/landing-logo'
 
 const navItems = [
   { label: 'Dashboard',   href: '/company/dashboard',  icon: LayoutDashboard },
@@ -62,8 +63,8 @@ export function SidebarCompany({ mobileOpen = false, onMobileClose }: SidebarCom
       >
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-tl-border-subtle">
-          <div className="w-8 h-8 rounded-lg bg-tl-gold/10 border border-tl-gold/30 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-tl-gold" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <TBLogo />
           </div>
           <span className="font-display text-sm font-bold text-tl-text-primary">TalentBridge</span>
         </div>

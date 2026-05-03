@@ -49,7 +49,9 @@
       "Bash(ls .env*)",
       "Bash(cat .env.local)",
       "Bash(grep -nB1 -A8 \"signInCompany\\\\|signInTalent\" src/lib/api.ts)",
-      "Bash(grep -nB1 -A6 \"export function companyAvatarUrl\\\\|export function userAvatarUrl\\\\|export function jobIconUrl\" src/lib/utils.ts)"
+      "Bash(grep -nB1 -A6 \"export function companyAvatarUrl\\\\|export function userAvatarUrl\\\\|export function jobIconUrl\" src/lib/utils.ts)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

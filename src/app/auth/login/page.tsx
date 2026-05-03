@@ -121,7 +121,7 @@ function RoleSelector({ value, onChange }: { value: Role; onChange: (r: Role) =>
           )}
         >
           <r.icon className={cn('w-4 h-4 mb-0.5 transition-colors', value === r.id ? 'text-indigo-400' : 'text-slate-500')} />
-          <span className={cn('text-[13px] font-semibold', value === r.id ? 'text-white' : 'text-slate-400')}>
+          <span className={cn('text-[13px] font-semibold', value === r.id ? 'text-primary' : 'text-slate-400')}>
             {r.label}
           </span>
           <span className="text-[11px] text-slate-500">{r.desc}</span>
@@ -220,7 +220,7 @@ function LoginContent() {
             {!showForgot ? (
               <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-7">
                 <div>
-                  <h1 className="text-[26px] font-bold text-white tracking-tight">Welcome back</h1>
+                  <h1 className="text-[26px] font-bold text-primary tracking-tight">Welcome back</h1>
                   <p className="text-slate-400 text-sm mt-1">Sign in to your account to continue</p>
                 </div>
 
@@ -236,7 +236,7 @@ function LoginContent() {
                         id="email" type="email" required autoComplete="email"
                         value={email} onChange={(e) => setEmail(e.target.value)}
                         placeholder={role === 'company' ? 'you@company.com' : 'you@email.com'}
-                        className="w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                        className="w-full bg-tl-bg-elevated border border-white/[0.08] text-black placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                       />
                     </div>
                   </div>
@@ -256,7 +256,7 @@ function LoginContent() {
                         id="password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password"
                         value={password} onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 pr-12 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                        className="w-full bg-tl-bg-elevated border border-white/[0.08] text-black placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 pr-12 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
@@ -290,7 +290,7 @@ function LoginContent() {
                     className="text-[13px] text-slate-500 hover:text-slate-300 mb-4 flex items-center gap-1 transition-colors">
                     ← Back to sign in
                   </button>
-                  <h1 className="text-[26px] font-bold text-white tracking-tight">Reset password</h1>
+                  <h1 className="text-[26px] font-bold text-primary tracking-tight">Reset password</h1>
                   <p className="text-slate-400 text-sm mt-1">Enter your email and we'll send a reset code.</p>
                 </div>
 
@@ -308,7 +308,7 @@ function LoginContent() {
                         <input id="forgot-email" type="email" required
                           value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)}
                           placeholder="you@email.com"
-                          className="w-full bg-tl-bg-elevated border border-white/[0.08] text-white placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+                          className="w-full bg-tl-bg-elevated border border-white/[0.08] text-black placeholder:text-slate-600 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15 transition-all"
                         />
                       </div>
                     </div>

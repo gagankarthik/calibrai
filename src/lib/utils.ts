@@ -5,10 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatSalary(min: number, max: number, currency = 'USD'): string {
+export function formatSalary(
+  min?: number | null,
+  max?: number | null,
+  _currency = 'USD',
+): string {
   const fmt = (n: number) =>
     n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`
-  return `${fmt(min)} – ${fmt(max)}`
+  const hasMin = typeof min === 'number' && min > 0
+  const hasMax = typeof max === 'number' && max > 0
+  if (!hasMin && !hasMax) return 'Salary undisclosed'
+  if (hasMin && hasMax) return `${fmt(min!)} – ${fmt(max!)}`
+  return fmt((hasMin ? min : max) as number)
 }
 
 export function formatNumber(n: number): string {
@@ -66,4 +74,48 @@ export function companyAvatarUrl(name?: string | null): string {
 export function userAvatarUrl(name?: string | null): string {
   const seed = (name && name.trim()) || 'user'
   return `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(seed)}&backgroundColor=1a2035`
+}
+
+export function companyLogoSrc(
+  company?: { logo?: string | null; logoUrl?: string | null; name?: string | null } | null,
+  fallbackName?: string | null,
+): string {
+  const uploaded = (company?.logo || company?.logoUrl || '').trim()
+  if (uploaded) return uploaded
+  return companyAvatarUrl(company?.name || fallbackName)
+}
+
+export function candidateAvatarSrc(
+  candidate?: { avatar?: string | null; avatarUrl?: string | null; name?: string | null } | null,
+  fallbackName?: string | null,
+): string {
+  const uploaded = (candidate?.avatar || candidate?.avatarUrl || '').trim()
+  if (uploaded) return uploaded
+  return userAvatarUrl(candidate?.name || fallbackName)
+}
+
+export function candidateDisplayName(c?: {
+  name?: string | null
+  email?: string | null
+  id?: string | null
+} | null): string {
+  const name = (c?.name ?? '').trim()
+  if (name) return name
+  const email = (c?.email ?? '').trim()
+  if (email) {
+    const local = email.split('@')[0]
+    if (local) {
+      return local
+        .replace(/[._-]+/g, ' ')
+        .replace(/\d+/g, '')
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ') || local
+    }
+  }
+  const id = (c?.id ?? '').trim()
+  if (id) return `Candidate ${id.slice(-4).toUpperCase()}`
+  return 'Candidate'
 }

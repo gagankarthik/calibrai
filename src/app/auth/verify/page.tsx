@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Mail, ArrowRight, Sparkles, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { TBLogo } from '@/components/landing/landing-logo'
 
 const RESEND_DELAY = 60
 
@@ -95,7 +96,7 @@ function OtpInput({ value: otp, onChange: setOtp, disabled, error }: OtpInputPro
           aria-label={`Code digit ${i + 1}`}
           className={cn(
             'w-11 h-14 rounded-xl border text-center text-xl font-mono font-bold transition-all duration-200',
-            'bg-tl-bg-elevated text-white outline-none disabled:opacity-40 disabled:cursor-not-allowed',
+            'bg-tl-bg-elevated text-primary outline-none disabled:opacity-40 disabled:cursor-not-allowed',
             error       ? 'border-rose-500/60 text-rose-400 animate-[shake_0.3s_ease]'
             : digit     ? 'border-indigo-500/60 text-indigo-300 shadow-[0_0_0_1px_rgba(99,102,241,0.2)]'
             :             'border-white/[0.08] focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15',
@@ -194,10 +195,10 @@ function VerifyContent() {
 
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2.5 mb-10 relative z-10">
-        <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-indigo-300" />
+        <div className="w-8 h-8 flex items-center justify-center">
+          <TBLogo />
         </div>
-        <span className="text-white font-bold text-[15px] tracking-tight">TalentBridge</span>
+        <span className="text-primary font-bold text-[15px] tracking-tight">TalentBridge</span>
       </Link>
 
       {/* Progress steps */}

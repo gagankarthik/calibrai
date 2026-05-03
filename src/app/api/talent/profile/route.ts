@@ -54,21 +54,24 @@ const updateProfileSchema = z.object({
   avatarUrl: z.string().max(500).optional().or(z.literal('')),
 }).strict()
 
-async function getCandidateId(req: NextRequest): Promise<string | null> {
+async function getTokenPayload(req: NextRequest) {
   const token = extractBearerToken(req.headers.get('Authorization'))
     ?? req.cookies.get('tb-talent-token')?.value
   if (!token) return null
   try {
-    const payload = await verifyCognitoToken(token, 'talent')
-    return payload.sub
+    return await verifyCognitoToken(token, 'talent')
   } catch {
     return null
   }
 }
 
 export async function GET(req: NextRequest) {
-  const candidateId = await getCandidateId(req)
-  if (!candidateId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const payload = await getTokenPayload(req)
+  if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const candidateId = payload.sub
+  const jwtEmail = (payload.email as string) ?? ''
+  const jwtName = (payload.name as string) ?? ''
 
   try {
     const result = await db.send(
@@ -77,8 +80,8 @@ export async function GET(req: NextRequest) {
     if (!result.Item) {
       const emptyProfile = {
         id: candidateId,
-        email: '',
-        name: '',
+        email: jwtEmail,
+        name: jwtName,
         headline: '',
         bio: '',
         location: '',
@@ -92,15 +95,21 @@ export async function GET(req: NextRequest) {
       await db.send(new PutCommand({ TableName: Tables.Candidates, Item: emptyProfile }))
       return NextResponse.json(emptyProfile)
     }
-    return NextResponse.json(result.Item)
+    const item = result.Item as Record<string, unknown>
+    return NextResponse.json({
+      ...item,
+      email: (item.email as string) || jwtEmail,
+      name: (item.name as string) || jwtName,
+    })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
   }
 }
 
 export async function PATCH(req: NextRequest) {
-  const candidateId = await getCandidateId(req)
-  if (!candidateId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const payload = await getTokenPayload(req)
+  if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const candidateId = payload.sub
 
   let rawBody: unknown
   try {
