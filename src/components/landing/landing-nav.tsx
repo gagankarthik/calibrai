@@ -19,6 +19,8 @@ import {
   User as UserIcon,
   Building2,
   GraduationCap,
+  GitCompare,
+  Quote,
 } from 'lucide-react'
 import { cn, userAvatarUrl } from '@/lib/utils'
 import { TBLogo } from './landing-logo'
@@ -32,11 +34,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Product',     href: '/#features', icon: Sparkles },
-  { label: 'How It Works', href: '/#how',     icon: Compass },
-  { label: 'Browse Jobs', href: '/jobs',      icon: Briefcase },
-  { label: 'Pricing',     href: '/pricing',   icon: DollarSign },
-  { label: 'Contact',     href: '/contact',   icon: Mail },
+  { label: 'Product',     href: '/product',       icon: Sparkles },
+  { label: 'How It Works', href: '/how-it-works', icon: Compass },
+  { label: 'Customers',   href: '/customers',     icon: Quote },
+  { label: 'Compare',     href: '/compare',       icon: GitCompare },
+  { label: 'Pricing',     href: '/pricing',       icon: DollarSign },
+  { label: 'Browse Jobs', href: '/jobs',          icon: Briefcase },
+  { label: 'Contact',     href: '/contact',       icon: Mail },
 ]
 
 const EASE = [0.16, 1, 0.3, 1] as const

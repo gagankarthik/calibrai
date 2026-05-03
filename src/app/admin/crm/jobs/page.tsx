@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Plus,
   Loader2,
+  Trash2,
 } from 'lucide-react'
 import { cn, timeAgo } from '@/lib/utils'
 
@@ -114,6 +115,7 @@ export default function AdminCrmJobs() {
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set())
   const [saveAllRunning, setSaveAllRunning] = useState(false)
   const [saveSummary, setSaveSummary] = useState<{ saved: number; skipped: number } | null>(null)
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -247,6 +249,31 @@ export default function AdminCrmJobs() {
       setPreviewError(err instanceof Error ? err.message : 'Save failed')
     } finally {
       setSaveAllRunning(false)
+    }
+  }
+
+  async function handleDelete(job: CrmJob) {
+    const id = String(job.pk ?? job.jobId ?? job.id ?? '')
+    if (!id) return
+    if (!confirm(`Delete "${job.title ?? 'this job'}" permanently? This cannot be undone.`)) return
+    setDeletingIds((s) => new Set(s).add(id))
+    try {
+      const res = await fetch(`/api/admin/crm/jobs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(err.error ?? 'Delete failed')
+      }
+      // Optimistically remove from current page
+      setJobs((prev) => prev.filter((j) => String(j.pk ?? j.jobId ?? j.id) !== id))
+      setTotal((t) => Math.max(0, t - 1))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setDeletingIds((s) => {
+        const next = new Set(s)
+        next.delete(id)
+        return next
+      })
     }
   }
 
@@ -662,16 +689,31 @@ export default function AdminCrmJobs() {
                     </div>
                   )}
                 </div>
-                {job.url && (
-                  <a
-                    href={job.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--tl-border-default)] text-xs font-medium text-[var(--tl-text-primary)] hover:border-tl-gold/40 hover:text-tl-gold transition-colors shrink-0"
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {job.url && (
+                    <a
+                      href={job.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--tl-border-default)] text-xs font-medium text-[var(--tl-text-primary)] hover:border-tl-gold/40 hover:text-tl-gold transition-colors"
+                    >
+                      Open <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleDelete(job)}
+                    disabled={deletingIds.has(String(job.pk ?? job.jobId ?? job.id ?? ''))}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-tl-rose/25 text-tl-rose hover:bg-tl-rose/10 disabled:opacity-50 transition-colors"
+                    aria-label="Delete job"
+                    title="Delete permanently"
                   >
-                    Open <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
+                    {deletingIds.has(String(job.pk ?? job.jobId ?? job.id ?? '')) ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
               </motion.li>
             )
           })}

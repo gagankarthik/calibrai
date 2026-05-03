@@ -35,16 +35,6 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: 'easeOut' } },
 }
 
-// Synthetic weekly chart data based on totals
-function buildChartData(total: number) {
-  const weeks = ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6', 'Wk 7', 'Wk 8']
-  const base = Math.max(Math.floor(total / 10), 1)
-  return weeks.map((week, i) => ({
-    week,
-    value: Math.round(base * (0.5 + i * 0.12 + Math.random() * 0.1)),
-  }))
-}
-
 interface StatsData {
   totalCompanies: number
   totalTalents: number
@@ -54,7 +44,12 @@ interface StatsData {
   crmJobsScraped: number
   crmCandidatesFound: number
   estimatedMRR: number
+  estimatedARR: number
+  hiredCount: number
+  avgTimeToHire: number | null
   planBreakdown: Record<string, number>
+  weeklyApplications: Array<{ week: string; count: number; iso: string }>
+  monthlySignups: Array<{ month: string; companies: number; mrr: number; cumulativeMrr: number; iso: string }>
   recentCompanies: Array<{ id: unknown; name: unknown; email: unknown; plan: unknown; createdAt: unknown }>
   recentTalents: Array<{ id: unknown; name: unknown; headline: unknown; createdAt: unknown }>
 }
@@ -202,7 +197,7 @@ export default function AdminDashboard() {
 
   if (!stats) return null
 
-  const chartData = buildChartData(stats.totalApplications)
+  const chartData = (stats.weeklyApplications ?? []).map((w) => ({ week: w.week, value: w.count }))
 
   const kpiCards = [
     { icon: Building2, value: stats.totalCompanies, label: 'Total Companies', iconBg: 'bg-tl-gold/10', iconCls: 'text-tl-gold', href: '/admin/companies' },
@@ -242,7 +237,7 @@ export default function AdminDashboard() {
             Platform Overview
           </h1>
           <p className="text-[var(--tl-text-secondary)] text-sm mt-1">
-            Live snapshot of TalentBridge — all data from DynamoDB
+            Live snapshot of TalentBridge — all numbers come straight from DynamoDB
           </p>
         </div>
         <button

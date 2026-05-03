@@ -109,7 +109,33 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const companyId = await getCompanyId(req)
   if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { searchParams } = new URL(req.url)
+  const hard = searchParams.get('hard') === 'true'
+
   try {
+    if (hard) {
+      // Hard delete — actually remove the row, scoped to this company.
+      const { DeleteCommand } = await import('@aws-sdk/lib-dynamodb')
+      await db.send(
+        new DeleteCommand({
+          TableName: Tables.Jobs,
+          Key: { id },
+          ConditionExpression: 'companyId = :cid',
+          ExpressionAttributeValues: { ':cid': companyId },
+        }),
+      )
+      await logAuditEvent({
+        action: 'job.hard_deleted',
+        resource: 'job',
+        resourceId: id,
+        userId: companyId,
+        companyId,
+        ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
+      })
+      return new NextResponse(null, { status: 204 })
+    }
+
+    // Soft close (default)
     await db.send(
       new UpdateCommand({
         TableName: Tables.Jobs,
@@ -122,7 +148,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     )
 
     await logAuditEvent({
-      action: 'job.deleted',
+      action: 'job.closed',
       resource: 'job',
       resourceId: id,
       userId: companyId,

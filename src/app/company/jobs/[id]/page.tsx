@@ -426,22 +426,40 @@ export default function JobDetailPage() {
 
             {/* Danger zone */}
             {!editing && (
-              <div className="tl-card p-4 border border-tl-rose/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="tl-card p-4 border border-tl-rose/20 space-y-3">
                 <div>
-                  <p className="text-sm font-semibold text-tl-text-primary">Close this job</p>
-                  <p className="text-xs text-tl-text-secondary mt-0.5">Stops accepting new applications.</p>
+                  <p className="text-sm font-semibold text-tl-text-primary">Danger zone</p>
+                  <p className="text-xs text-tl-text-secondary mt-0.5">Closing keeps the data; deleting removes it permanently.</p>
                 </div>
-                <Button variant="outline" size="sm"
-                  className="gap-1.5 text-xs border-tl-rose/30 text-tl-rose hover:bg-tl-rose/10 shrink-0"
-                  onClick={async () => {
-                    if (!confirm('Close this job posting?')) return
-                    await fetch(`/api/company/jobs/${id}`, { method: 'DELETE' })
-                    toast.success('Job closed')
-                    router.push('/company/jobs')
-                  }}
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Close Job
-                </Button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-2">
+                  <Button variant="outline" size="sm"
+                    className="gap-1.5 text-xs border-tl-rose/30 text-tl-rose hover:bg-tl-rose/10"
+                    onClick={async () => {
+                      if (!confirm('Close this job posting? It will stop accepting new applications.')) return
+                      await fetch(`/api/company/jobs/${id}`, { method: 'DELETE' })
+                      toast.success('Job closed')
+                      router.push('/company/jobs')
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Close Job
+                  </Button>
+                  <Button variant="outline" size="sm"
+                    className="gap-1.5 text-xs border-tl-rose text-white bg-tl-rose hover:bg-tl-rose/90"
+                    onClick={async () => {
+                      if (!confirm('Permanently delete this job? This cannot be undone. Existing applications will be detached.')) return
+                      const res = await fetch(`/api/company/jobs/${id}?hard=true`, { method: 'DELETE' })
+                      if (res.ok) {
+                        toast.success('Job deleted')
+                        router.push('/company/jobs')
+                      } else {
+                        const err = (await res.json().catch(() => ({}))) as { error?: string }
+                        toast.error(err.error ?? 'Failed to delete')
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete permanently
+                  </Button>
+                </div>
               </div>
             )}
           </motion.div>
