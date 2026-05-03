@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { LandingNav } from '@/components/landing/landing-nav'
 import { LandingFooter } from '@/components/landing/landing-footer'
+import { SectionPattern } from '@/components/landing/section-pattern'
 
 // ─── Scroll-triggered fade-in ────────────────────────────────────────────────
 
@@ -306,8 +307,9 @@ const LOGOS = ['Acme Corp', 'Nexus Labs', 'Veritas AI', 'Archon', 'Dropfleet', '
 
 function LogosSection() {
   return (
-    <FadeIn className="py-14 sm:py-16 border-y border-tl-border-subtle bg-tl-bg-surface/40">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <FadeIn className="relative py-14 sm:py-16 border-y border-tl-border-subtle bg-tl-bg-surface/60">
+      <SectionPattern variant="dots" />
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <p className="text-center text-[11.5px] font-semibold text-tl-text-tertiary uppercase tracking-[0.18em] mb-7">
           Trusted by talent teams at
         </p>
@@ -330,6 +332,7 @@ function LogosSection() {
 function FeaturesSection() {
   return (
     <section id="features" className="relative py-24 sm:py-32 overflow-hidden">
+      <SectionPattern variant="aurora" />
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-tl-gold/5 blur-[120px]" />
       </div>
@@ -561,8 +564,9 @@ function MatchMockup() {
 
 function HowSection() {
   return (
-    <section id="how" className="relative py-24 sm:py-32 border-y border-tl-border-subtle bg-tl-bg-surface/30">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <section id="how" className="relative py-24 sm:py-32 border-y border-tl-border-subtle bg-tl-bg-surface/40 overflow-hidden">
+      <SectionPattern variant="grid" />
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
             <FadeIn>
@@ -628,6 +632,7 @@ const STATS = [
 function StatsSection() {
   return (
     <section className="py-24 sm:py-32 relative overflow-hidden">
+      <SectionPattern variant="mesh" />
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-tl-teal/5 blur-[100px]" />
       </div>
@@ -687,8 +692,9 @@ const TESTIMONIALS = [
 
 function TestimonialsSection() {
   return (
-    <section className="py-24 sm:py-32 border-y border-tl-border-subtle bg-tl-bg-surface/30 relative">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <section className="py-24 sm:py-32 border-y border-tl-border-subtle bg-tl-bg-surface/40 relative overflow-hidden">
+      <SectionPattern variant="soft" />
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <FadeIn className="text-center mb-14">
           <div className="flex justify-center gap-0.5 mb-4">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -734,6 +740,7 @@ function TestimonialsSection() {
 function CTASection() {
   return (
     <section className="py-24 sm:py-32 relative overflow-hidden">
+      <SectionPattern variant="aurora" />
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] rounded-full bg-tl-gold/10 blur-[120px]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-tl-teal/10 blur-[100px]" />

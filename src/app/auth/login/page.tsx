@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 import { signInCompany, signInTalent } from '@/lib/api'
 import { toast } from 'sonner'
+import { TBLogo } from '@/components/landing/landing-logo'
 
 type Role = 'company' | 'talent'
 
@@ -27,8 +28,8 @@ function LeftPanel({ role }: { role: Role }) {
 
       {/* Logo */}
       <Link href="/" className="relative z-10 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-indigo-300" />
+        <div className="w-8 h-8 flex items-center justify-center">
+          <TBLogo />
         </div>
         <span className="text-white font-bold text-[15px] tracking-tight">TalentBridge</span>
       </Link>
@@ -210,8 +211,8 @@ function LoginContent() {
         >
           {/* Mobile logo */}
           <Link href="/" className="flex lg:hidden items-center gap-2.5 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="w-7 h-7 flex items-center justify-center">
+              <TBLogo />
             </div>
             <span className="text-white font-bold text-[15px]">TalentBridge</span>
           </Link>

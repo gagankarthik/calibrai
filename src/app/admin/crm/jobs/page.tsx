@@ -1,71 +1,112 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Briefcase,
   Globe,
   MapPin,
-  DollarSign,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  Zap,
   Search,
+  Link2,
+  Sparkles,
+  ExternalLink,
+  Wifi,
+  Building2,
+  Calendar,
+  X,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
+import { cn, timeAgo } from '@/lib/utils'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CrmJob {
   jobId?: string
+  pk?: string
   id?: string
   title?: string
   company?: string
   location?: string
   salary?: string
+  salaryRange?: string
   source?: string
   skills?: string[]
   url?: string
   description?: string
+  remote?: boolean
+  jobType?: string
+  postedAt?: string | null
+  scrapedAt?: string
   createdAt?: string
 }
 
-const SOURCE_OPTIONS = ['', 'remoteok', 'linkedin', 'indeed', 'greenhouse']
+interface ScrapeResult {
+  scraped: number
+  saved: number
+  skipped: number
+  source: string
+  warning?: string
+  jobs?: CrmJob[]
+}
 
-function SourceBadge({ source }: { source: string | undefined }) {
+// ─── Source badge ─────────────────────────────────────────────────────────────
+
+function SourceBadge({ source }: { source?: string }) {
   const s = (source ?? '').toLowerCase()
-  const styles: Record<string, string> = {
-    remoteok: 'bg-tl-teal/10 text-tl-teal border-tl-teal/20',
-    linkedin: 'bg-tl-blue/10 text-tl-blue border-tl-blue/20',
-    indeed: 'bg-tl-gold/10 text-tl-gold border-tl-gold/20',
-    greenhouse: 'bg-purple-100 text-purple-600 border-purple-200',
+  const known: Record<string, string> = {
+    remoteok: 'bg-tl-teal/10 text-tl-teal border-tl-teal/30',
+    linkedin: 'bg-tl-blue/10 text-tl-blue border-tl-blue/30',
+    indeed: 'bg-tl-gold/10 text-tl-gold border-tl-gold/30',
+    greenhouse: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    lever: 'bg-purple-100 text-purple-700 border-purple-200',
+    workday: 'bg-orange-100 text-orange-700 border-orange-200',
+    remotive: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+    ycombinator: 'bg-amber-100 text-amber-700 border-amber-200',
+    hiring_cafe: 'bg-pink-100 text-pink-700 border-pink-200',
   }
+  const cls =
+    known[s] ??
+    'bg-[var(--tl-bg-elevated)] text-[var(--tl-text-secondary)] border-[var(--tl-border-default)]'
   return (
-    <span className={`inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase ${styles[s] ?? 'bg-[var(--tl-bg-elevated)] text-[var(--tl-text-secondary)] border-[var(--tl-border-subtle)]'}`}>
+    <span className={cn('inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap', cls)}>
       {source ?? 'unknown'}
     </span>
   )
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function AdminCrmJobs() {
   const [jobs, setJobs] = useState<CrmJob[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [source, setSource] = useState('')
+  const LIMIT = 25
+
+  const [search, setSearch] = useState('')
+  const [sourceFilter, setSourceFilter] = useState('')
+  const [remoteOnly, setRemoteOnly] = useState(false)
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // URL scraper state
+  const [scrapeUrl, setScrapeUrl] = useState('')
   const [scraping, setScraping] = useState(false)
-  const [scrapeKeywords, setScrapeKeywords] = useState('')
-  const [showScrapeInput, setShowScrapeInput] = useState(false)
-  const LIMIT = 24
+  const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null)
+  const [scrapeError, setScrapeError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) })
-      if (source) params.set('source', source)
+      if (sourceFilter) params.set('source', sourceFilter)
       const res = await fetch(`/api/admin/crm/jobs?${params}`)
       if (!res.ok) throw new Error('Failed')
-      const data = await res.json() as { jobs: CrmJob[]; total: number }
+      const data = (await res.json()) as { jobs: CrmJob[]; total: number }
       setJobs(data.jobs ?? [])
       setTotal(data.total ?? 0)
     } catch {
@@ -73,26 +114,61 @@ export default function AdminCrmJobs() {
     } finally {
       setLoading(false)
     }
-  }, [page, source])
+  }, [page, sourceFilter])
 
   useEffect(() => { load() }, [load])
 
+  // Distinct sources for the filter dropdown — derived from current data
+  const knownSources = useMemo(() => {
+    const set = new Set<string>()
+    jobs.forEach((j) => { if (j.source) set.add(j.source) })
+    return Array.from(set).sort()
+  }, [jobs])
+
+  // Client-side text + remote filter on the current page of results
+  const filtered = useMemo(() => {
+    let list = jobs
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      list = list.filter(
+        (j) =>
+          (j.title ?? '').toLowerCase().includes(q) ||
+          (j.company ?? '').toLowerCase().includes(q) ||
+          (j.location ?? '').toLowerCase().includes(q) ||
+          (j.skills ?? []).some((s) => s.toLowerCase().includes(q)),
+      )
+    }
+    if (remoteOnly) list = list.filter((j) => j.remote)
+    return list
+  }, [jobs, search, remoteOnly])
+
   async function handleScrape(e: React.FormEvent) {
     e.preventDefault()
+    if (!scrapeUrl.trim()) return
     setScraping(true)
+    setScrapeError('')
+    setScrapeResult(null)
     try {
-      await fetch('/api/crm/jobs', {
+      const res = await fetch('/api/admin/crm/jobs/scrape-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keywords: scrapeKeywords.split(',').map(k => k.trim()).filter(Boolean),
-        }),
+        body: JSON.stringify({ url: scrapeUrl.trim() }),
       })
+      const data = (await res.json().catch(() => ({}))) as Partial<ScrapeResult> & { error?: string }
+      if (!res.ok) throw new Error(data.error || 'Scrape failed')
+      setScrapeResult({
+        scraped: data.scraped ?? 0,
+        saved: data.saved ?? 0,
+        skipped: data.skipped ?? 0,
+        source: data.source ?? scrapeUrl,
+        warning: data.warning,
+        jobs: data.jobs,
+      })
+      setScrapeUrl('')
+      // Refresh list to surface the newly saved jobs
       await load()
-      setShowScrapeInput(false)
-      setScrapeKeywords('')
-    } catch {
-      // ignore
+    } catch (err) {
+      setScrapeError(err instanceof Error ? err.message : 'Failed to scrape URL')
     } finally {
       setScraping(false)
     }
@@ -100,202 +176,339 @@ export default function AdminCrmJobs() {
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT))
 
+  const activeFilterCount = (sourceFilter ? 1 : 0) + (remoteOnly ? 1 : 0) + (search.trim() ? 1 : 0)
+  const clearFilters = () => {
+    setSourceFilter('')
+    setRemoteOnly(false)
+    setSearch('')
+    setPage(1)
+  }
+
   return (
-    <div className="p-6">
-      {/* Header */}
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+      {/* ─── Header ───────────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-start justify-between mb-6 gap-4 flex-wrap"
+        className="mb-5"
       >
-        <div>
-          <h1 className="font-display text-2xl text-[var(--tl-text-primary)]">CRM — Scraped Jobs</h1>
-          <p className="text-sm text-[var(--tl-text-secondary)] mt-1">
-            {total} jobs scraped from external sources
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => load()}
-            disabled={loading}
-            className="btn-ghost flex items-center gap-2 text-sm disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-          <button
-            onClick={() => setShowScrapeInput((s) => !s)}
-            className="btn-gold flex items-center gap-2 text-sm"
-          >
-            <Zap className="w-4 h-4" />
-            Trigger Scrape
-          </button>
-        </div>
+        <h1 className="font-display text-2xl text-[var(--tl-text-primary)]">CRM — Scraped Jobs</h1>
+        <p className="text-sm text-[var(--tl-text-secondary)] mt-1">
+          {total} job{total === 1 ? '' : 's'} scraped from external sources · Paste a URL below to add more
+        </p>
       </motion.div>
 
-      {/* Scrape form */}
-      {showScrapeInput && (
-        <motion.form
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          onSubmit={handleScrape}
-          className="tl-card-gold p-4 mb-6 flex items-center gap-3 flex-wrap"
-        >
-          <Search className="w-4 h-4 text-tl-gold shrink-0" />
-          <input
-            type="text"
-            value={scrapeKeywords}
-            onChange={(e) => setScrapeKeywords(e.target.value)}
-            placeholder="Comma-separated keywords (e.g., react, senior engineer, python)…"
-            className="input-field flex-1 min-w-0 py-2"
-            required
-          />
+      {/* ─── Scrape from URL ──────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="tl-card p-4 sm:p-5 mb-5 border border-tl-gold/25 bg-gradient-to-br from-tl-gold/5 via-transparent to-transparent"
+      >
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-tl-gold/15 border border-tl-gold/30 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-tl-gold" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold text-[var(--tl-text-primary)]">
+              Scrape a job from any URL
+            </h2>
+            <p className="text-xs text-[var(--tl-text-secondary)] mt-0.5">
+              Paste a job posting or careers page — Playwright loads it and OpenAI extracts the structured details.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleScrape} className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--tl-text-secondary)]" />
+            <input
+              type="url"
+              value={scrapeUrl}
+              onChange={(e) => setScrapeUrl(e.target.value)}
+              placeholder="https://jobs.example.com/posting-url"
+              required
+              disabled={scraping}
+              className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-[var(--tl-border-default)] bg-[var(--tl-bg-surface)] text-sm text-[var(--tl-text-primary)] placeholder:text-[var(--tl-text-secondary)]/60 focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30 transition-all disabled:opacity-50"
+            />
+          </div>
           <button
             type="submit"
-            disabled={scraping}
-            className="btn-gold flex items-center gap-2 text-sm shrink-0 disabled:opacity-50"
+            disabled={scraping || !scrapeUrl.trim()}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-tl-gold text-tl-bg-base text-sm font-semibold hover:bg-tl-gold/90 transition-all shadow-md shadow-tl-gold/30 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
             {scraping ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-tl-bg-base/30 border-t-tl-bg-base animate-spin" />
+                Scraping…
+              </>
             ) : (
-              <Zap className="w-4 h-4" />
+              <>
+                <Sparkles className="w-4 h-4" />
+                Scrape
+              </>
             )}
-            {scraping ? 'Scraping…' : 'Run Scrape'}
           </button>
-        </motion.form>
-      )}
+        </form>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-6 flex-wrap">
-        <span className="text-xs font-semibold text-[var(--tl-text-secondary)] uppercase tracking-wider">
-          Source:
-        </span>
-        {SOURCE_OPTIONS.map((s) => (
+        <AnimatePresence>
+          {scrapeResult && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-tl-teal/8 border border-tl-teal/25 text-xs">
+                <CheckCircle2 className="w-4 h-4 text-tl-teal mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[var(--tl-text-primary)] font-medium">
+                    {scrapeResult.scraped > 0
+                      ? `Found ${scrapeResult.scraped} job${scrapeResult.scraped === 1 ? '' : 's'} · saved ${scrapeResult.saved} · skipped ${scrapeResult.skipped} duplicate${scrapeResult.skipped === 1 ? '' : 's'}`
+                      : scrapeResult.warning ?? 'Scrape complete'}
+                  </p>
+                  <p className="text-[var(--tl-text-secondary)] truncate mt-0.5">{scrapeResult.source}</p>
+                </div>
+                <button
+                  onClick={() => setScrapeResult(null)}
+                  className="p-1 -m-1 text-[var(--tl-text-secondary)] hover:text-[var(--tl-text-primary)]"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+          {scrapeError && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-tl-rose/8 border border-tl-rose/25 text-xs">
+                <AlertCircle className="w-4 h-4 text-tl-rose mt-0.5 shrink-0" />
+                <p className="text-[var(--tl-text-primary)] flex-1">{scrapeError}</p>
+                <button
+                  onClick={() => setScrapeError('')}
+                  className="p-1 -m-1 text-[var(--tl-text-secondary)] hover:text-[var(--tl-text-primary)]"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* ─── Filter bar ──────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--tl-text-secondary)]" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search title, company, skills…"
+            className="w-full pl-10 pr-9 py-2 rounded-xl border border-[var(--tl-border-default)] bg-[var(--tl-bg-surface)] text-sm text-[var(--tl-text-primary)] focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--tl-text-secondary)] hover:text-[var(--tl-text-primary)]"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <select
+          value={sourceFilter}
+          onChange={(e) => { setSourceFilter(e.target.value); setPage(1) }}
+          className="py-2 px-3 rounded-xl border border-[var(--tl-border-default)] bg-[var(--tl-bg-surface)] text-sm text-[var(--tl-text-primary)] focus:outline-none focus:border-tl-gold focus:ring-1 focus:ring-tl-gold/30"
+        >
+          <option value="">All sources</option>
+          {knownSources.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+
+        <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--tl-border-default)] bg-[var(--tl-bg-surface)] cursor-pointer hover:border-tl-gold/40 transition-colors">
+          <input
+            type="checkbox"
+            checked={remoteOnly}
+            onChange={(e) => setRemoteOnly(e.target.checked)}
+            className="accent-tl-gold w-4 h-4"
+          />
+          <Wifi className="w-3.5 h-3.5 text-tl-teal" />
+          <span className="text-sm text-[var(--tl-text-primary)]">Remote only</span>
+        </label>
+
+        {activeFilterCount > 0 && (
           <button
-            key={s || 'all'}
-            onClick={() => { setSource(s); setPage(1) }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              source === s
-                ? 'bg-tl-gold/15 text-tl-gold border border-tl-gold/30'
-                : 'text-[var(--tl-text-secondary)] hover:text-[var(--tl-text-primary)] border border-[var(--tl-border-subtle)] hover:border-[var(--tl-border-default)]'
-            }`}
+            onClick={clearFilters}
+            className="text-xs text-tl-rose/80 hover:text-tl-rose font-medium"
           >
-            {s || 'All'}
+            Clear filters · {activeFilterCount}
           </button>
-        ))}
+        )}
+
+        <button
+          onClick={load}
+          disabled={loading}
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--tl-border-default)] text-sm text-[var(--tl-text-secondary)] hover:text-[var(--tl-text-primary)] hover:border-tl-gold/30 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
+          Refresh
+        </button>
       </div>
 
-      {/* Cards grid */}
-      {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="tl-card p-5 animate-pulse">
-              <div className="h-4 w-3/4 bg-[var(--tl-bg-elevated)] rounded mb-3" />
-              <div className="h-3 w-1/2 bg-[var(--tl-bg-elevated)] rounded mb-2" />
-              <div className="h-3 w-2/3 bg-[var(--tl-bg-elevated)] rounded" />
-            </div>
-          ))}
-        </div>
-      ) : error ? (
+      {/* ─── List ────────────────────────────────────────────────────────── */}
+      {error ? (
         <div className="py-16 text-center">
           <p className="text-tl-rose text-sm">{error}</p>
-          <button onClick={load} className="btn-ghost mt-3 text-sm">Retry</button>
+          <button onClick={load} className="mt-3 text-sm text-tl-gold hover:underline">
+            Retry
+          </button>
         </div>
-      ) : jobs.length === 0 ? (
-        <div className="py-20 text-center">
-          <Globe className="w-10 h-10 mx-auto mb-3 text-[var(--tl-text-secondary)] opacity-30" />
-          <p className="text-[var(--tl-text-secondary)]">No scraped jobs found. Trigger a scrape above.</p>
+      ) : loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="tl-card p-4 animate-pulse h-[72px]" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="tl-card py-16 flex flex-col items-center text-center px-6">
+          <Globe className="w-10 h-10 mb-3 text-[var(--tl-text-secondary)] opacity-30" />
+          <p className="text-sm font-medium text-[var(--tl-text-primary)]">
+            {jobs.length === 0
+              ? 'No scraped jobs yet'
+              : 'No jobs match your filters'}
+          </p>
+          <p className="text-xs text-[var(--tl-text-secondary)] mt-1 max-w-md">
+            {jobs.length === 0
+              ? 'Paste a job URL above to scrape your first one with AI.'
+              : 'Try clearing filters or searching for something else.'}
+          </p>
+          {jobs.length > 0 && activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="mt-4 text-xs text-tl-gold hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
-        <motion.div
+        <motion.ul
           initial="hidden"
           animate="visible"
-          variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.05 } } }}
-          className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.03 } } }}
+          className="space-y-2"
         >
-          {jobs.map((job, i) => (
-            <motion.div
-              key={String(job.jobId ?? job.id ?? i)}
-              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-              className="tl-card p-5 flex flex-col gap-3 hover:border-tl-gold/30 transition-all"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="w-9 h-9 rounded-lg bg-tl-gold/10 border border-tl-gold/20 flex items-center justify-center shrink-0">
-                  <Briefcase className="w-4 h-4 text-tl-gold" />
+          {filtered.map((job, i) => {
+            const id = String(job.jobId ?? job.pk ?? job.id ?? i)
+            const salary = job.salary ?? job.salaryRange
+            const posted = job.postedAt ?? job.scrapedAt ?? job.createdAt
+            return (
+              <motion.li
+                key={id}
+                variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                className="tl-card px-4 sm:px-5 py-3.5 hover:border-tl-gold/30 transition-colors flex items-center gap-3 sm:gap-4"
+              >
+                {/* Avatar/icon */}
+                <div className="w-10 h-10 rounded-xl bg-tl-gold/10 border border-tl-gold/20 flex items-center justify-center shrink-0">
+                  <Building2 className="w-4 h-4 text-tl-gold" />
                 </div>
-                <SourceBadge source={job.source} />
-              </div>
 
-              <div>
-                <h3 className="font-semibold text-sm text-[var(--tl-text-primary)] line-clamp-2 leading-snug">
-                  {job.title ?? 'Untitled Job'}
-                </h3>
-                <p className="text-xs text-[var(--tl-text-secondary)] mt-0.5">
-                  {job.company ?? '—'}
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                {job.location && (
-                  <div className="flex items-center gap-1.5 text-xs text-[var(--tl-text-secondary)]">
-                    <MapPin className="w-3 h-3" />
-                    {job.location}
+                {/* Title + company */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-[var(--tl-text-primary)] truncate">
+                      {job.title ?? 'Untitled job'}
+                    </p>
+                    <SourceBadge source={job.source} />
+                    {job.remote && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-tl-teal/10 text-tl-teal border border-tl-teal/30 whitespace-nowrap">
+                        <Wifi className="w-2.5 h-2.5" /> Remote
+                      </span>
+                    )}
                   </div>
-                )}
-                {job.salary && (
-                  <div className="flex items-center gap-1.5 text-xs text-tl-teal font-medium">
-                    <DollarSign className="w-3 h-3" />
-                    {job.salary}
+                  <div className="flex items-center gap-3 mt-0.5 text-xs text-[var(--tl-text-secondary)] flex-wrap">
+                    <span className="font-medium">{job.company ?? '—'}</span>
+                    {job.location && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        {job.location}
+                      </span>
+                    )}
+                    {salary && (
+                      <span className="text-tl-teal font-medium font-mono">{salary}</span>
+                    )}
+                    {posted && (
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-3 h-3 shrink-0" />
+                        {timeAgo(posted)}
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
-
-              {job.skills && job.skills.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {job.skills.slice(0, 3).map((s) => (
-                    <span
-                      key={s}
-                      className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--tl-bg-elevated)] text-[var(--tl-text-secondary)] border border-[var(--tl-border-subtle)]"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                  {job.skills.length > 3 && (
-                    <span className="text-[10px] text-[var(--tl-text-secondary)]">+{job.skills.length - 3}</span>
+                  {job.skills && job.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {job.skills.slice(0, 5).map((s) => (
+                        <span
+                          key={s}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--tl-bg-elevated)] text-[var(--tl-text-secondary)] border border-[var(--tl-border-subtle)]"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                      {job.skills.length > 5 && (
+                        <span className="text-[10px] text-[var(--tl-text-secondary)]">
+                          +{job.skills.length - 5}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              {job.url && (
-                <a
-                  href={job.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-auto btn-ghost text-xs py-1.5 text-center"
-                >
-                  View Listing
-                </a>
-              )}
-            </motion.div>
-          ))}
-        </motion.div>
+                {/* Action */}
+                {job.url && (
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--tl-border-default)] text-xs font-medium text-[var(--tl-text-primary)] hover:border-tl-gold/40 hover:text-tl-gold transition-colors shrink-0"
+                  >
+                    Open <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </motion.li>
+            )
+          })}
+        </motion.ul>
       )}
 
-      {/* Pagination */}
+      {/* ─── Pagination ──────────────────────────────────────────────────── */}
       {totalPages > 1 && !loading && (
-        <div className="flex items-center justify-center gap-4 mt-8">
+        <div className="flex items-center justify-center gap-3 mt-6">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex items-center gap-1.5 btn-ghost text-sm disabled:opacity-30"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--tl-border-default)] text-sm text-[var(--tl-text-secondary)] hover:text-[var(--tl-text-primary)] hover:border-tl-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft className="w-4 h-4" /> Previous
           </button>
-          <span className="text-sm text-[var(--tl-text-secondary)]">{page} / {totalPages}</span>
+          <span className="text-sm text-[var(--tl-text-secondary)] font-mono">
+            {page} / {totalPages}
+          </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex items-center gap-1.5 btn-ghost text-sm disabled:opacity-30"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--tl-border-default)] text-sm text-[var(--tl-text-secondary)] hover:text-[var(--tl-text-primary)] hover:border-tl-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>

@@ -42,7 +42,7 @@ export function SidebarAdmin() {
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-2 border-b border-[var(--tl-border-subtle)]">
         <div className="w-8 h-8 flex items-center justify-center">
-        <TBLogo/>
+          <TBLogo />
         </div>
         <div>
           <span className="font-display text-sm font-bold text-tl-text-primary">
