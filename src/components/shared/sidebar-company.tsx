@@ -14,11 +14,13 @@ import {
   Zap,
   HelpCircle,
   Shield,
+  Sparkles,
 } from 'lucide-react'
 import { TBLogo } from '../landing/landing-logo'
 
 const navItems = [
-  { label: 'Dashboard',   href: '/company/dashboard',  icon: LayoutDashboard },
+  { label: 'Dashboard',   href: '/company/dashboard',   icon: LayoutDashboard },
+  { label: 'AI Sourcer',  href: '/company/ai-sourcer',  icon: Sparkles },
   { label: 'Jobs',        href: '/company/jobs',        icon: Briefcase },
   { label: 'Talent Pool', href: '/company/candidates',  icon: Users },
   { label: 'Pipeline',    href: '/company/pipeline',    icon: Kanban },

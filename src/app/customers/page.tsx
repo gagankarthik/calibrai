@@ -95,7 +95,7 @@ export default function CustomersPage() {
       <LandingNav />
 
       {/* ─── Editorial hero ────────────────────────────────────────────────── */}
-      <section className="relative pt-36 sm:pt-44 pb-20 sm:pb-28 overflow-hidden">
+      <section className="relative pt-24 sm:pt-32 pb-14 sm:pb-20 overflow-hidden">
         <Grain opacity={0.05} />
         <div
           aria-hidden
@@ -107,8 +107,7 @@ export default function CustomersPage() {
               'radial-gradient(at 50% 110%, rgba(2,132,199,0.10) 0px, transparent 60%)',
           }}
         />
-        {/* Tiny meta strip — looks like a magazine masthead */}
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 mb-10 flex items-center gap-3 text-[11px] tracking-[0.18em] uppercase font-semibold text-tl-text-tertiary">
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 mb-7 flex items-center gap-3 text-[10px] tracking-[0.2em] uppercase font-semibold text-tl-text-tertiary">
           <span>TalentBridge</span>
           <span className="h-px flex-1 bg-tl-text-tertiary/20" />
           <span>Issue 03 · Customer Outcomes</span>
@@ -116,27 +115,27 @@ export default function CustomersPage() {
           <span>2026</span>
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 grid lg:grid-cols-12 gap-8 items-end">
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 grid lg:grid-cols-12 gap-7 items-end">
           <div className="lg:col-span-9">
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: EASE }}
-              className="text-[12vw] leading-[0.95] sm:text-[6.5rem] lg:text-[8rem] font-semibold tracking-[-0.04em] text-tl-text-primary"
+              transition={{ duration: 0.7, ease: EASE }}
+              className="[font-family:'Fraunces',Georgia,serif] [font-variation-settings:'opsz'_144,'SOFT'_30,'WONK'_0] font-light text-[clamp(2.25rem,6.4vw,5rem)] leading-[1.0] tracking-[-0.04em] text-tl-text-primary [text-wrap:balance]"
             >
               Hiring teams who
               <br />
               decided{' '}
               <span className="relative inline-block">
                 <Em>not to wait.</Em>
-                <ScribbleUnderline color="#C9A84C" delay={0.6} />
+                <ScribbleUnderline color="#C9A84C" delay={0.5} />
               </span>
             </motion.h1>
             <motion.p
-              initial={{ opacity: 0, y: 14 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.18, ease: EASE }}
-              className="mt-7 text-lg text-tl-text-secondary max-w-xl leading-relaxed"
+              transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
+              className="mt-5 text-[15px] sm:text-base text-tl-text-secondary max-w-xl leading-relaxed"
             >
               Sixty-three companies. Three industries. One thing in common: they replaced
               four tools with one workspace and started measuring results in days, not weeks.
