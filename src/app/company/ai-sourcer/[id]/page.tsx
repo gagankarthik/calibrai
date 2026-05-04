@@ -194,7 +194,7 @@ export default function BriefDetailPage() {
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-tl-indigo/10 border border-tl-indigo/20 text-[10px] font-bold tracking-[0.18em] uppercase text-tl-indigo">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold tracking-[0.18em] uppercase text-indigo-500">
                 <Sparkles className="w-3 h-3" /> AI Sourcer
               </span>
               {brief.lastSourcedAt && (
@@ -221,7 +221,7 @@ export default function BriefDetailPage() {
           <button
             onClick={runSourcing}
             disabled={sourcing}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-tl-indigo hover:bg-tl-indigo/90 text-white text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-colors disabled:opacity-60"
           >
             {sourcing ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Sourcing…</>

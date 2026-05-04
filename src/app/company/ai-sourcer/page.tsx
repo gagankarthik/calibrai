@@ -69,7 +69,7 @@ export default function AiSourcerIndexPage() {
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-tl-indigo hover:bg-tl-indigo/90 text-white text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-colors"
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-tl-indigo hover:bg-tl-indigo/90 text-primary text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-colors"
           >
             <Plus className="w-4 h-4" /> New brief
           </button>
@@ -206,7 +206,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       </p>
       <button
         onClick={onCreate}
-        className="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-tl-indigo hover:bg-tl-indigo/90 text-white text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-colors"
+        className="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] transition-colors"
       >
         <Plus className="w-4 h-4" /> Create your first brief
       </button>
@@ -423,7 +423,7 @@ function NewBriefDialog({
               })
             }
             disabled={submitting || title.trim().length < 2}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-tl-indigo hover:bg-tl-indigo/90 text-white text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold shadow-[0_4px_16px_rgba(79,70,229,0.25)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : <>Create brief <ArrowRight className="w-4 h-4" /></>}
           </button>
